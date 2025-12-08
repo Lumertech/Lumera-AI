@@ -624,27 +624,44 @@ async def whatsapp_webhook(
     
     return Response(content=str(response), media_type="application/xml")
 
-# Stripe Webhook
-@api_router.post("/webhook/stripe")
-async def stripe_webhook(request: Request):
-    if not stripe_checkout:
-        raise HTTPException(status_code=500, detail="Stripe not configured")
+# Razorpay Webhook
+@api_router.post("/webhook/razorpay")
+async def razorpay_webhook(request: Request):
+    if not razorpay_client:
+        raise HTTPException(status_code=500, detail="Razorpay not configured")
     
     body = await request.body()
-    signature = request.headers.get("Stripe-Signature")
+    signature = request.headers.get("X-Razorpay-Signature", "")
+    webhook_secret = os.environ.get('RAZORPAY_WEBHOOK_SECRET', '')
     
     try:
-        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        # Verify webhook signature
+        razorpay_client.utility.verify_webhook_signature(
+            body.decode(),
+            signature,
+            webhook_secret
+        )
         
-        if webhook_response.payment_status == "paid":
+        payload = await request.json()
+        event = payload.get('event')
+        
+        if event == 'payment.captured':
+            payment_entity = payload['payload']['payment']['entity']
+            order_id = payment_entity.get('order_id')
+            payment_id = payment_entity['id']
+            
             await db.payment_transactions.update_one(
-                {"session_id": webhook_response.session_id},
-                {"$set": {"payment_status": "paid", "updated_at": datetime.now(timezone.utc).isoformat()}}
+                {"order_id": order_id},
+                {"$set": {
+                    "payment_id": payment_id,
+                    "payment_status": "paid",
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
             )
         
         return {"status": "success"}
     except Exception as e:
-        logging.error(f"Stripe webhook error: {e}")
+        logging.error(f"Razorpay webhook error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 # Prescriptions (Doctor-specific)
