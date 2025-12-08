@@ -151,16 +151,89 @@ const Settings = () => {
 
         <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle className="font-manrope">API Configuration</CardTitle>
-            <CardDescription className="font-inter">Configure external service credentials</CardDescription>
+            <CardTitle className="font-manrope">Razorpay Payment Configuration</CardTitle>
+            <CardDescription className="font-inter">
+              Configure your Razorpay account to receive payments independently
+              {razorpayConfigured && (
+                <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                  ✓ Configured
+                </span>
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 mb-4">
+              <p className="text-sm font-inter text-blue-900">
+                <strong>How to get Razorpay keys:</strong>
+                <br />
+                1. Go to <a href="https://dashboard.razorpay.com/" target="_blank" rel="noopener noreferrer" className="underline">dashboard.razorpay.com</a>
+                <br />
+                2. Login/Signup with your account
+                <br />
+                3. Go to Settings → API Keys → Generate Test/Live Keys
+                <br />
+                4. Copy Key ID and Key Secret and paste below
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="font-manrope font-semibold">Razorpay Key ID</Label>
+              <Input
+                type="text"
+                placeholder="rzp_test_..."
+                value={razorpayConfig.razorpay_key_id}
+                onChange={(e) => setRazorpayConfig({...razorpayConfig, razorpay_key_id: e.target.value})}
+                data-testid="razorpay-key-id-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-manrope font-semibold">Razorpay Key Secret</Label>
+              <Input
+                type="password"
+                placeholder="••••••••"
+                value={razorpayConfig.razorpay_key_secret}
+                onChange={(e) => setRazorpayConfig({...razorpayConfig, razorpay_key_secret: e.target.value})}
+                data-testid="razorpay-key-secret-input"
+              />
+              <p className="text-xs text-slate-500">Keep this secret and never share publicly</p>
+            </div>
+
+            <Button 
+              onClick={saveRazorpayConfig}
+              disabled={loading}
+              className="w-full bg-indigo-600 hover:bg-indigo-700"
+              data-testid="save-razorpay-btn"
+            >
+              {loading ? 'Saving...' : 'Save Razorpay Configuration'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="font-manrope">Twilio WhatsApp Configuration</CardTitle>
+            <CardDescription className="font-inter">
+              Configure Twilio for WhatsApp OTP and notifications
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200 mb-4">
+              <p className="text-sm font-inter text-yellow-900">
+                <strong>📖 Follow the integration guide:</strong>
+                <br />
+                Check <code className="bg-yellow-100 px-2 py-1 rounded">/TWILIO_INTEGRATION_GUIDE.md</code> for detailed setup instructions
+                <br />
+                <strong>Quick steps:</strong> Create Twilio account → Get credentials → Join WhatsApp sandbox → Add credentials here
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label className="font-manrope font-semibold">Twilio Account SID</Label>
               <Input
-                type="password"
+                type="text"
                 placeholder="AC..."
-                defaultValue=""
+                value={twilioConfig.twilio_account_sid}
+                onChange={(e) => setTwilioConfig({...twilioConfig, twilio_account_sid: e.target.value})}
                 data-testid="twilio-sid-input"
               />
             </div>
@@ -169,17 +242,20 @@ const Settings = () => {
               <Input
                 type="password"
                 placeholder="••••••••"
-                defaultValue=""
+                value={twilioConfig.twilio_auth_token}
+                onChange={(e) => setTwilioConfig({...twilioConfig, twilio_auth_token: e.target.value})}
                 data-testid="twilio-token-input"
               />
             </div>
             <div className="space-y-2">
               <Label className="font-manrope font-semibold">WhatsApp Number</Label>
               <Input
-                placeholder="whatsapp:+1234567890"
-                defaultValue=""
+                placeholder="whatsapp:+14155238886"
+                value={twilioConfig.whatsapp_number}
+                onChange={(e) => setTwilioConfig({...twilioConfig, whatsapp_number: e.target.value})}
                 data-testid="whatsapp-number-input"
               />
+              <p className="text-xs text-slate-500">Include the 'whatsapp:' prefix</p>
             </div>
           </CardContent>
         </Card>
