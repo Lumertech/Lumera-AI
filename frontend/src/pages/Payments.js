@@ -115,6 +115,7 @@ const Payments = () => {
 
       const rzp = new window.Razorpay(options);
       rzp.open();
+      */
     } catch (error) {
       console.error('Payment failed:', error);
       toast.error('Failed to create payment');
