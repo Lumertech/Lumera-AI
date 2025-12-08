@@ -242,7 +242,12 @@ const Appointments = () => {
         ) : filteredAppointments.length > 0 ? (
           <div className="grid gap-4">
             {filteredAppointments.map((appt, index) => (
-              <Card key={appt.id} className="border-slate-200 card-hover" data-testid={`appointment-card-${index}`}>
+              <Card
+                key={appt.id}
+                className="border-slate-200 card-hover cursor-pointer"
+                onClick={() => navigate(`/appointments/${appt.id}`)}
+                data-testid={`appointment-card-${index}`}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
