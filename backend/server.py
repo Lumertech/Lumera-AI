@@ -271,20 +271,56 @@ async def send_whatsapp_message(to_number: str, message: str):
         return None
 
 async def send_appointment_reminders():
-    tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d")
+    \"\"\"Send 24-hour reminders\"\"\"\n    tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d")
     appointments = await db.appointments.find({
         "appointment_date": tomorrow,
         "status": "scheduled",
-        "reminder_sent": False
+        "reminder_24h_sent": {"$ne": True}
     }, {"_id": 0}).to_list(None)
     
     for appt in appointments:
-        message = f"Reminder: Your appointment with Lumer is tomorrow at {appt['start_time']}. Please arrive 10 minutes early."
+        # Get doctor name
+        doctor = await db.users.find_one({"id": appt['professional_id']}, {"_id": 0})
+        doctor_name = doctor.get('name', 'Doctor') if doctor else 'Doctor'
+        
+        message = f"\ud83d\udd14 Reminder: Your appointment with Dr. {doctor_name} is tomorrow at {appt['start_time']}.\\n\\nPlease arrive 10 minutes early.\\n\\n\ud83d\udccd Address: [Clinic Address]\\n\ud83d\udcde Contact: {doctor.get('phone_number', '')}\\n\\nSee you soon!"
+        
         await send_whatsapp_message(appt['client_phone'], message)
         await db.appointments.update_one(
             {"id": appt['id']},
-            {"$set": {"reminder_sent": True}}
+            {"$set": {"reminder_24h_sent": True}}
         )
+        logging.info(f"24h reminder sent for appointment {appt['id']}")
+
+async def send_4hour_reminders():
+    \"\"\"Send 4-hour before reminders\"\"\"\n    now = datetime.now(timezone.utc)
+    four_hours_later = now + timedelta(hours=4)
+    
+    # Get appointments happening in 4 hours
+    today = now.strftime("%Y-%m-%d")
+    target_time = four_hours_later.strftime("%H:%M")
+    
+    appointments = await db.appointments.find({
+        "appointment_date": today,
+        "status": "scheduled",
+        "reminder_4h_sent": {"$ne": True}
+    }, {"_id": 0}).to_list(None)
+    
+    for appt in appointments:
+        # Check if appointment is within 4 hours
+        appt_time = appt.get('start_time', '00:00')
+        
+        doctor = await db.users.find_one({"id": appt['professional_id']}, {"_id": 0})
+        doctor_name = doctor.get('name', 'Doctor') if doctor else 'Doctor'
+        
+        message = f"\u23f0 Reminder: Your appointment with Dr. {doctor_name} is in 4 hours at {appt_time}.\\n\\nPlease be ready!\\n\\n\ud83d\udccd Address: [Clinic Address]\\n\\nSee you soon!"
+        
+        await send_whatsapp_message(appt['client_phone'], message)
+        await db.appointments.update_one(
+            {"id": appt['id']},
+            {"$set": {"reminder_4h_sent": True}}
+        )
+        logging.info(f"4h reminder sent for appointment {appt['id']}")
 
 # Auth Routes
 @api_router.post("/auth/register")
