@@ -16,6 +16,7 @@ import PrescriptionWriter from '@/pages/PrescriptionWriter';
 import Clients from '@/pages/Clients';
 import WhatsAppConfig from '@/pages/WhatsAppConfig';
 import Payments from '@/pages/Payments';
+import Reminders from '@/pages/Reminders';
 import Settings from '@/pages/Settings';
 
 const ProtectedRoute = ({ children }) => {
