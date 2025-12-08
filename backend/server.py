@@ -440,60 +440,94 @@ async def get_available_slots(date: str, current_user: dict = Depends(get_curren
     
     return {"date": date, "slots": slots}
 
-# Payments
-@api_router.post("/payments/checkout")
-async def create_checkout(request: Request, package: str = "consultation", current_user: dict = Depends(get_current_user)):
-    global stripe_checkout
-    if not stripe_checkout:
-        api_key = os.environ.get('STRIPE_API_KEY')
-        host_url = str(request.base_url)
-        webhook_url = f"{host_url}api/webhook/stripe"
-        stripe_checkout = StripeCheckout(api_key=api_key, webhook_url=webhook_url)
+# Payments - Razorpay
+@api_router.post("/payments/create-order")
+async def create_payment_order(package: str = "consultation", current_user: dict = Depends(get_current_user)):
+    if not razorpay_client:
+        raise HTTPException(status_code=500, detail="Razorpay not configured")
     
-    packages = {"consultation": 50.0, "follow_up": 30.0, "full_checkup": 100.0}
-    amount = packages.get(package, 50.0)
+    # Package prices in INR (₹)
+    packages = {"consultation": 500, "follow_up": 300, "full_checkup": 1000}
+    amount_inr = packages.get(package, 500)
+    amount_paise = amount_inr * 100  # Convert to paise
     
-    origin = request.headers.get('origin', str(request.base_url).rstrip('/'))
-    success_url = f"{origin}/payment-success?session_id={{{{CHECKOUT_SESSION_ID}}}}"
-    cancel_url = f"{origin}/dashboard"
-    
-    checkout_request = CheckoutSessionRequest(
-        amount=amount,
-        currency="usd",
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata={"user_id": current_user['id'], "package": package}
-    )
-    
-    session = await stripe_checkout.create_checkout_session(checkout_request)
-    
-    await db.payment_transactions.insert_one({
-        "session_id": session.session_id,
-        "user_id": current_user['id'],
-        "amount": amount,
-        "currency": "usd",
-        "package": package,
-        "payment_status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat()
-    })
-    
-    return {"url": session.url, "session_id": session.session_id}
+    try:
+        order_data = {
+            "amount": amount_paise,
+            "currency": "INR",
+            "payment_capture": 1,
+            "notes": {
+                "user_id": current_user['id'],
+                "package": package
+            }
+        }
+        razorpay_order = razorpay_client.order.create(data=order_data)
+        
+        # Store order in database
+        await db.payment_transactions.insert_one({
+            "order_id": razorpay_order['id'],
+            "user_id": current_user['id'],
+            "amount": amount_inr,
+            "currency": "INR",
+            "package": package,
+            "payment_status": "created",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        return {
+            "order_id": razorpay_order['id'],
+            "amount": amount_paise,
+            "currency": "INR",
+            "key_id": os.environ.get('RAZORPAY_KEY_ID')
+        }
+    except Exception as e:
+        logging.error(f"Razorpay order creation failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create payment order")
 
-@api_router.get("/payments/status/{session_id}")
-async def check_payment_status(session_id: str, current_user: dict = Depends(get_current_user)):
-    if not stripe_checkout:
-        raise HTTPException(status_code=500, detail="Stripe not configured")
+@api_router.post("/payments/verify")
+async def verify_payment(
+    razorpay_order_id: str,
+    razorpay_payment_id: str,
+    razorpay_signature: str,
+    current_user: dict = Depends(get_current_user)
+):
+    if not razorpay_client:
+        raise HTTPException(status_code=500, detail="Razorpay not configured")
     
-    status = await stripe_checkout.get_checkout_status(session_id)
-    
-    transaction = await db.payment_transactions.find_one({"session_id": session_id})
-    if transaction and transaction.get('payment_status') != 'paid' and status.payment_status == 'paid':
+    try:
+        # Verify payment signature
+        params_dict = {
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_payment_id': razorpay_payment_id,
+            'razorpay_signature': razorpay_signature
+        }
+        razorpay_client.utility.verify_payment_signature(params_dict)
+        
+        # Update payment status in database
         await db.payment_transactions.update_one(
-            {"session_id": session_id},
-            {"$set": {"payment_status": "paid", "updated_at": datetime.now(timezone.utc).isoformat()}}
+            {"order_id": razorpay_order_id},
+            {"$set": {
+                "payment_id": razorpay_payment_id,
+                "payment_status": "paid",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
         )
+        
+        return {"status": "success", "message": "Payment verified successfully"}
+    except razorpay.errors.SignatureVerificationError:
+        logging.error("Payment signature verification failed")
+        raise HTTPException(status_code=400, detail="Invalid payment signature")
+
+@api_router.get("/payments/status/{order_id}")
+async def check_payment_status(order_id: str, current_user: dict = Depends(get_current_user)):
+    transaction = await db.payment_transactions.find_one(
+        {"order_id": order_id, "user_id": current_user['id']},
+        {"_id": 0}
+    )
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
     
-    return status
+    return transaction
 
 @api_router.post("/payments/generate-qr")
 async def generate_payment_qr(amount: float, current_user: dict = Depends(get_current_user)):
