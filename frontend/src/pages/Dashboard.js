@@ -51,7 +51,7 @@ const Dashboard = () => {
     },
     {
       title: 'Total Revenue',
-      value: formatCurrency(analytics?.total_revenue || 0),
+      value: '₹' + (analytics?.total_revenue || 0).toLocaleString('en-IN'),
       icon: DollarSign,
       color: 'from-green-500 to-teal-500',
     },
