@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/Layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, DollarSign, Clock } from 'lucide-react';
+import { Calendar, Users, IndianRupee, Clock } from 'lucide-react';
 import { formatDate, formatTime, formatCurrency } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 
