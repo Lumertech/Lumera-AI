@@ -169,7 +169,7 @@ const Payments = () => {
           <CardContent className="space-y-4">
             <div className="flex items-end space-x-4">
               <div className="flex-1 space-y-2">
-                <Label className="font-manrope font-semibold">Amount (USD)</Label>
+                <Label className="font-manrope font-semibold">Amount (INR)</Label>
                 <Input
                   type="number"
                   placeholder="50.00"
