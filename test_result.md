@@ -126,7 +126,7 @@ backend:
     file: "backend/server.py"
     stuck_count: 2
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "user"
@@ -137,6 +137,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Replaced direct OpenAI API calls with emergentintegrations library. Tested with curl, returned SUCCESS. Uses EMERGENT_LLM_KEY, gpt-4o-mini model"
+      - working: true
+        agent: "testing"
+        comment: "CONFIRMED WORKING: AI suggestions API tested successfully. Returns 3 valid medication suggestions with proper JSON structure including medicine_name, dosage, frequency, duration fields. Uses emergentintegrations library with gpt-4o-mini model."
 
   - task: "Patient details update API"
     implemented: true
