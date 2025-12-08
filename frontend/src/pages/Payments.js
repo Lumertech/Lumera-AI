@@ -222,10 +222,22 @@ const Payments = () => {
 
         <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle className="font-manrope">Generate Payment QR Code</CardTitle>
-            <CardDescription className="font-inter">
-              Create a QR code for custom payment amounts
-            </CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="font-manrope">Generate Payment QR Code</CardTitle>
+                <CardDescription className="font-inter">
+                  Create a QR code for custom payment amounts
+                </CardDescription>
+              </div>
+              <Button
+                onClick={() => setShowCashModal(true)}
+                className="bg-green-600 hover:bg-green-700"
+                data-testid="cash-collected-btn"
+              >
+                <Wallet className="h-4 w-4 mr-2" />
+                Cash Collected
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-end space-x-4">
