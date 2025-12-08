@@ -67,6 +67,14 @@ function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route
+            path="/whatsapp-login"
+            element={
+              <PublicRoute>
+                <WhatsAppLogin />
+              </PublicRoute>
+            }
+          />
+          <Route
             path="/login"
             element={
               <PublicRoute>
