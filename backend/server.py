@@ -50,8 +50,11 @@ if os.environ.get('TWILIO_ACCOUNT_SID') and os.environ.get('TWILIO_AUTH_TOKEN'):
         twilio_client = Client(os.environ['TWILIO_ACCOUNT_SID'], os.environ['TWILIO_AUTH_TOKEN'])
         twilio_validator = RequestValidator(os.environ['TWILIO_AUTH_TOKEN'])
 
-# Stripe Setup
-stripe_checkout = None
+# Razorpay Setup
+razorpay_client = None
+if os.environ.get('RAZORPAY_KEY_ID') and os.environ.get('RAZORPAY_KEY_SECRET'):
+    if os.environ['RAZORPAY_KEY_ID'] != 'your_razorpay_key_id':
+        razorpay_client = razorpay.Client(auth=(os.environ['RAZORPAY_KEY_ID'], os.environ['RAZORPAY_KEY_SECRET']))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
