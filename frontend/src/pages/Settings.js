@@ -336,9 +336,115 @@ const Settings = () => {
           </CardContent>
         </Card>
 
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="font-manrope">Payment Fees Configuration</CardTitle>
+            <CardDescription className="font-inter">Set your consultation and service fees</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="font-manrope font-semibold">Consultation Fee (₹)</Label>
+                <Input
+                  type="number"
+                  value={paymentFees.consultation_fee}
+                  onChange={(e) => setPaymentFees({...paymentFees, consultation_fee: parseInt(e.target.value)})}
+                  data-testid="consultation-fee-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-manrope font-semibold">Follow-up Fee (₹)</Label>
+                <Input
+                  type="number"
+                  value={paymentFees.followup_fee}
+                  onChange={(e) => setPaymentFees({...paymentFees, followup_fee: parseInt(e.target.value)})}
+                  data-testid="followup-fee-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-manrope font-semibold">Full Checkup Fee (₹)</Label>
+                <Input
+                  type="number"
+                  value={paymentFees.full_checkup_fee}
+                  onChange={(e) => setPaymentFees({...paymentFees, full_checkup_fee: parseInt(e.target.value)})}
+                  data-testid="checkup-fee-input"
+                />
+              </div>
+            </div>
+            <Button 
+              onClick={savePaymentFees}
+              className="w-full bg-indigo-600 hover:bg-indigo-700"
+              data-testid="save-fees-btn"
+            >
+              Save Payment Fees
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="font-manrope">WhatsApp Bot Instructions</CardTitle>
+            <CardDescription className="font-inter">
+              Customize how the AI bot behaves and responds to patients
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="font-manrope font-semibold">Bot Personality & Instructions</Label>
+              <textarea
+                className="w-full min-h-[120px] p-3 border border-slate-300 rounded-lg font-inter text-sm"
+                value={botInstructions}
+                onChange={(e) => setBotInstructions(e.target.value)}
+                placeholder="Example: You are a friendly medical receptionist at Dr. Sarah's clinic. Be warm, professional, and empathetic. Always greet patients by name and offer help."
+                data-testid="bot-instructions-input"
+              />
+              <p className="text-xs text-slate-500">
+                These instructions guide the AI bot's behavior when chatting with patients
+              </p>
+            </div>
+            <Button 
+              onClick={saveBotInstructions}
+              className="w-full bg-purple-600 hover:bg-purple-700"
+              data-testid="save-bot-instructions-btn"
+            >
+              Save Bot Instructions
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="font-manrope">Tab Visibility Configuration</CardTitle>
+            <CardDescription className="font-inter">
+              Show or hide tabs in your dashboard navigation
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              {Object.keys(tabConfig).map((tab) => (
+                <div key={tab} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                  <Label className="font-manrope font-medium capitalize">{tab}</Label>
+                  <Switch
+                    checked={tabConfig[tab]}
+                    onCheckedChange={(checked) => setTabConfig({...tabConfig, [tab]: checked})}
+                    data-testid={`tab-${tab}-toggle`}
+                  />
+                </div>
+              ))}
+            </div>
+            <Button 
+              onClick={saveTabConfig}
+              className="w-full bg-indigo-600 hover:bg-indigo-700"
+              data-testid="save-tab-config-btn"
+            >
+              Save Tab Configuration
+            </Button>
+          </CardContent>
+        </Card>
+
         <div className="flex justify-end">
           <Button onClick={handleSave} className="bg-indigo-600 hover:bg-indigo-700" data-testid="save-settings-btn">
-            Save Settings
+            Save All Settings
           </Button>
         </div>
       </div>
