@@ -1170,9 +1170,14 @@ For queries, contact: {current_user.get('phone_number', 'clinic')}
 """
     
     # Send prescription via WhatsApp
-    await send_whatsapp_message(appointment["client_phone"], prescription_message)
+    message_sent = await send_whatsapp_message(appointment["client_phone"], prescription_message)
     
-    return prescription_data
+    if message_sent:
+        logging.info(f"Prescription sent successfully to {appointment['client_phone']}")
+    else:
+        logging.error(f"Failed to send prescription to {appointment['client_phone']}")
+    
+    return {**prescription_data, "whatsapp_sent": bool(message_sent)}
 
 @api_router.get("/prescriptions")
 async def get_prescriptions(current_user: dict = Depends(get_current_user)):
