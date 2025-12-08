@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CreditCard, QrCode, DollarSign, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import useRazorpay from 'react-razorpay';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -14,20 +15,46 @@ const Payments = () => {
   const [amount, setAmount] = useState('');
   const [qrCode, setQrCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [Razorpay] = useRazorpay();
 
   const createCheckout = async (packageType) => {
     setLoading(true);
     try {
-      const response = await axios.post(
-        `${API_URL}/payments/checkout`,
-        { package: packageType },
-        {
-          headers: {
-            origin: window.location.origin,
-          },
-        }
-      );
-      window.location.href = response.data.url;
+      const response = await axios.post(`${API_URL}/payments/create-order?package=${packageType}`);
+      const { order_id, amount, currency, key_id } = response.data;
+
+      const options = {
+        key: key_id,
+        amount: amount,
+        currency: currency,
+        name: 'Lumer',
+        description: 'Appointment Payment',
+        order_id: order_id,
+        handler: async function (response) {
+          try {
+            await axios.post(`${API_URL}/payments/verify`, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            toast.success('Payment successful!');
+          } catch (error) {
+            console.error('Payment verification failed:', error);
+            toast.error('Payment verification failed');
+          }
+        },
+        prefill: {
+          name: '',
+          email: '',
+          contact: '',
+        },
+        theme: {
+          color: '#4F46E5',
+        },
+      };
+
+      const rzp = new Razorpay(options);
+      rzp.open();
     } catch (error) {
       console.error('Payment failed:', error);
       toast.error('Failed to create payment');
