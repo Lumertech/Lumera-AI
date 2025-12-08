@@ -261,7 +261,7 @@ const PrescriptionWriter = () => {
                     ))}
                   </div>
                   <p className=\"text-xs text-purple-700 mt-3\">
-                    ⚠️ These are AI-generated suggestions. Please review and modify as needed.
+                    WARNING: These are AI-generated suggestions. Please review and modify as needed.
                   </p>
                 </AlertDescription>
               </Alert>
