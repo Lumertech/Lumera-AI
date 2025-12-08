@@ -1284,7 +1284,7 @@ async def get_ai_prescription_suggestions(
         raise HTTPException(status_code=403, detail="Only doctors can access this feature")
     
     try:
-        api_key = os.environ.get('OPENAI_API_KEY') or os.environ.get('EMERGENT_LLM_KEY')
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
         
         if not api_key or api_key == 'your_openai_api_key':
             # Return mock data if API key not configured
@@ -1331,38 +1331,42 @@ IMPORTANT:
 
 Return ONLY the JSON array, no other text."""
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "gpt-4o-mini",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.7
-                },
-                timeout=30.0
-            )
-            result = response.json()
-            
-            if "error" in result:
-                logging.error(f"OpenAI API error: {result['error']}")
-                # Return mock data on error
-                return {"suggestions": json.dumps([
-                    {
-                        "medicine_name": "Paracetamol",
-                        "dosage": "500mg",
-                        "frequency": "Three times daily",
-                        "duration": "5 days",
-                        "instructions": "Take after meals"
-                    }
-                ])}
-            
-            suggestions = result["choices"][0]["message"]["content"]
+        # Use emergentintegrations for LLM calls
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"prescription_{current_user['id']}_{uuid.uuid4()}",
+            system_message="You are an AI medical assistant. Respond only with valid JSON arrays."
+        ).with_model("openai", "gpt-4o-mini")
+        
+        user_message = UserMessage(text=prompt)
+        response_text = await chat.send_message(user_message)
+        
+        # Clean up the response to ensure it's valid JSON
+        suggestions = response_text.strip()
+        if suggestions.startswith("```json"):
+            suggestions = suggestions[7:]
+        if suggestions.startswith("```"):
+            suggestions = suggestions[3:]
+        if suggestions.endswith("```"):
+            suggestions = suggestions[:-3]
+        suggestions = suggestions.strip()
+        
+        # Validate it's valid JSON
+        json.loads(suggestions)
         
         return {"suggestions": suggestions}
+    except json.JSONDecodeError as e:
+        logging.error(f"AI returned invalid JSON: {e}")
+        # Return mock data if JSON parsing fails
+        return {"suggestions": json.dumps([
+            {
+                "medicine_name": "Paracetamol",
+                "dosage": "500mg",
+                "frequency": "Twice daily",
+                "duration": "5 days",
+                "instructions": "Take after meals with water"
+            }
+        ])}
     except Exception as e:
         logging.error(f"AI suggestion error: {e}")
         # Return mock data instead of error
