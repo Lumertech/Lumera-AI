@@ -9,12 +9,60 @@ import { Switch } from '@/components/ui/switch';
 import { Settings as SettingsIcon, Calendar, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 
+const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
+
 const Settings = () => {
   const [settings, setSettings] = useState({
     reminders_enabled: true,
     reminder_hours: 24,
     google_calendar_sync: false,
   });
+  const [razorpayConfig, setRazorpayConfig] = useState({
+    razorpay_key_id: '',
+    razorpay_key_secret: '',
+  });
+  const [twilioConfig, setTwilioConfig] = useState({
+    twilio_account_sid: '',
+    twilio_auth_token: '',
+    whatsapp_number: '',
+  });
+  const [razorpayConfigured, setRazorpayConfigured] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    checkRazorpayConfig();
+  }, []);
+
+  const checkRazorpayConfig = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/settings/razorpay`);
+      setRazorpayConfigured(response.data.configured);
+      if (response.data.key_id) {
+        setRazorpayConfig(prev => ({ ...prev, razorpay_key_id: response.data.key_id }));
+      }
+    } catch (error) {
+      console.error('Failed to check Razorpay config:', error);
+    }
+  };
+
+  const saveRazorpayConfig = async () => {
+    if (!razorpayConfig.razorpay_key_id || !razorpayConfig.razorpay_key_secret) {
+      toast.error('Please enter both Razorpay Key ID and Secret');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await axios.post(`${API_URL}/settings/razorpay`, razorpayConfig);
+      toast.success('Razorpay configured successfully!');
+      setRazorpayConfigured(true);
+    } catch (error) {
+      console.error('Failed to save Razorpay config:', error);
+      toast.error('Failed to save Razorpay configuration');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = () => {
     toast.success('Settings saved successfully!');
