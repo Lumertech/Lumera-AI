@@ -530,10 +530,40 @@ async def check_payment_status(order_id: str, current_user: dict = Depends(get_c
     return transaction
 
 @api_router.post("/payments/generate-qr")
-async def generate_payment_qr(amount: float, current_user: dict = Depends(get_current_user)):
-    payment_link = f"https://pay.lumer.app?amount={amount}&user={current_user['id']}"
-    qr_code = generate_qr_code(payment_link)
-    return {"qr_code": qr_code, "payment_link": payment_link}
+async def generate_payment_qr(amount: int, current_user: dict = Depends(get_current_user)):
+    if not razorpay_client:
+        raise HTTPException(status_code=500, detail="Razorpay not configured")
+    
+    try:
+        # Create Razorpay payment link
+        payment_link = razorpay_client.payment_link.create({
+            "amount": amount * 100,  # Convert to paise
+            "currency": "INR",
+            "description": "Lumer Appointment Payment",
+            "customer": {
+                "name": current_user['name'],
+                "email": current_user['email'],
+                "contact": current_user['phone_number']
+            },
+            "notify": {
+                "sms": True,
+                "email": True
+            },
+            "callback_url": f"{os.environ.get('BACKEND_URL', '')}/dashboard",
+            "callback_method": "get"
+        })
+        
+        # Generate QR code for the payment link
+        qr_code = generate_qr_code(payment_link['short_url'])
+        
+        return {
+            "qr_code": qr_code,
+            "payment_link": payment_link['short_url'],
+            "link_id": payment_link['id']
+        }
+    except Exception as e:
+        logging.error(f"Failed to generate payment link: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate payment QR code")
 
 # WhatsApp Webhook
 @api_router.post("/webhook/whatsapp")
