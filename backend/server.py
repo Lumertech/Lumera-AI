@@ -88,6 +88,14 @@ class RazorpayConfig(BaseModel):
     razorpay_key_id: str
     razorpay_key_secret: str
 
+class PaymentFees(BaseModel):
+    consultation_fee: int = 500
+    followup_fee: int = 300
+    full_checkup_fee: int = 1000
+
+class WhatsAppTemplateConfig(BaseModel):
+    templates: Dict[str, str]
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
