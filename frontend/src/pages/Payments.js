@@ -14,11 +14,27 @@ const Payments = () => {
   const [amount, setAmount] = useState('');
   const [qrCode, setQrCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [Razorpay] = useRazorpay();
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
 
   const createCheckout = async (packageType) => {
     setLoading(true);
     try {
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        toast.error('Failed to load Razorpay SDK');
+        setLoading(false);
+        return;
+      }
+
       const response = await axios.post(`${API_URL}/payments/create-order?package=${packageType}`);
       const { order_id, amount, currency, key_id } = response.data;
 
@@ -52,7 +68,7 @@ const Payments = () => {
         },
       };
 
-      const rzp = new Razorpay(options);
+      const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (error) {
       console.error('Payment failed:', error);
