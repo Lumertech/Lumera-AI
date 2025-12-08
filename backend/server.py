@@ -97,6 +97,12 @@ class PaymentFees(BaseModel):
 class WhatsAppTemplateConfig(BaseModel):
     templates: Dict[str, str]
 
+class BotInstructions(BaseModel):
+    instructions: str
+
+class TabConfiguration(BaseModel):
+    tabs: Dict[str, bool]
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
