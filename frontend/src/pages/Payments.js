@@ -86,19 +86,19 @@ const Payments = () => {
   const packages = [
     {
       name: 'Consultation',
-      price: 50,
+      price: 500,
       description: 'Standard consultation fee',
       features: ['30-minute session', 'Follow-up notes', 'Email support'],
     },
     {
       name: 'Follow-up',
-      price: 30,
+      price: 300,
       description: 'Follow-up appointment',
       features: ['15-minute session', 'Quick check-in', 'Status update'],
     },
     {
       name: 'Full Checkup',
-      price: 100,
+      price: 1000,
       description: 'Comprehensive assessment',
       features: ['60-minute session', 'Detailed report', 'Treatment plan'],
     },
