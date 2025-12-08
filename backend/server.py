@@ -1274,12 +1274,15 @@ async def razorpay_webhook(request: Request):
         logging.error(f"Razorpay webhook error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
+class AISuggestionRequest(BaseModel):
+    symptoms: str
+    patient_age: int
+    patient_sex: str
+
 # AI Prescription Suggestions
 @api_router.post("/prescriptions/ai-suggest")
 async def get_ai_prescription_suggestions(
-    symptoms: str,
-    patient_age: int,
-    patient_sex: str,
+    request: AISuggestionRequest,
     current_user: dict = Depends(get_current_user)
 ):
     if current_user.get('profession') != 'doctor':
