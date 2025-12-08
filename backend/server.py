@@ -675,6 +675,45 @@ async def get_whatsapp_templates(current_user: dict = Depends(get_current_user))
         "prescription": "Your prescription from Dr. {doctor_name} is ready. Please follow the instructions carefully."
     })
 
+# Bot Instructions Configuration
+@api_router.post("/settings/bot-instructions")
+async def save_bot_instructions(config: BotInstructions, current_user: dict = Depends(get_current_user)):
+    await db.users.update_one(
+        {"id": current_user['id']},
+        {"$set": {"bot_instructions": config.instructions}}
+    )
+    return {"message": "Bot instructions saved successfully"}
+
+@api_router.get("/settings/bot-instructions")
+async def get_bot_instructions(current_user: dict = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
+    return {
+        "instructions": user.get("bot_instructions", "You are a helpful medical receptionist. Be polite and professional.")
+    }
+
+# Tab Configuration
+@api_router.post("/settings/tab-configuration")
+async def save_tab_configuration(config: TabConfiguration, current_user: dict = Depends(get_current_user)):
+    await db.users.update_one(
+        {"id": current_user['id']},
+        {"$set": {"tab_configuration": config.tabs}}
+    )
+    return {"message": "Tab configuration saved successfully"}
+
+@api_router.get("/settings/tab-configuration")
+async def get_tab_configuration(current_user: dict = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
+    return user.get("tab_configuration", {
+        "dashboard": True,
+        "appointments": True,
+        "clients": True,
+        "whatsapp": True,
+        "payments": True,
+        "reminders": True,
+        "tools": True,
+        "settings": True
+    })
+
 # Payments - Razorpay (Per-User)
 @api_router.post("/payments/create-order")
 async def create_payment_order(package: str = "consultation", current_user: dict = Depends(get_current_user)):
