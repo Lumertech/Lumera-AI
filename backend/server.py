@@ -280,7 +280,8 @@ async def send_whatsapp_message(to_number: str, message: str):
         return None
 
 async def send_appointment_reminders():
-    \"\"\"Send 24-hour reminders\"\"\"\n    tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d")
+    """Send 24-hour reminders"""
+    tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d")
     appointments = await db.appointments.find({
         "appointment_date": tomorrow,
         "status": "scheduled",
