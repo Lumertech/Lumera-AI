@@ -191,15 +191,18 @@ backend:
 
   - task: "Automated appointment reminders"
     implemented: true
-    working: true
+    working: "NA"
     file: "backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Fixed WhatsApp reminder message formatting (replaced literal backslash-n with proper newlines). APScheduler configured for 24h and 4h reminders. Depends on Twilio configuration"
+      - working: "NA"
+        agent: "testing"
+        comment: "CANNOT TEST: Reminder system depends on Twilio WhatsApp configuration which is not available in test environment. Code structure is correct with APScheduler jobs configured for 24h and 4h reminders. Backend logs show 'Twilio not configured' warnings as expected."
 
   - task: "Authentication endpoints"
     implemented: true
