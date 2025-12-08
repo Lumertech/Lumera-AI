@@ -255,7 +255,7 @@ const Settings = () => {
                 onChange={(e) => setTwilioConfig({...twilioConfig, whatsapp_number: e.target.value})}
                 data-testid="whatsapp-number-input"
               />
-              <p className="text-xs text-slate-500">Include the 'whatsapp:' prefix</p>
+              <p className="text-xs text-slate-500">Include the &apos;whatsapp:&apos; prefix</p>
             </div>
           </CardContent>
         </Card>
