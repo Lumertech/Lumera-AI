@@ -927,20 +927,44 @@ async def whatsapp_webhook(
     elif state == "awaiting_name":
         # Store name
         data["name"] = message
-        bot_reply = await get_bot_response(
-            message, 
-            phone, 
-            {"state": "asking_type", "name": message}
-        )
+        reply = f"Thanks {message}! What is your age?"
         await db.whatsapp_conversations.update_one(
             {"phone": phone},
             {"$set": {
-                "state": "awaiting_type",
+                "state": "awaiting_age",
                 "data.name": message,
                 "last_message": message
             }}
         )
-        response.message(bot_reply)
+        response.message(reply)
+        
+    elif state == "awaiting_age":
+        # Store age
+        data["age"] = message
+        reply = "What is your sex? (Male/Female/Other)"
+        await db.whatsapp_conversations.update_one(
+            {"phone": phone},
+            {"$set": {
+                "state": "awaiting_sex",
+                "data.age": message,
+                "last_message": message
+            }}
+        )
+        response.message(reply)
+        
+    elif state == "awaiting_sex":
+        # Store sex
+        data["sex"] = message
+        reply = f"Got it! Would you like a clinic visit or phone consultation?"
+        await db.whatsapp_conversations.update_one(
+            {"phone": phone},
+            {"$set": {
+                "state": "awaiting_type",
+                "data.sex": message,
+                "last_message": message
+            }}
+        )
+        response.message(reply)
         
     elif state == "awaiting_type":
         # Store consultation type
