@@ -1088,14 +1088,26 @@ async def whatsapp_webhook(
             {"$set": {"state": "completed", "last_message": message}}
         )
         response.message(confirmation)
+    elif state == "completed":
+        # If conversation completed, offer new booking
+        welcome = "Your previous appointment is booked! 🎉\n\n"
+        welcome += "Would you like to:\n"
+        welcome += "• Book another appointment (reply 'book')\n"
+        welcome += "• Check status (reply 'status')\n\n"
+        welcome += "Or just say 'Hi' to start over!"
+        await db.whatsapp_conversations.update_one(
+            {"phone": phone},
+            {"$set": {"state": "new", "data": {}}}
+        )
+        response.message(welcome)
     else:
         # Default welcome
         welcome = "Hello! Welcome to Lumer 🏥\n\n"
         welcome += "I can help you:\n"
-        welcome += "• Book appointments\n"
+        welcome += "• Book appointments (just say Hi!)\n"
         welcome += "• Check appointment status\n"
         welcome += "• Cancel appointments\n\n"
-        welcome += "Just type 'book' to start booking!"
+        welcome += "Type 'reset' anytime to start over!"
         response.message(welcome)
     
     return Response(content=str(response), media_type="application/xml")
