@@ -303,7 +303,8 @@ async def send_appointment_reminders():
         logging.info(f"24h reminder sent for appointment {appt['id']}")
 
 async def send_4hour_reminders():
-    \"\"\"Send 4-hour before reminders\"\"\"\n    now = datetime.now(timezone.utc)
+    """Send 4-hour before reminders"""
+    now = datetime.now(timezone.utc)
     four_hours_later = now + timedelta(hours=4)
     
     # Get appointments happening in 4 hours
