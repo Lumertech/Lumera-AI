@@ -327,16 +327,12 @@ metadata:
 
 test_plan:
   current_focus:
-    - "AI prescription suggestions"
-    - "Authentication flow"
-    - "Patient details update"
-    - "Dashboard and Payments currency display"
-    - "Reminders page"
+    - "Frontend UI testing (Dashboard, Payments, Reminders pages)"
   stuck_tasks:
     - "WhatsApp bot conversation flow (needs Twilio)"
     - "WhatsApp prescription sending (needs Twilio)"
-  test_all: true
-  test_priority: "high_first"
+  test_all: false
+  test_priority: "frontend_only"
 
 agent_communication:
   - agent: "main"
