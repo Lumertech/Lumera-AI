@@ -26,7 +26,7 @@ import razorpay
 import hmac
 import hashlib
 import random
-from emergentintegrations import LLM
+import httpx
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
