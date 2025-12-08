@@ -684,9 +684,20 @@ async def create_payment_order(package: str = "consultation", current_user: dict
         # Create user-specific Razorpay client
         user_razorpay = razorpay.Client(auth=(user["razorpay_key_id"], user["razorpay_key_secret"]))
         
+        # Get user's configured payment fees
+        payment_fees = user.get("payment_fees", {
+            "consultation_fee": 500,
+            "followup_fee": 300,
+            "full_checkup_fee": 1000
+        })
+        
         # Package prices in INR (₹)
-        packages = {"consultation": 500, "follow_up": 300, "full_checkup": 1000}
-        amount_inr = packages.get(package, 500)
+        fee_mapping = {
+            "consultation": payment_fees.get("consultation_fee", 500),
+            "follow_up": payment_fees.get("followup_fee", 300),
+            "full_checkup": payment_fees.get("full_checkup_fee", 1000)
+        }
+        amount_inr = fee_mapping.get(package, 500)
         amount_paise = amount_inr * 100  # Convert to paise
         
         order_data = {
