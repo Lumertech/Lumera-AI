@@ -72,9 +72,24 @@ const PrescriptionWriter = () => {
         patient_sex: appointment.patient_details.sex,
       });
 
-      const suggestions = JSON.parse(response.data.suggestions);
-      setAiSuggestions(suggestions);
-      toast.success('AI suggestions generated!');
+      let suggestions = [];
+      try {
+        suggestions = JSON.parse(response.data.suggestions);
+      } catch (parseError) {
+        console.error('Failed to parse suggestions:', parseError);
+        // If parsing fails, try to extract JSON from text
+        const match = response.data.suggestions.match(/\[[\s\S]*\]/);
+        if (match) {
+          suggestions = JSON.parse(match[0]);
+        }
+      }
+      
+      if (suggestions.length > 0) {
+        setAiSuggestions(suggestions);
+        toast.success(`${suggestions.length} medication suggestions generated!`);
+      } else {
+        toast.error('No suggestions generated. Try different symptoms.');
+      }
     } catch (error) {
       console.error('AI suggestion failed:', error);
       toast.error('Failed to get AI suggestions');
