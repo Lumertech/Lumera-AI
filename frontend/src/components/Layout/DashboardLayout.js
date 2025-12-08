@@ -153,6 +153,11 @@ const DashboardLayout = ({ children }) => {
                 {navigation.find((item) => item.href === location.pathname)?.name || 'Dashboard'}
               </h1>
               <div className="flex items-center space-x-2">
+                <Link to="/whatsapp">
+                  <Button variant="ghost" size="icon" data-testid="whatsapp-status-btn">
+                    <MessageSquare className="h-5 w-5" />
+                  </Button>
+                </Link>
                 <Button variant="ghost" size="icon" data-testid="notifications-btn">
                   <Bell className="h-5 w-5" />
                 </Button>
