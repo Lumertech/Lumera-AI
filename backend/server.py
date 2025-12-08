@@ -807,26 +807,57 @@ async def create_payment_order(
             "payment_capture": 1,
             "notes": {
                 "user_id": current_user['id'],
-                "package": package
+                "package": package,
+                "payment_type": payment_type
             }
         }
         razorpay_order = user_razorpay.order.create(data=order_data)
         
+        # Create payment link
+        payment_link_data = {
+            "amount": amount_paise,
+            "currency": "INR",
+            "description": f"{package.replace('_', ' ').title()} - Lumer",
+            "customer": {
+                "name": current_user['name'],
+                "email": current_user.get('email', ''),
+                "contact": current_user.get('phone_number', '')
+            },
+            "notify": {
+                "sms": False,
+                "email": False,
+                "whatsapp": False
+            },
+            "callback_url": f"{os.environ.get('REACT_APP_BACKEND_URL', '')}/dashboard",
+            "callback_method": "get"
+        }
+        
+        payment_link = user_razorpay.payment_link.create(payment_link_data)
+        
         # Store order in database
         await db.payment_transactions.insert_one({
             "order_id": razorpay_order['id'],
+            "payment_link_id": payment_link['id'],
+            "payment_link": payment_link['short_url'],
             "user_id": current_user['id'],
             "amount": amount_inr,
             "currency": "INR",
             "package": package,
+            "payment_type": payment_type,
             "payment_status": "created",
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         
+        # Generate QR code for the payment link
+        qr_code_base64 = generate_qr_code(payment_link['short_url'])
+        
         return {
             "order_id": razorpay_order['id'],
+            "payment_link": payment_link['short_url'],
+            "qr_code": qr_code_base64,
             "amount": amount_paise,
             "currency": "INR",
+            "payment_type": payment_type,
             "key_id": user["razorpay_key_id"]
         }
     except Exception as e:
