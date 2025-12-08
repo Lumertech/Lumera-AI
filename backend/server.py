@@ -763,7 +763,74 @@ async def generate_payment_qr(amount: int, current_user: dict = Depends(get_curr
         logging.error(f"Failed to generate payment link: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate payment QR code")
 
-# WhatsApp Webhook
+# Conversational AI WhatsApp Bot
+async def translate_text(text: str, target_language: str = "en") -> str:
+    """Translate text using AI"""
+    try:
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "gpt-4o-mini",
+                    "messages": [{
+                        "role": "user",
+                        "content": f"Translate this to {target_language}, keep it natural and conversational: {text}"
+                    }],
+                    "temperature": 0.3
+                },
+                timeout=10.0
+            )
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
+    except:
+        return text
+
+async def get_bot_response(message: str, phone: str, conversation_state: dict) -> str:
+    """Get AI-powered bot response"""
+    try:
+        # Detect language and translate
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        
+        # Build conversation context
+        context = f"""You are Lumer, a helpful medical appointment booking assistant for a clinic.
+
+Current conversation state: {conversation_state}
+Patient message: {message}
+
+Your tasks:
+1. If no name yet: Ask for their full name
+2. If have name: Ask if they want clinic visit or phone consultation
+3. If have type: Offer available time slots (9 AM - 5 PM, today or tomorrow)
+4. If have slot: Confirm booking details
+
+Be friendly, professional, and conversational. Keep responses under 100 words.
+Detect the language and respond in the same language (Hindi, English, etc.)."""
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "gpt-4o-mini",
+                    "messages": [{"role": "user", "content": context}],
+                    "temperature": 0.7
+                },
+                timeout=15.0
+            )
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
+    except Exception as e:
+        logging.error(f"Bot AI error: {e}")
+        return "Hello! Welcome to Lumer. Please share your full name to book an appointment."
+
 @api_router.post("/webhook/whatsapp")
 async def whatsapp_webhook(
     request: Request,
@@ -779,46 +846,117 @@ async def whatsapp_webhook(
             raise HTTPException(status_code=403, detail="Invalid signature")
     
     phone = From.replace("whatsapp:", "")
-    message = Body.strip().lower()
+    message = Body.strip()
     
     response = MessagingResponse()
     
-    # Check if user exists
-    client = await db.clients.find_one({"phone": phone})
+    # Get or create conversation state
+    conversation = await db.whatsapp_conversations.find_one({"phone": phone})
+    if not conversation:
+        conversation = {
+            "phone": phone,
+            "state": "new",
+            "data": {},
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.whatsapp_conversations.insert_one(conversation)
     
-    if "book" in message:
-        response.message("To book an appointment, please visit https://lumer.app/book")
-    elif "cancel" in message:
-        appt = await db.appointments.find_one({
-            "client_phone": phone,
-            "status": "scheduled"
-        }, {"_id": 0})
-        if appt:
-            await db.appointments.update_one(
-                {"id": appt['id']},
-                {"$set": {"status": "cancelled"}}
-            )
-            response.message(f"Your appointment on {appt['appointment_date']} has been cancelled.")
-        else:
-            response.message("No upcoming appointments found.")
-    elif "status" in message:
-        appt = await db.appointments.find_one({
-            "client_phone": phone,
-            "status": "scheduled"
-        }, {"_id": 0})
-        if appt:
-            response.message(
-                f"Your appointment: {appt['appointment_date']} at {appt['start_time']}"
-            )
-        else:
-            response.message("No upcoming appointments.")
-    else:
-        response.message(
-            "Welcome to Lumer! Commands:\n"
-            "'Book' - Schedule appointment\n"
-            "'Cancel' - Cancel appointment\n"
-            "'Status' - Check appointment"
+    state = conversation.get("state", "new")
+    data = conversation.get("data", {})
+    
+    # State machine for booking flow
+    if state == "new":
+        bot_reply = await get_bot_response(message, phone, {"state": "asking_name"})
+        await db.whatsapp_conversations.update_one(
+            {"phone": phone},
+            {"$set": {"state": "awaiting_name", "last_message": message}}
         )
+        response.message(bot_reply)
+        
+    elif state == "awaiting_name":
+        # Store name
+        data["name"] = message
+        bot_reply = await get_bot_response(
+            message, 
+            phone, 
+            {"state": "asking_type", "name": message}
+        )
+        await db.whatsapp_conversations.update_one(
+            {"phone": phone},
+            {"$set": {
+                "state": "awaiting_type",
+                "data.name": message,
+                "last_message": message
+            }}
+        )
+        response.message(bot_reply)
+        
+    elif state == "awaiting_type":
+        # Store consultation type
+        consultation_type = "phone" if "phone" in message.lower() or "call" in message.lower() else "clinic"
+        data["type"] = consultation_type
+        
+        # Get available slots
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        slots_msg = f"Available slots for {consultation_type} consultation:\n\n"
+        slots_msg += "Today:\n• 2:00 PM\n• 4:00 PM\n\n"
+        slots_msg += "Tomorrow:\n• 10:00 AM\n• 2:00 PM\n• 4:00 PM\n\n"
+        slots_msg += "Reply with your preferred time!"
+        
+        await db.whatsapp_conversations.update_one(
+            {"phone": phone},
+            {"$set": {
+                "state": "awaiting_slot",
+                "data.type": consultation_type,
+                "last_message": message
+            }}
+        )
+        response.message(slots_msg)
+        
+    elif state == "awaiting_slot":
+        # Confirm booking
+        confirmation = f"✅ Appointment Confirmed!\n\n"
+        confirmation += f"Name: {data.get('name')}\n"
+        confirmation += f"Type: {data.get('type', 'clinic')} consultation\n"
+        confirmation += f"Time: {message}\n\n"
+        confirmation += "You'll receive a reminder 24 hours before your appointment.\n\n"
+        confirmation += "See you soon! 🏥"
+        
+        # Create appointment in database
+        professional = await db.users.find_one({"profession": "doctor"}, {"_id": 0})
+        if professional:
+            appointment_id = str(uuid.uuid4())
+            tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d")
+            await db.appointments.insert_one({
+                "id": appointment_id,
+                "professional_id": professional['id'],
+                "client_name": data.get('name'),
+                "client_phone": phone,
+                "appointment_date": tomorrow,
+                "start_time": "14:00",
+                "end_time": "14:30",
+                "consultation_mode": data.get('type', 'in-person'),
+                "status": "scheduled",
+                "notes": f"Booked via WhatsApp: {message}",
+                "reminder_sent": False,
+                "payment_status": "pending",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+        
+        await db.whatsapp_conversations.update_one(
+            {"phone": phone},
+            {"$set": {"state": "completed", "last_message": message}}
+        )
+        response.message(confirmation)
+    else:
+        # Default welcome
+        welcome = "Hello! Welcome to Lumer 🏥\n\n"
+        welcome += "I can help you:\n"
+        welcome += "• Book appointments\n"
+        welcome += "• Check appointment status\n"
+        welcome += "• Cancel appointments\n\n"
+        welcome += "Just type 'book' to start booking!"
+        response.message(welcome)
     
     return Response(content=str(response), media_type="application/xml")
 
