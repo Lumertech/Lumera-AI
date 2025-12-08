@@ -84,6 +84,10 @@ class UserCreate(BaseModel):
     phone_number: str
     profession: str = "doctor"
 
+class RazorpayConfig(BaseModel):
+    razorpay_key_id: str
+    razorpay_key_secret: str
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
