@@ -62,11 +62,19 @@ if os.environ.get('RAZORPAY_KEY_ID') and os.environ.get('RAZORPAY_KEY_SECRET'):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    # 24-hour reminders at 10 AM daily
     scheduler.add_job(
         send_appointment_reminders,
         CronTrigger(hour=10, minute=0),
-        id="appointment_reminders",
-        name="Send daily appointment reminders"
+        id="appointment_reminders_24h",
+        name="Send 24h appointment reminders"
+    )
+    # 4-hour reminders - check every hour
+    scheduler.add_job(
+        send_4hour_reminders,
+        CronTrigger(minute=0),  # Every hour
+        id="appointment_reminders_4h",
+        name="Send 4h appointment reminders"
     )
     scheduler.start()
     yield
