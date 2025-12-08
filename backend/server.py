@@ -94,6 +94,16 @@ class PaymentFees(BaseModel):
     followup_fee: int = 300
     full_checkup_fee: int = 1000
 
+class PaymentRequest(BaseModel):
+    package: str
+    payment_type: str  # upi, card, netbanking, cash
+    
+class CashPaymentRecord(BaseModel):
+    appointment_id: str
+    amount: int
+    collected_by: str
+    notes: Optional[str] = None
+
 class WhatsAppTemplateConfig(BaseModel):
     templates: Dict[str, str]
 
