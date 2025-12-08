@@ -820,6 +820,54 @@ async def razorpay_webhook(request: Request):
         logging.error(f"Razorpay webhook error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
+# AI Prescription Suggestions
+@api_router.post("/prescriptions/ai-suggest")
+async def get_ai_prescription_suggestions(
+    symptoms: str,
+    patient_age: int,
+    patient_sex: str,
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.get('profession') != 'doctor':
+        raise HTTPException(status_code=403, detail="Only doctors can access this feature")
+    
+    try:
+        llm = LLM(api_key=os.environ.get('EMERGENT_LLM_KEY'), provider="openai")
+        
+        prompt = f"""You are an AI medical assistant helping a doctor write a prescription.
+
+Patient Information:
+- Age: {patient_age} years
+- Sex: {patient_sex}
+- Symptoms: {symptoms}
+
+Provide 3-5 commonly prescribed medications for these symptoms, formatted as JSON:
+[
+  {{
+    "medicine_name": "Medicine name",
+    "dosage": "Dosage amount",
+    "frequency": "How often (e.g., twice daily)",
+    "duration": "How long (e.g., 7 days)",
+    "instructions": "Special instructions"
+  }}
+]
+
+IMPORTANT: 
+- Only suggest commonly prescribed, safe medications
+- Include appropriate dosages for the patient's age
+- Add relevant precautions
+- This is only a suggestion - the doctor will review and modify
+
+Return ONLY the JSON array, no other text."""
+
+        response = await llm.generate(prompt=prompt)
+        suggestions = response.get("response", "[]")
+        
+        return {"suggestions": suggestions}
+    except Exception as e:
+        logging.error(f"AI suggestion error: {e}")
+        return {"suggestions": "[]", "error": "AI service unavailable"}
+
 # Prescriptions (Doctor-specific)
 @api_router.post("/prescriptions")
 async def create_prescription(prescription: PrescriptionCreate, current_user: dict = Depends(get_current_user)):
@@ -827,16 +875,59 @@ async def create_prescription(prescription: PrescriptionCreate, current_user: di
         raise HTTPException(status_code=403, detail="Only doctors can create prescriptions")
     
     prescription_id = str(uuid.uuid4())
+    
+    # Get appointment details
+    appointment = await db.appointments.find_one(
+        {"id": prescription.appointment_id, "professional_id": current_user['id']},
+        {"_id": 0}
+    )
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    
     prescription_data = {
         "id": prescription_id,
         "professional_id": current_user['id'],
         "appointment_id": prescription.appointment_id,
         "client_name": prescription.client_name,
+        "client_phone": appointment["client_phone"],
         "medications": prescription.medications,
         "instructions": prescription.instructions,
+        "doctor_name": current_user['name'],
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.prescriptions.insert_one(prescription_data)
+    
+    # Generate prescription text for WhatsApp
+    meds_text = "\n".join([
+        f"{i+1}. {med['medicine_name']} - {med['dosage']}\n   {med['frequency']} for {med['duration']}\n   {med.get('instructions', '')}"
+        for i, med in enumerate(prescription.medications)
+    ])
+    
+    prescription_message = f"""
+\ud83d\udcdc PRESCRIPTION
+
+Patient: {prescription.client_name}
+Doctor: Dr. {current_user['name']}
+Date: {datetime.now().strftime('%d %b %Y')}
+
+MEDICATIONS:
+{meds_text}
+
+GENERAL INSTRUCTIONS:
+{prescription.instructions}
+
+\u26a0\ufe0f Important:
+- Take medications as prescribed
+- Complete the full course
+- Contact doctor if symptoms worsen
+- Do not share medications
+
+For queries, contact: {current_user.get('phone_number', 'clinic')}
+"""
+    
+    # Send prescription via WhatsApp
+    await send_whatsapp_message(appointment["client_phone"], prescription_message)
+    
     return prescription_data
 
 @api_router.get("/prescriptions")
