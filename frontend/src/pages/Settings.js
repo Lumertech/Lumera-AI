@@ -26,11 +26,30 @@ const Settings = () => {
     twilio_auth_token: '',
     whatsapp_number: '',
   });
+  const [paymentFees, setPaymentFees] = useState({
+    consultation_fee: 500,
+    followup_fee: 300,
+    full_checkup_fee: 1000,
+  });
+  const [botInstructions, setBotInstructions] = useState('');
+  const [tabConfig, setTabConfig] = useState({
+    dashboard: true,
+    appointments: true,
+    clients: true,
+    whatsapp: true,
+    payments: true,
+    reminders: true,
+    tools: true,
+    settings: true,
+  });
   const [razorpayConfigured, setRazorpayConfigured] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     checkRazorpayConfig();
+    loadPaymentFees();
+    loadBotInstructions();
+    loadTabConfig();
   }, []);
 
   const checkRazorpayConfig = async () => {
@@ -42,6 +61,33 @@ const Settings = () => {
       }
     } catch (error) {
       console.error('Failed to check Razorpay config:', error);
+    }
+  };
+
+  const loadPaymentFees = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/settings/payment-fees`);
+      setPaymentFees(response.data);
+    } catch (error) {
+      console.error('Failed to load payment fees:', error);
+    }
+  };
+
+  const loadBotInstructions = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/settings/bot-instructions`);
+      setBotInstructions(response.data.instructions);
+    } catch (error) {
+      console.error('Failed to load bot instructions:', error);
+    }
+  };
+
+  const loadTabConfig = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/settings/tab-configuration`);
+      setTabConfig(response.data);
+    } catch (error) {
+      console.error('Failed to load tab config:', error);
     }
   };
 
@@ -61,6 +107,36 @@ const Settings = () => {
       toast.error('Failed to save Razorpay configuration');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const savePaymentFees = async () => {
+    try {
+      await axios.post(`${API_URL}/settings/payment-fees`, paymentFees);
+      toast.success('Payment fees updated successfully!');
+    } catch (error) {
+      console.error('Failed to save payment fees:', error);
+      toast.error('Failed to save payment fees');
+    }
+  };
+
+  const saveBotInstructions = async () => {
+    try {
+      await axios.post(`${API_URL}/settings/bot-instructions`, { instructions: botInstructions });
+      toast.success('Bot instructions saved successfully!');
+    } catch (error) {
+      console.error('Failed to save bot instructions:', error);
+      toast.error('Failed to save bot instructions');
+    }
+  };
+
+  const saveTabConfig = async () => {
+    try {
+      await axios.post(`${API_URL}/settings/tab-configuration`, { tabs: tabConfig });
+      toast.success('Tab configuration saved successfully!');
+    } catch (error) {
+      console.error('Failed to save tab config:', error);
+      toast.error('Failed to save tab configuration');
     }
   };
 
