@@ -323,7 +323,7 @@ async def send_4hour_reminders():
         doctor = await db.users.find_one({"id": appt['professional_id']}, {"_id": 0})
         doctor_name = doctor.get('name', 'Doctor') if doctor else 'Doctor'
         
-        message = f"\u23f0 Reminder: Your appointment with Dr. {doctor_name} is in 4 hours at {appt_time}.\\n\\nPlease be ready!\\n\\n\ud83d\udccd Address: [Clinic Address]\\n\\nSee you soon!"
+        message = f"\u23f0 Reminder: Your appointment with Dr. {doctor_name} is in 4 hours at {appt_time}.\n\nPlease be ready!\n\n\ud83d\udccd Address: [Clinic Address]\n\nSee you soon!"
         
         await send_whatsapp_message(appt['client_phone'], message)
         await db.appointments.update_one(
