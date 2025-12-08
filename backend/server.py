@@ -312,13 +312,13 @@ async def create_appointment(appt: AppointmentCreate, current_user: dict = Depen
         "payment_status": "pending",
         "created_at": datetime.now(timezone.utc).isoformat()
     }
-    await db.appointments.insert_one(appointment)
+    result = await db.appointments.insert_one(appointment.copy())
     
     # Update or create client record
     client = await db.clients.find_one({
         "professional_id": current_user['id'],
         "phone": appt.client_phone
-    })
+    }, {"_id": 0})
     if client:
         await db.clients.update_one(
             {"id": client['id']},
@@ -343,7 +343,7 @@ async def create_appointment(appt: AppointmentCreate, current_user: dict = Depen
         f"Your appointment with {current_user['name']} is confirmed for {appt.appointment_date} at {appt.start_time}."
     )
     
-    return {"id": appointment_id, **appointment}
+    return appointment
 
 @api_router.get("/appointments")
 async def get_appointments(current_user: dict = Depends(get_current_user)):
