@@ -172,10 +172,10 @@ const Payments = () => {
                 <Label className="font-manrope font-semibold">Amount (INR)</Label>
                 <Input
                   type="number"
-                  placeholder="50.00"
+                  placeholder="500"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  step="0.01"
+                  step="1"
                   min="0"
                   data-testid="qr-amount-input"
                 />
