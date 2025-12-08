@@ -278,6 +278,65 @@ const Payments = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Cash Payment Modal */}
+        {showCashModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-md m-4">
+              <CardHeader>
+                <CardTitle className="font-manrope">Record Cash Payment</CardTitle>
+                <CardDescription className="font-inter">
+                  Record a cash payment collected from patient
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="font-manrope font-semibold">Amount (₹)</Label>
+                  <Input
+                    type="number"
+                    placeholder="500"
+                    value={cashAmount}
+                    onChange={(e) => setCashAmount(e.target.value)}
+                    step="1"
+                    min="0"
+                    data-testid="cash-amount-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-manrope font-semibold">Notes (Optional)</Label>
+                  <Input
+                    type="text"
+                    placeholder="Patient name or appointment reference"
+                    value={cashNotes}
+                    onChange={(e) => setCashNotes(e.target.value)}
+                    data-testid="cash-notes-input"
+                  />
+                </div>
+                <div className="flex space-x-2 pt-4">
+                  <Button
+                    onClick={recordCashPayment}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    data-testid="confirm-cash-btn"
+                  >
+                    Record Payment
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowCashModal(false);
+                      setCashAmount('');
+                      setCashNotes('');
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                    data-testid="cancel-cash-btn"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
