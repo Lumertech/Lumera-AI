@@ -60,9 +60,17 @@ const AppointmentDetails = () => {
           age: parseInt(patientDetails.age),
         }
       );
+      
+      // Update local appointment state immediately
+      setAppointment(prev => ({
+        ...prev,
+        client_name: patientDetails.name,
+        patient_details: patientDetails
+      }));
+      
       toast.success('Patient details saved successfully!');
-      // Refresh appointment data to show updated name
-      fetchAppointment();
+      // Also refresh from server
+      await fetchAppointment();
     } catch (error) {
       console.error('Failed to save:', error);
       toast.error('Failed to save patient details');
