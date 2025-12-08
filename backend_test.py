@@ -114,7 +114,7 @@ class LumerAPITester:
             
             response = requests.post(
                 f"{self.base_url}/prescriptions/ai-suggest",
-                json=suggestion_data,
+                params=suggestion_data,
                 headers=headers,
                 timeout=15
             )
