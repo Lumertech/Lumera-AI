@@ -147,7 +147,7 @@ backend:
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "user"
@@ -155,6 +155,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Tested PUT /api/appointments/{id}/patient-details endpoint. Successfully updates both client_name and patient_details.name. Backend is working correctly"
+      - working: true
+        agent: "testing"
+        comment: "CONFIRMED WORKING: Patient details update API tested successfully. PUT request updates patient details correctly and verification shows data persists in database. Both client_name and patient_details fields updated properly."
 
   - task: "WhatsApp prescription sending"
     implemented: true
