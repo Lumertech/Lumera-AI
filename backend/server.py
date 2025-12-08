@@ -971,14 +971,23 @@ async def whatsapp_webhook(
     state = conversation.get("state", "new")
     data = conversation.get("data", {})
     
+    # Check for reset command
+    if message.lower() in ["reset", "restart", "start over", "new booking"]:
+        await db.whatsapp_conversations.update_one(
+            {"phone": phone},
+            {"$set": {"state": "new", "data": {}}}
+        )
+        response.message("Let's start fresh! What is your full name?")
+        return Response(content=str(response), media_type="application/xml")
+    
     # State machine for booking flow
     if state == "new":
-        bot_reply = await get_bot_response(message, phone, {"state": "asking_name"})
+        reply = "Hello! Welcome to Lumer 🏥\n\nI'll help you book an appointment.\n\nWhat is your full name?"
         await db.whatsapp_conversations.update_one(
             {"phone": phone},
             {"$set": {"state": "awaiting_name", "last_message": message}}
         )
-        response.message(bot_reply)
+        response.message(reply)
         
     elif state == "awaiting_name":
         # Store name
