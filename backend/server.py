@@ -832,7 +832,7 @@ async def get_ai_prescription_suggestions(
         raise HTTPException(status_code=403, detail="Only doctors can access this feature")
     
     try:
-        llm = LLM(api_key=os.environ.get('EMERGENT_LLM_KEY'), provider="openai")
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
         
         prompt = f"""You are an AI medical assistant helping a doctor write a prescription.
 
@@ -860,8 +860,22 @@ IMPORTANT:
 
 Return ONLY the JSON array, no other text."""
 
-        response = await llm.generate(prompt=prompt)
-        suggestions = response.get("response", "[]")
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "gpt-4o-mini",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.7
+                },
+                timeout=30.0
+            )
+            result = response.json()
+            suggestions = result["choices"][0]["message"]["content"]
         
         return {"suggestions": suggestions}
     except Exception as e:
