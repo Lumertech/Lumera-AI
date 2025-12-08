@@ -516,7 +516,57 @@ async def get_client(client_id: str, current_user: dict = Depends(get_current_us
         {"_id": 0}
     ).to_list(100)
     
-    return {**client, "appointments": appointments}
+    prescriptions = await db.prescriptions.find(
+        {"professional_id": current_user['id'], "client_phone": client['phone']},
+        {"_id": 0}
+    ).to_list(100)
+    
+    return {**client, "appointments": appointments, "prescriptions": prescriptions}
+
+# Patient Details Management
+@api_router.put("/appointments/{appointment_id}/patient-details")
+async def update_patient_details(
+    appointment_id: str,
+    patient_details: PatientDetails,
+    current_user: dict = Depends(get_current_user)
+):
+    appointment = await db.appointments.find_one(
+        {"id": appointment_id, "professional_id": current_user['id']},
+        {"_id": 0}
+    )
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    
+    # Update appointment with patient details
+    await db.appointments.update_one(
+        {"id": appointment_id},
+        {"$set": {
+            "patient_details": patient_details.dict(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update client record with patient details
+    await db.clients.update_one(
+        {"professional_id": current_user['id'], "phone": appointment["client_phone"]},
+        {"$set": {
+            "patient_details": patient_details.dict(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Patient details updated successfully"}
+
+@api_router.get("/appointments/{appointment_id}/patient-details")
+async def get_patient_details(appointment_id: str, current_user: dict = Depends(get_current_user)):
+    appointment = await db.appointments.find_one(
+        {"id": appointment_id, "professional_id": current_user['id']},
+        {"_id": 0}
+    )
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    
+    return appointment.get("patient_details", {})
 
 # Time Slots
 @api_router.get("/slots/available")
