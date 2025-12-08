@@ -285,6 +285,87 @@ async def login(credentials: UserLogin):
 async def get_me(current_user: dict = Depends(get_current_user)):
     return current_user
 
+# WhatsApp OTP Authentication
+@api_router.post("/auth/send-otp")
+async def send_otp(request: PhoneVerifyRequest):
+    otp = str(random.randint(100000, 999999))
+    
+    # Store OTP in database with 10 minute expiry
+    await db.otp_codes.update_one(
+        {"phone_number": request.phone_number},
+        {
+            "$set": {
+                "otp": otp,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    # Send OTP via WhatsApp
+    message = f"Your Lumer verification code is {otp}. Valid for 10 minutes. Do not share this code with anyone."
+    await send_whatsapp_message(request.phone_number, message)
+    
+    return {"message": "OTP sent successfully", "phone_number": request.phone_number}
+
+@api_router.post("/auth/verify-otp")
+async def verify_otp(request: OTPVerifyRequest):
+    # Check OTP
+    otp_record = await db.otp_codes.find_one({"phone_number": request.phone_number})
+    
+    if not otp_record:
+        raise HTTPException(status_code=400, detail="OTP not found or expired")
+    
+    if otp_record["otp"] != request.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
+    # Check expiry
+    expires_at = datetime.fromisoformat(otp_record["expires_at"])
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=400, detail="OTP expired")
+    
+    # Check if user exists
+    user = await db.users.find_one({"phone_number": request.phone_number})
+    
+    if user:
+        # Existing user - login
+        token = create_access_token({"user_id": user["id"], "phone": user["phone_number"]})
+        user_data = {k: v for k, v in user.items() if k not in ["password", "_id"]}
+        
+        # Delete used OTP
+        await db.otp_codes.delete_one({"phone_number": request.phone_number})
+        
+        return {"token": token, "user": user_data, "is_new_user": False}
+    else:
+        # New user - return flag to complete registration
+        return {"message": "Phone verified", "phone_number": request.phone_number, "is_new_user": True}
+
+@api_router.post("/auth/complete-registration")
+async def complete_registration(name: str, profession: str, phone_number: str):
+    # Verify OTP was validated
+    otp_record = await db.otp_codes.find_one({"phone_number": phone_number})
+    if not otp_record:
+        raise HTTPException(status_code=400, detail="Phone number not verified")
+    
+    user_id = str(uuid.uuid4())
+    user = {
+        "id": user_id,
+        "name": name,
+        "email": f"{phone_number}@lumer.app",  # Generate email
+        "phone_number": phone_number,
+        "profession": profession,
+        "whatsapp_verified": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(user)
+    
+    # Delete used OTP
+    await db.otp_codes.delete_one({"phone_number": phone_number})
+    
+    token = create_access_token({"user_id": user_id, "phone": phone_number})
+    return {"token": token, "user": {k: v for k, v in user.items() if k != "_id"}}
+
 # Google Calendar Auth
 @api_router.get("/auth/google/login")
 async def google_login():
