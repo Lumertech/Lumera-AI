@@ -735,9 +735,43 @@ async def get_tab_configuration(current_user: dict = Depends(get_current_user)):
         "settings": True
     })
 
-# Payments - Razorpay (Per-User)
+# Cash Payment Recording
+@api_router.post("/payments/cash")
+async def record_cash_payment(payment: CashPaymentRecord, current_user: dict = Depends(get_current_user)):
+    try:
+        payment_id = str(uuid.uuid4())
+        cash_record = {
+            "id": payment_id,
+            "appointment_id": payment.appointment_id,
+            "user_id": current_user['id'],
+            "amount": payment.amount,
+            "currency": "INR",
+            "payment_type": "cash",
+            "payment_status": "paid",
+            "collected_by": payment.collected_by,
+            "notes": payment.notes,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.payment_transactions.insert_one(cash_record)
+        
+        # Update appointment payment status
+        await db.appointments.update_one(
+            {"id": payment.appointment_id},
+            {"$set": {"payment_status": "paid", "payment_type": "cash"}}
+        )
+        
+        return {"message": "Cash payment recorded successfully", "payment_id": payment_id}
+    except Exception as e:
+        logging.error(f"Cash payment recording failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to record cash payment")
+
+# Payments - Razorpay (Per-User) with Payment Type
 @api_router.post("/payments/create-order")
-async def create_payment_order(package: str = "consultation", current_user: dict = Depends(get_current_user)):
+async def create_payment_order(
+    package: str = "consultation",
+    payment_type: str = "upi",
+    current_user: dict = Depends(get_current_user)
+):
     # Get user's Razorpay credentials
     user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
     
