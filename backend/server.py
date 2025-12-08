@@ -88,6 +88,29 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class PhoneVerifyRequest(BaseModel):
+    phone_number: str
+
+class OTPVerifyRequest(BaseModel):
+    phone_number: str
+    otp: str
+
+class PatientDetails(BaseModel):
+    name: str
+    age: int
+    sex: str
+    blood_group: Optional[str] = None
+    allergies: Optional[str] = None
+    chronic_conditions: Optional[str] = None
+    emergency_contact: Optional[str] = None
+
+class PrescriptionItem(BaseModel):
+    medicine_name: str
+    dosage: str
+    frequency: str
+    duration: str
+    instructions: Optional[str] = None
+
 class User(BaseModel):
     id: str
     name: str
