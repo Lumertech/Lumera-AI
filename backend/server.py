@@ -238,17 +238,26 @@ def generate_qr_code(data: str) -> str:
 
 async def send_whatsapp_message(to_number: str, message: str):
     if not twilio_client:
-        logging.warning("Twilio not configured")
+        logging.warning("Twilio not configured - check Settings")
         return None
     try:
+        # Clean phone number
+        clean_number = to_number.replace("whatsapp:", "").strip()
+        if not clean_number.startswith("+"):
+            clean_number = "+" + clean_number
+        
+        from_number = os.environ.get('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+14155238886')
+        logging.info(f"Sending WhatsApp from {from_number} to whatsapp:{clean_number}")
+        
         msg = twilio_client.messages.create(
-            from_=os.environ.get('TWILIO_WHATSAPP_NUMBER'),
-            to=f"whatsapp:{to_number}",
+            from_=from_number,
+            to=f"whatsapp:{clean_number}",
             body=message
         )
+        logging.info(f"WhatsApp message sent successfully: {msg.sid}")
         return msg.sid
     except Exception as e:
-        logging.error(f"Failed to send WhatsApp message: {e}")
+        logging.error(f"Failed to send WhatsApp message to {to_number}: {e}")
         return None
 
 async def send_appointment_reminders():
