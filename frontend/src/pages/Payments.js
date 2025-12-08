@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CreditCard, QrCode, DollarSign, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
-import useRazorpay from 'react-razorpay';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
