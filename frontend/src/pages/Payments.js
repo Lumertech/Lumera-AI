@@ -56,6 +56,24 @@ const Payments = () => {
   const createCheckout = async (packageType) => {
     setLoading(true);
     try {
+      const response = await axios.post(
+        `${API_URL}/payments/create-order?package=${packageType}&payment_type=${selectedPaymentType}`
+      );
+      
+      const { payment_link, qr_code, amount, currency } = response.data;
+      
+      // Store payment link and QR code
+      setPaymentLink(payment_link);
+      setQrCode(qr_code);
+      
+      toast.success('Payment link generated! Check below for QR code');
+      
+      // For UPI, show QR code prominently
+      if (selectedPaymentType === 'upi') {
+        toast.info('Scan QR code with any UPI app to pay');
+      }
+      
+      /* Old Razorpay checkout flow - now using payment links
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
         toast.error('Failed to load Razorpay SDK');
@@ -63,7 +81,6 @@ const Payments = () => {
         return;
       }
 
-      const response = await axios.post(`${API_URL}/payments/create-order?package=${packageType}`);
       const { order_id, amount, currency, key_id } = response.data;
 
       const options = {
