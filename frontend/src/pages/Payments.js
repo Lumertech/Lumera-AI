@@ -131,7 +131,7 @@ const Payments = () => {
               <div>
                 <h2 className="font-manrope font-bold text-2xl text-slate-900 mb-2">Payments</h2>
                 <p className="font-inter text-slate-600">
-                  Accept secure payments with Stripe and generate QR codes.
+                  Accept secure payments with Razorpay and generate QR codes.
                 </p>
               </div>
             </div>
