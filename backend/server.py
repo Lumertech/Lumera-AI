@@ -1313,9 +1313,9 @@ async def get_ai_prescription_suggestions(
         prompt = f"""You are an AI medical assistant helping a doctor write a prescription.
 
 Patient Information:
-- Age: {patient_age} years
-- Sex: {patient_sex}
-- Symptoms: {symptoms}
+- Age: {request.patient_age} years
+- Sex: {request.patient_sex}
+- Symptoms: {request.symptoms}
 
 Provide 3-5 commonly prescribed medications for these symptoms, formatted as JSON:
 [
