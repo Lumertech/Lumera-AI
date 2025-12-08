@@ -52,7 +52,7 @@ const Dashboard = () => {
     {
       title: 'Total Revenue',
       value: '₹' + (analytics?.total_revenue || 0).toLocaleString('en-IN'),
-      icon: DollarSign,
+      icon: IndianRupee,
       color: 'from-green-500 to-teal-500',
     },
   ];
