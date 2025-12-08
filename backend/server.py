@@ -629,6 +629,45 @@ async def get_razorpay_config(current_user: dict = Depends(get_current_user)):
         "key_id": user.get("razorpay_key_id", "") if user.get("razorpay_configured") else ""
     }
 
+# Payment Fees Configuration
+@api_router.post("/settings/payment-fees")
+async def save_payment_fees(fees: PaymentFees, current_user: dict = Depends(get_current_user)):
+    await db.users.update_one(
+        {"id": current_user['id']},
+        {"$set": {
+            "payment_fees": fees.dict()
+        }}
+    )
+    return {"message": "Payment fees updated successfully"}
+
+@api_router.get("/settings/payment-fees")
+async def get_payment_fees(current_user: dict = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
+    return user.get("payment_fees", {
+        "consultation_fee": 500,
+        "followup_fee": 300,
+        "full_checkup_fee": 1000
+    })
+
+# WhatsApp Templates Configuration
+@api_router.post("/settings/whatsapp-templates")
+async def save_whatsapp_templates(config: WhatsAppTemplateConfig, current_user: dict = Depends(get_current_user)):
+    await db.users.update_one(
+        {"id": current_user['id']},
+        {"$set": {"whatsapp_templates": config.templates}}
+    )
+    return {"message": "WhatsApp templates saved successfully"}
+
+@api_router.get("/settings/whatsapp-templates")
+async def get_whatsapp_templates(current_user: dict = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
+    return user.get("whatsapp_templates", {
+        "welcome": "Welcome to {clinic_name}! I'm here to help you book appointments.",
+        "appointment_confirmation": "Your appointment is confirmed for {date} at {time}. See you soon!",
+        "reminder": "Reminder: Your appointment is tomorrow at {time}. Please arrive 10 minutes early.",
+        "prescription": "Your prescription from Dr. {doctor_name} is ready. Please follow the instructions carefully."
+    })
+
 # Payments - Razorpay (Per-User)
 @api_router.post("/payments/create-order")
 async def create_payment_order(package: str = "consultation", current_user: dict = Depends(get_current_user)):
