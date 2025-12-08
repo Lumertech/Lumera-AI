@@ -556,19 +556,21 @@ async def update_patient_details(
     if not appointment:
         raise HTTPException(status_code=404, detail="Appointment not found")
     
-    # Update appointment with patient details
+    # Update appointment with patient details and name
     await db.appointments.update_one(
         {"id": appointment_id},
         {"$set": {
+            "client_name": patient_details.name,
             "patient_details": patient_details.dict(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
     
-    # Update client record with patient details
+    # Update client record with patient details and name
     await db.clients.update_one(
         {"professional_id": current_user['id'], "phone": appointment["client_phone"]},
         {"$set": {
+            "name": patient_details.name,
             "patient_details": patient_details.dict(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
