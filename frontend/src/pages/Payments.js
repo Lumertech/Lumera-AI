@@ -13,7 +13,12 @@ const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 const Payments = () => {
   const [amount, setAmount] = useState('');
   const [qrCode, setQrCode] = useState('');
+  const [paymentLink, setPaymentLink] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedPaymentType, setSelectedPaymentType] = useState('upi');
+  const [showCashModal, setShowCashModal] = useState(false);
+  const [cashAmount, setCashAmount] = useState('');
+  const [cashNotes, setCashNotes] = useState('');
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -23,6 +28,29 @@ const Payments = () => {
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
     });
+  };
+
+  const recordCashPayment = async () => {
+    if (!cashAmount || parseInt(cashAmount) <= 0) {
+      toast.error('Please enter valid amount');
+      return;
+    }
+    
+    try {
+      await axios.post(`${API_URL}/payments/cash`, {
+        appointment_id: 'manual',
+        amount: parseInt(cashAmount),
+        collected_by: 'doctor',
+        notes: cashNotes
+      });
+      toast.success('Cash payment recorded successfully!');
+      setShowCashModal(false);
+      setCashAmount('');
+      setCashNotes('');
+    } catch (error) {
+      console.error('Failed to record cash payment:', error);
+      toast.error('Failed to record cash payment');
+    }
   };
 
   const createCheckout = async (packageType) => {
