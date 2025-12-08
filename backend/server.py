@@ -600,18 +600,48 @@ async def get_available_slots(date: str, current_user: dict = Depends(get_curren
     
     return {"date": date, "slots": slots}
 
-# Payments - Razorpay
+# Razorpay Configuration Management
+@api_router.post("/settings/razorpay")
+async def save_razorpay_config(config: RazorpayConfig, current_user: dict = Depends(get_current_user)):
+    await db.users.update_one(
+        {"id": current_user['id']},
+        {"$set": {
+            "razorpay_key_id": config.razorpay_key_id,
+            "razorpay_key_secret": config.razorpay_key_secret,
+            "razorpay_configured": True
+        }}
+    )
+    return {"message": "Razorpay configured successfully"}
+
+@api_router.get("/settings/razorpay")
+async def get_razorpay_config(current_user: dict = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
+    return {
+        "configured": user.get("razorpay_configured", False),
+        "key_id": user.get("razorpay_key_id", "") if user.get("razorpay_configured") else ""
+    }
+
+# Payments - Razorpay (Per-User)
 @api_router.post("/payments/create-order")
 async def create_payment_order(package: str = "consultation", current_user: dict = Depends(get_current_user)):
-    if not razorpay_client:
-        raise HTTPException(status_code=500, detail="Razorpay not configured")
+    # Get user's Razorpay credentials
+    user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
     
-    # Package prices in INR (₹)
-    packages = {"consultation": 500, "follow_up": 300, "full_checkup": 1000}
-    amount_inr = packages.get(package, 500)
-    amount_paise = amount_inr * 100  # Convert to paise
+    if not user.get("razorpay_configured"):
+        raise HTTPException(
+            status_code=400, 
+            detail="Please configure your Razorpay credentials in Settings first"
+        )
     
     try:
+        # Create user-specific Razorpay client
+        user_razorpay = razorpay.Client(auth=(user["razorpay_key_id"], user["razorpay_key_secret"]))
+        
+        # Package prices in INR (₹)
+        packages = {"consultation": 500, "follow_up": 300, "full_checkup": 1000}
+        amount_inr = packages.get(package, 500)
+        amount_paise = amount_inr * 100  # Convert to paise
+        
         order_data = {
             "amount": amount_paise,
             "currency": "INR",
@@ -621,7 +651,7 @@ async def create_payment_order(package: str = "consultation", current_user: dict
                 "package": package
             }
         }
-        razorpay_order = razorpay_client.order.create(data=order_data)
+        razorpay_order = user_razorpay.order.create(data=order_data)
         
         # Store order in database
         await db.payment_transactions.insert_one({
@@ -638,7 +668,7 @@ async def create_payment_order(package: str = "consultation", current_user: dict
             "order_id": razorpay_order['id'],
             "amount": amount_paise,
             "currency": "INR",
-            "key_id": os.environ.get('RAZORPAY_KEY_ID')
+            "key_id": user["razorpay_key_id"]
         }
     except Exception as e:
         logging.error(f"Razorpay order creation failed: {e}")
