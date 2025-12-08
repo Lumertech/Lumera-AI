@@ -61,6 +61,8 @@ const AppointmentDetails = () => {
         }
       );
       toast.success('Patient details saved successfully!');
+      // Refresh appointment data to show updated name
+      fetchAppointment();
     } catch (error) {
       console.error('Failed to save:', error);
       toast.error('Failed to save patient details');
