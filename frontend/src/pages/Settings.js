@@ -399,7 +399,7 @@ const Settings = () => {
                 data-testid="bot-instructions-input"
               />
               <p className="text-xs text-slate-500">
-                These instructions guide the AI bot's behavior when chatting with patients
+                These instructions guide the AI bot&apos;s behavior when chatting with patients
               </p>
             </div>
             <Button 
