@@ -138,6 +138,22 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/appointments/:id"
+            element={
+              <ProtectedRoute>
+                <AppointmentDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/appointments/:id/prescription"
+            element={
+              <ProtectedRoute>
+                <PrescriptionWriter />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <Toaster position="top-right" richColors />
