@@ -133,8 +133,8 @@ const Payments = () => {
               <CardContent className="p-6">
                 <div className="mb-6">
                   <div className="flex items-baseline space-x-2 mb-4">
-                    <span className="font-manrope font-bold text-4xl text-slate-900">${pkg.price}</span>
-                    <span className="font-inter text-slate-600">USD</span>
+                    <span className="font-manrope font-bold text-4xl text-slate-900">₹{pkg.price}</span>
+                    <span className="font-inter text-slate-600">INR</span>
                   </div>
                   <ul className="space-y-2">
                     {pkg.features.map((feature, idx) => (
