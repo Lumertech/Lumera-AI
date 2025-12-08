@@ -200,7 +200,7 @@ const Payments = () => {
                   <ul className="space-y-2">
                     {pkg.features.map((feature, idx) => (
                       <li key={idx} className="flex items-center space-x-2 font-inter text-sm text-slate-600">
-                        <DollarSign className="h-4 w-4 text-green-600" />
+                        <Check className="h-4 w-4 text-green-600" />
                         <span>{feature}</span>
                       </li>
                     ))}
