@@ -110,17 +110,19 @@ const Landing = () => {
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
+                onClick={() => navigate('/whatsapp-login')}
+                className="bg-green-600 hover:bg-green-700 text-white"
+                data-testid="whatsapp-login-btn"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                WhatsApp Login
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => navigate('/login')}
                 data-testid="nav-login-btn"
               >
-                Login
-              </Button>
-              <Button
-                onClick={() => navigate('/register')}
-                className="bg-indigo-600 hover:bg-indigo-700"
-                data-testid="nav-register-btn"
-              >
-                Get Started
+                Email Login
               </Button>
             </div>
           </div>
