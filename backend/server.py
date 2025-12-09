@@ -704,6 +704,135 @@ async def get_available_slots(date: str, current_user: dict = Depends(get_curren
     
     return {"date": date, "slots": slots}
 
+# Time-Off Management
+@api_router.post("/time-off")
+async def create_time_off(time_off: TimeOffCreate, current_user: dict = Depends(get_current_user)):
+    """Create a new time-off period"""
+    time_off_id = str(uuid.uuid4())
+    
+    time_off_data = {
+        "id": time_off_id,
+        "user_id": current_user['id'],
+        "date": time_off.date,
+        "start_time": time_off.start_time,
+        "end_time": time_off.end_time,
+        "reason": time_off.reason,
+        "is_full_day": time_off.is_full_day,
+        "is_recurring": time_off.is_recurring,
+        "recurrence_pattern": time_off.recurrence_pattern,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.time_offs.insert_one(time_off_data)
+    return time_off_data
+
+@api_router.get("/time-off")
+async def get_time_offs(current_user: dict = Depends(get_current_user)):
+    """Get all time-off periods for current user"""
+    time_offs = await db.time_offs.find(
+        {"user_id": current_user['id']},
+        {"_id": 0}
+    ).to_list(1000)
+    return time_offs
+
+@api_router.delete("/time-off/{time_off_id}")
+async def delete_time_off(time_off_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a time-off period"""
+    result = await db.time_offs.delete_one({
+        "id": time_off_id,
+        "user_id": current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Time-off not found")
+    
+    return {"message": "Time-off deleted successfully"}
+
+@api_router.get("/calendar/export")
+async def export_calendar(current_user: dict = Depends(get_current_user)):
+    """Export appointments and time-offs as .ics file"""
+    from icalendar import Calendar, Event as ICalEvent
+    
+    cal = Calendar()
+    cal.add('prodid', '-//Lumer Calendar//lumer.app//')
+    cal.add('version', '2.0')
+    cal.add('calscale', 'GREGORIAN')
+    cal.add('method', 'PUBLISH')
+    cal.add('x-wr-calname', f'Lumer - {current_user["name"]}')
+    cal.add('x-wr-timezone', 'UTC')
+    
+    # Add appointments
+    appointments = await db.appointments.find(
+        {"professional_id": current_user['id']},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    for appt in appointments:
+        event = ICalEvent()
+        event.add('uid', appt['id'])
+        event.add('summary', f"Appointment: {appt.get('client_name', 'Patient')}")
+        
+        # Parse date and time
+        appt_date = datetime.strptime(appt['appointment_date'], '%Y-%m-%d')
+        start_time = appt.get('start_time', '09:00')
+        end_time = appt.get('end_time', '09:30')
+        
+        start_dt = datetime.strptime(f"{appt['appointment_date']} {start_time}", '%Y-%m-%d %H:%M')
+        end_dt = datetime.strptime(f"{appt['appointment_date']} {end_time}", '%Y-%m-%d %H:%M')
+        
+        event.add('dtstart', start_dt)
+        event.add('dtend', end_dt)
+        event.add('description', appt.get('notes', ''))
+        event.add('status', appt.get('status', 'CONFIRMED').upper())
+        
+        cal.add_component(event)
+    
+    # Add time-offs
+    time_offs = await db.time_offs.find(
+        {"user_id": current_user['id']},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    for time_off in time_offs:
+        event = ICalEvent()
+        event.add('uid', time_off['id'])
+        event.add('summary', f"Time Off: {time_off['reason']}")
+        
+        if time_off['is_full_day']:
+            # All-day event
+            event_date = datetime.strptime(time_off['date'], '%Y-%m-%d').date()
+            event.add('dtstart', event_date)
+            event.add('dtend', event_date)
+        else:
+            # Specific time slot
+            start_dt = datetime.strptime(f"{time_off['date']} {time_off['start_time']}", '%Y-%m-%d %H:%M')
+            end_dt = datetime.strptime(f"{time_off['date']} {time_off['end_time']}", '%Y-%m-%d %H:%M')
+            event.add('dtstart', start_dt)
+            event.add('dtend', end_dt)
+        
+        event.add('description', time_off['reason'])
+        event.add('status', 'CONFIRMED')
+        event.add('transp', 'OPAQUE')  # Show as busy
+        
+        # Handle recurring events
+        if time_off.get('is_recurring') and time_off.get('recurrence_pattern'):
+            if time_off['recurrence_pattern'] == 'weekly':
+                event.add('rrule', {'freq': 'weekly'})
+            elif time_off['recurrence_pattern'] == 'monthly':
+                event.add('rrule', {'freq': 'monthly'})
+        
+        cal.add_component(event)
+    
+    ics_content = cal.to_ical()
+    
+    return Response(
+        content=ics_content,
+        media_type="text/calendar",
+        headers={
+            "Content-Disposition": f"attachment; filename=lumer_calendar_{current_user['name'].replace(' ', '_')}.ics"
+        }
+    )
+
 # Razorpay Configuration Management
 @api_router.post("/settings/razorpay")
 async def save_razorpay_config(config: RazorpayConfig, current_user: dict = Depends(get_current_user)):
