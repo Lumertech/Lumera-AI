@@ -315,7 +315,13 @@ const Appointments = () => {
               </Button>
             </CardContent>
           </Card>
-        )}
+            )}
+          </TabsContent>
+
+          <TabsContent value="calendar">
+            <AppointmentCalendar />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
