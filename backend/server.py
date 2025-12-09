@@ -745,8 +745,9 @@ async def create_time_off(time_off: TimeOffCreate, current_user: dict = Depends(
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
-    await db.time_offs.insert_one(time_off_data)
-    return time_off_data
+    result = await db.time_offs.insert_one(time_off_data)
+    # Return without MongoDB _id
+    return {k: v for k, v in time_off_data.items() if k != '_id'}
 
 @api_router.get("/time-off")
 async def get_time_offs(current_user: dict = Depends(get_current_user)):
