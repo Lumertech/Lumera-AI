@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Plus, Search, Filter } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Calendar, Plus, Search, Filter, List, CalendarDays } from 'lucide-react';
 import { formatDate, formatTime } from '@/lib/utils';
 import { toast } from 'sonner';
+import AppointmentCalendar from '@/components/AppointmentCalendar';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -21,6 +23,7 @@ const Appointments = () => {
   const [showNewAppointment, setShowNewAppointment] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [activeTab, setActiveTab] = useState('list');
   const [formData, setFormData] = useState({
     client_name: '',
     client_phone: '',
