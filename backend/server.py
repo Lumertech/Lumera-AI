@@ -688,6 +688,21 @@ async def get_available_slots(date: str, current_user: dict = Depends(get_curren
     
     booked_times = [(a['start_time'], a['end_time']) for a in appointments]
     
+    # Check for time-offs on this date
+    time_offs = await db.time_offs.find({
+        "user_id": current_user['id'],
+        "date": date
+    }, {"_id": 0}).to_list(100)
+    
+    # Check if entire day is blocked
+    is_full_day_off = any(to.get('is_full_day', False) for to in time_offs)
+    
+    # Get time-off slots
+    time_off_slots = []
+    for to in time_offs:
+        if not to.get('is_full_day', False) and to.get('start_time') and to.get('end_time'):
+            time_off_slots.append((to['start_time'], to['end_time']))
+    
     # Generate default slots (9 AM to 5 PM, 30-min intervals)
     slots = []
     for hour in range(9, 17):
@@ -697,12 +712,19 @@ async def get_available_slots(date: str, current_user: dict = Depends(get_curren
             end_minute = 30 if minute == 0 else 0
             end = f"{end_hour:02d}:{end_minute:02d}"
             
-            available = not any(
-                start >= bt[0] and start < bt[1] for bt in booked_times
-            )
-            slots.append({"start_time": start, "end_time": end, "available": available})
+            # Check if slot is available (not booked and not during time-off)
+            booked = any(start >= bt[0] and start < bt[1] for bt in booked_times)
+            time_off = any(start >= to[0] and start < to[1] for to in time_off_slots)
+            available = not (booked or time_off or is_full_day_off)
+            
+            slots.append({
+                "start_time": start, 
+                "end_time": end, 
+                "available": available,
+                "reason": "time-off" if (time_off or is_full_day_off) else ("booked" if booked else "available")
+            })
     
-    return {"date": date, "slots": slots}
+    return {"date": date, "slots": slots, "is_full_day_off": is_full_day_off}
 
 # Time-Off Management
 @api_router.post("/time-off")
