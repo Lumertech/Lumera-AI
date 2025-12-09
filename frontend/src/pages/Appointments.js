@@ -234,16 +234,29 @@ const Appointments = () => {
           </CardContent>
         </Card>
 
-        {/* Appointments List */}
-        {loading ? (
-          <Card className="border-slate-200">
-            <CardContent className="p-12 text-center">
-              <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-slate-600 font-inter">Loading appointments...</p>
-            </CardContent>
-          </Card>
-        ) : filteredAppointments.length > 0 ? (
-          <div className="grid gap-4">
+        {/* Appointments Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <List className="h-4 w-4" />
+              List View
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4" />
+              Calendar View
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="list" className="space-y-4">
+            {loading ? (
+              <Card className="border-slate-200">
+                <CardContent className="p-12 text-center">
+                  <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-slate-600 font-inter">Loading appointments...</p>
+                </CardContent>
+              </Card>
+            ) : filteredAppointments.length > 0 ? (
+              <div className="grid gap-4">
             {filteredAppointments.map((appt, index) => (
               <Card
                 key={appt.id}
