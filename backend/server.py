@@ -129,6 +129,27 @@ class UserLogin(BaseModel):
 class PhoneVerifyRequest(BaseModel):
     phone_number: str
 
+class TimeOffCreate(BaseModel):
+    date: str  # YYYY-MM-DD
+    start_time: Optional[str] = None  # HH:MM (None for full day)
+    end_time: Optional[str] = None  # HH:MM (None for full day)
+    reason: str
+    is_full_day: bool = True
+    is_recurring: bool = False
+    recurrence_pattern: Optional[str] = None  # "weekly", "monthly", etc.
+
+class TimeOffResponse(BaseModel):
+    id: str
+    user_id: str
+    date: str
+    start_time: Optional[str]
+    end_time: Optional[str]
+    reason: str
+    is_full_day: bool
+    is_recurring: bool
+    recurrence_pattern: Optional[str]
+    created_at: str
+
 class OTPVerifyRequest(BaseModel):
     phone_number: str
     otp: str
