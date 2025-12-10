@@ -30,6 +30,7 @@ const DashboardLayout = ({ children }) => {
     { name: 'WhatsApp Bot', href: '/whatsapp', icon: MessageSquare },
     { name: 'Payments', href: '/payments', icon: CreditCard },
     { name: 'Reminders', href: '/reminders', icon: Bell },
+    { name: 'Subscription', href: '/subscription', icon: CreditCard },
     { name: 'Tools', href: '/tools', icon: FileText },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
