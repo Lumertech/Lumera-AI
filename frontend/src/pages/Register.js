@@ -154,10 +154,38 @@ const Register = () => {
               />
             </div>
 
+            {/* Consent Checkbox */}
+            <div className="flex items-start space-x-2 p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <Checkbox
+                id="terms"
+                checked={agreedToTerms}
+                onCheckedChange={setAgreedToTerms}
+                className="mt-1"
+              />
+              <label
+                htmlFor="terms"
+                className="text-sm font-inter text-slate-700 leading-relaxed cursor-pointer"
+              >
+                I agree to Lumer Tech LLC's{' '}
+                <Link to="/policies#terms-of-service" target="_blank" className="text-indigo-600 hover:underline font-semibold">
+                  Terms of Service
+                </Link>
+                ,{' '}
+                <Link to="/policies#privacy-policy" target="_blank" className="text-indigo-600 hover:underline font-semibold">
+                  Privacy Policy
+                </Link>
+                , and{' '}
+                <Link to="/policies" target="_blank" className="text-indigo-600 hover:underline font-semibold">
+                  Disclaimers
+                </Link>
+                .
+              </label>
+            </div>
+
             <Button
               type="submit"
               className="w-full bg-indigo-600 hover:bg-indigo-700 font-manrope font-semibold"
-              disabled={loading}
+              disabled={loading || !agreedToTerms}
               data-testid="register-submit-btn"
             >
               {loading ? (
