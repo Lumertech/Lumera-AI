@@ -2039,13 +2039,6 @@ async def get_client_payment_history(
     return payments
 
 # Health Records Management
-class HealthRecordUpload(BaseModel):
-    client_phone: str
-    record_type: str  # "prescription_photo", "lab_report", "case_notes", "other"
-    file_base64: str
-    file_name: str
-    notes: Optional[str] = None
-
 @api_router.post("/health-records/upload")
 async def upload_health_record(
     record: HealthRecordUpload,
