@@ -170,6 +170,13 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/analytics" element={<AdminAnalytics />} />
+          <Route path="/admin/content" element={<AdminContentEditor />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <Toaster position="top-right" richColors />
