@@ -77,6 +77,20 @@ async def lifespan(app: FastAPI):
         id="appointment_reminders_4h",
         name="Send 4h appointment reminders"
     )
+    # Trial expiry reminders - check at 6 PM daily
+    scheduler.add_job(
+        check_trial_expiry,
+        CronTrigger(hour=18, minute=0),
+        id="trial_expiry_check",
+        name="Check trial expiry and send reminders"
+    )
+    # Process expired trials - check at 1 AM daily
+    scheduler.add_job(
+        process_expired_trials,
+        CronTrigger(hour=1, minute=0),
+        id="process_expired_trials",
+        name="Process expired trials"
+    )
     scheduler.start()
     yield
     # Shutdown
