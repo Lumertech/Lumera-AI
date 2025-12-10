@@ -6,6 +6,7 @@ import '@/App.css';
 
 // Pages
 import Landing from '@/pages/Landing';
+import Policies from '@/pages/Policies';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import WhatsAppLogin from '@/pages/WhatsAppLogin';
