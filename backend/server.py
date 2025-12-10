@@ -150,6 +150,29 @@ class TimeOffResponse(BaseModel):
     recurrence_pattern: Optional[str]
     created_at: str
 
+class AdminLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class LandingPageContent(BaseModel):
+    hero_title: str
+    hero_subtitle: str
+    hero_image_url: str
+    tagline: str
+    feature_1_title: str
+    feature_1_description: str
+    feature_2_title: str
+    feature_2_description: str
+    feature_3_title: str
+    feature_3_description: str
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone_number: Optional[str] = None
+    profession: Optional[str] = None
+    is_active: Optional[bool] = None
+
 class OTPVerifyRequest(BaseModel):
     phone_number: str
     otp: str
