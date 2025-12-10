@@ -43,6 +43,32 @@ const Clients = () => {
       (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  const fetchPaymentHistory = async (client) => {
+    setSelectedClient(client);
+    setPaymentModalOpen(true);
+    setLoadingPayments(true);
+    try {
+      const response = await axios.get(`${API_URL}/clients/${encodeURIComponent(client.phone)}/payment-history`);
+      setPaymentHistory(response.data);
+    } catch (error) {
+      console.error('Failed to fetch payment history:', error);
+      toast.error('Failed to load payment history');
+    } finally {
+      setLoadingPayments(false);
+    }
+  };
+
+  const getPaymentStatusIcon = (status) => {
+    switch (status) {
+      case 'paid':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'pending':
+        return <Clock className="h-4 w-4 text-yellow-600" />;
+      default:
+        return <Clock className="h-4 w-4 text-slate-400" />;
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6" data-testid="clients-page">
