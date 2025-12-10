@@ -2124,6 +2124,337 @@ async def delete_health_record(
     
     return {"message": "Health record deleted successfully"}
 
+# ============================================================================
+# SUBSCRIPTION & BILLING MANAGEMENT
+# ============================================================================
+
+SUBSCRIPTION_PRICE = 699  # ₹699/month
+BUNDLED_MESSAGES = 500   # 500 messages included
+MESSAGE_PRICE = 0.25      # ₹0.25 per message beyond quota
+TRIAL_DAYS = 7            # 1 week free trial
+
+@api_router.get("/subscription/status")
+async def get_subscription_status(current_user: dict = Depends(get_current_user)):
+    """Get user's subscription status, trial info, and billing details"""
+    user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
+    
+    # Get or create subscription
+    subscription = await db.subscriptions.find_one({"user_id": current_user['id']}, {"_id": 0})
+    
+    if not subscription:
+        # Initialize subscription with trial
+        trial_start = datetime.now(timezone.utc)
+        trial_end = trial_start + timedelta(days=TRIAL_DAYS)
+        
+        subscription = {
+            "id": str(uuid.uuid4()),
+            "user_id": current_user['id'],
+            "status": "trial",
+            "trial_start": trial_start.isoformat(),
+            "trial_end": trial_end.isoformat(),
+            "next_billing_date": trial_end.isoformat(),
+            "auto_renew": False,
+            "razorpay_subscription_id": None,
+            "created_at": trial_start.isoformat()
+        }
+        await db.subscriptions.insert_one(subscription)
+    
+    # Get wallet
+    wallet = await db.wallet.find_one({"user_id": current_user['id']}, {"_id": 0})
+    if not wallet:
+        wallet = {
+            "user_id": current_user['id'],
+            "balance": 0,
+            "transactions": []
+        }
+        await db.wallet.insert_one(wallet)
+    
+    # Get current period usage
+    now = datetime.now(timezone.utc)
+    period_start = datetime.fromisoformat(subscription.get('next_billing_date', now.isoformat())) - timedelta(days=30)
+    
+    usage = await db.usage_tracking.find_one({
+        "user_id": current_user['id'],
+        "period_start": {"$lte": now.isoformat()},
+        "period_end": {"$gte": now.isoformat()}
+    }, {"_id": 0})
+    
+    if not usage:
+        usage = {
+            "user_id": current_user['id'],
+            "period_start": period_start.isoformat(),
+            "period_end": subscription.get('next_billing_date', now.isoformat()),
+            "message_count": 0,
+            "bundled_used": 0,
+            "extra_used": 0
+        }
+    
+    # Calculate days remaining in trial
+    trial_days_remaining = 0
+    if subscription['status'] == 'trial':
+        trial_end_dt = datetime.fromisoformat(subscription['trial_end'])
+        trial_days_remaining = max(0, (trial_end_dt - now).days)
+    
+    return {
+        "subscription": subscription,
+        "wallet": {
+            "balance": wallet.get('balance', 0),
+            "recent_transactions": wallet.get('transactions', [])[-10:]  # Last 10 transactions
+        },
+        "usage": {
+            "message_count": usage.get('message_count', 0),
+            "bundled_quota": BUNDLED_MESSAGES,
+            "bundled_used": usage.get('bundled_used', 0),
+            "extra_used": usage.get('extra_used', 0),
+            "period_start": usage.get('period_start'),
+            "period_end": usage.get('period_end')
+        },
+        "pricing": {
+            "subscription_price": SUBSCRIPTION_PRICE,
+            "bundled_messages": BUNDLED_MESSAGES,
+            "message_price": MESSAGE_PRICE
+        },
+        "trial_days_remaining": trial_days_remaining
+    }
+
+@api_router.post("/subscription/start")
+async def start_subscription(
+    subscription_data: SubscriptionCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Start subscription after trial or setup autopay"""
+    user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
+    subscription = await db.subscriptions.find_one({"user_id": current_user['id']}, {"_id": 0})
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="No subscription found")
+    
+    # Create Razorpay subscription for autopay
+    if not user.get("razorpay_configured"):
+        raise HTTPException(status_code=400, detail="Please configure Razorpay in settings first")
+    
+    user_razorpay = razorpay.Client(auth=(user["razorpay_key_id"], user["razorpay_key_secret"]))
+    
+    try:
+        # Create Razorpay plan if not exists
+        plan_data = {
+            "period": "monthly",
+            "interval": 1,
+            "item": {
+                "name": "Lumer Monthly Subscription",
+                "amount": SUBSCRIPTION_PRICE * 100,  # in paise
+                "currency": "INR"
+            }
+        }
+        
+        # Create subscription
+        razorpay_subscription = user_razorpay.subscription.create({
+            "plan_id": "plan_lumer_monthly",  # Should be created once
+            "customer_notify": 1,
+            "quantity": 1,
+            "total_count": 12,  # 1 year
+            "start_at": int((datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS if subscription['status'] == 'trial' else 0)).timestamp()),
+            "notes": {
+                "user_id": current_user['id'],
+                "user_email": user['email']
+            }
+        })
+        
+        # Update subscription
+        next_billing = datetime.now(timezone.utc) + timedelta(days=30)
+        await db.subscriptions.update_one(
+            {"user_id": current_user['id']},
+            {"$set": {
+                "status": "active",
+                "auto_renew": True,
+                "razorpay_subscription_id": razorpay_subscription['id'],
+                "next_billing_date": next_billing.isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        return {
+            "message": "Subscription activated successfully",
+            "subscription_id": razorpay_subscription['id'],
+            "next_billing_date": next_billing.isoformat()
+        }
+    except Exception as e:
+        logging.error(f"Subscription creation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create subscription: {str(e)}")
+
+@api_router.post("/subscription/cancel")
+async def cancel_subscription(current_user: dict = Depends(get_current_user)):
+    """Cancel auto-renewal (subscription continues until period end)"""
+    subscription = await db.subscriptions.find_one({"user_id": current_user['id']}, {"_id": 0})
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="No subscription found")
+    
+    await db.subscriptions.update_one(
+        {"user_id": current_user['id']},
+        {"$set": {
+            "auto_renew": False,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Auto-renewal cancelled. Subscription will end on next billing date."}
+
+@api_router.post("/wallet/topup")
+async def wallet_topup(
+    topup: WalletTopUp,
+    current_user: dict = Depends(get_current_user)
+):
+    """Top up wallet balance"""
+    if topup.amount < 100:
+        raise HTTPException(status_code=400, detail="Minimum top-up amount is ₹100")
+    
+    user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
+    
+    if not user.get("razorpay_configured"):
+        raise HTTPException(status_code=400, detail="Please configure Razorpay in settings first")
+    
+    user_razorpay = razorpay.Client(auth=(user["razorpay_key_id"], user["razorpay_key_secret"]))
+    
+    try:
+        # Create payment link for wallet top-up
+        payment_link = user_razorpay.payment_link.create({
+            "amount": topup.amount * 100,  # in paise
+            "currency": "INR",
+            "description": f"Lumer Wallet Top-up - ₹{topup.amount}",
+            "customer": {
+                "name": user['name'],
+                "email": user['email']
+            },
+            "notify": {
+                "sms": False,
+                "email": True
+            },
+            "callback_url": f"{os.environ.get('REACT_APP_BACKEND_URL', '')}/dashboard",
+            "callback_method": "get"
+        })
+        
+        # Store pending transaction
+        transaction_id = str(uuid.uuid4())
+        await db.wallet_transactions.insert_one({
+            "id": transaction_id,
+            "user_id": current_user['id'],
+            "amount": topup.amount,
+            "type": "topup",
+            "status": "pending",
+            "payment_link_id": payment_link['id'],
+            "payment_link": payment_link['short_url'],
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        return {
+            "payment_link": payment_link['short_url'],
+            "transaction_id": transaction_id,
+            "amount": topup.amount
+        }
+    except Exception as e:
+        logging.error(f"Wallet top-up failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create top-up link")
+
+@api_router.get("/billing/history")
+async def get_billing_history(current_user: dict = Depends(get_current_user)):
+    """Get billing and transaction history"""
+    # Get wallet transactions
+    transactions = await db.wallet_transactions.find(
+        {"user_id": current_user['id']},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(50).to_list(50)
+    
+    # Get payment requests (for reference)
+    payment_history = await db.payment_requests.find(
+        {"user_id": current_user['id']},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(20).to_list(20)
+    
+    return {
+        "wallet_transactions": transactions,
+        "payment_history": payment_history
+    }
+
+@api_router.post("/usage/track")
+async def track_message_usage(current_user: dict = Depends(get_current_user)):
+    """Increment message usage counter (called after sending WhatsApp message)"""
+    subscription = await db.subscriptions.find_one({"user_id": current_user['id']}, {"_id": 0})
+    
+    if not subscription or subscription['status'] not in ['trial', 'active']:
+        raise HTTPException(status_code=403, detail="No active subscription")
+    
+    # Get current period usage
+    now = datetime.now(timezone.utc)
+    period_start = datetime.fromisoformat(subscription.get('next_billing_date', now.isoformat())) - timedelta(days=30)
+    
+    usage = await db.usage_tracking.find_one({
+        "user_id": current_user['id'],
+        "period_start": {"$lte": now.isoformat()},
+        "period_end": {"$gte": now.isoformat()}
+    }, {"_id": 0})
+    
+    if not usage:
+        usage = {
+            "id": str(uuid.uuid4()),
+            "user_id": current_user['id'],
+            "period_start": period_start.isoformat(),
+            "period_end": subscription.get('next_billing_date', now.isoformat()),
+            "message_count": 0,
+            "bundled_used": 0,
+            "extra_used": 0
+        }
+        await db.usage_tracking.insert_one(usage)
+    
+    # Increment message count
+    new_count = usage.get('message_count', 0) + 1
+    bundled_used = min(new_count, BUNDLED_MESSAGES)
+    extra_used = max(0, new_count - BUNDLED_MESSAGES)
+    
+    await db.usage_tracking.update_one(
+        {"user_id": current_user['id'], "id": usage.get('id')},
+        {"$set": {
+            "message_count": new_count,
+            "bundled_used": bundled_used,
+            "extra_used": extra_used,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Deduct from wallet if beyond quota
+    if extra_used > 0 and subscription['status'] == 'active':
+        wallet = await db.wallet.find_one({"user_id": current_user['id']}, {"_id": 0})
+        if wallet and wallet.get('balance', 0) >= MESSAGE_PRICE:
+            new_balance = wallet['balance'] - MESSAGE_PRICE
+            
+            transaction = {
+                "id": str(uuid.uuid4()),
+                "type": "message_charge",
+                "amount": -MESSAGE_PRICE,
+                "description": f"WhatsApp message charge",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+            
+            await db.wallet.update_one(
+                {"user_id": current_user['id']},
+                {
+                    "$set": {"balance": new_balance},
+                    "$push": {"transactions": transaction}
+                }
+            )
+            
+            # Check for low balance
+            if new_balance < 50:
+                logging.warning(f"Low wallet balance for user {current_user['id']}: ₹{new_balance}")
+                # TODO: Send WhatsApp reminder
+    
+    return {
+        "message_count": new_count,
+        "bundled_used": bundled_used,
+        "extra_used": extra_used,
+        "charged": MESSAGE_PRICE if extra_used > 0 and subscription['status'] == 'active' else 0
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
