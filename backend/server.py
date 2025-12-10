@@ -1711,7 +1711,7 @@ async def admin_login(credentials: AdminLogin):
     if not admin or not pwd_context.verify(credentials.password, admin['hashed_password']):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    token = create_token(admin['id'])
+    token = create_access_token({"user_id": admin['id'], "email": admin['email']})
     return {"token": token, "user": {
         "id": admin['id'],
         "name": admin['name'],
