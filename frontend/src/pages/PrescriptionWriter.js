@@ -386,34 +386,55 @@ const PrescriptionWriter = () => {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end space-x-3">
+        <div className="flex justify-between items-center">
           <Button
             variant="outline"
-            onClick={() => navigate('/appointments')}
-            data-testid="cancel-btn"
+            onClick={() => setPaymentModalOpen(true)}
+            className="border-green-600 text-green-600 hover:bg-green-50"
           >
-            Cancel
+            <CreditCard className="mr-2 h-4 w-4" />
+            Request Payment
           </Button>
-          <Button
-            onClick={submitPrescription}
-            disabled={sending}
-            className="bg-green-600 hover:bg-green-700"
-            data-testid="submit-prescription-btn"
-          >
-            {sending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending via WhatsApp...
-              </>
-            ) : (
-              <>
-                <Send className="mr-2 h-4 w-4" />
-                Send Prescription to Patient
-              </>
-            )}
-          </Button>
+
+          <div className="flex space-x-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/appointments')}
+              data-testid="cancel-btn"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={submitPrescription}
+              disabled={sending}
+              className="bg-green-600 hover:bg-green-700"
+              data-testid="submit-prescription-btn"
+            >
+              {sending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending via WhatsApp...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Prescription to Patient
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Payment Request Modal */}
+      {appointment && (
+        <RequestPaymentModal
+          open={paymentModalOpen}
+          onClose={() => setPaymentModalOpen(false)}
+          clientPhone={appointment.client_phone}
+          clientName={appointment.client_name}
+        />
+      )}
     </DashboardLayout>
   );
 };
