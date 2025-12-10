@@ -124,6 +124,14 @@ const Landing = () => {
               >
                 Email Login
               </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/admin/login')}
+                className="border-purple-600 text-purple-600 hover:bg-purple-50"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Admin
+              </Button>
             </div>
           </div>
         </nav>
