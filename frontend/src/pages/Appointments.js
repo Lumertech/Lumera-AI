@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Plus, Search, Filter, List, CalendarDays } from 'lucide-react';
+import { Calendar, Plus, Search, Filter, List, CalendarDays, FileText, Upload } from 'lucide-react';
 import { formatDate, formatTime } from '@/lib/utils';
 import { toast } from 'sonner';
 import AppointmentCalendar from '@/components/AppointmentCalendar';
