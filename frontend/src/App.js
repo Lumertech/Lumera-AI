@@ -158,6 +158,14 @@ function App() {
             }
           />
           <Route
+            path="/subscription"
+            element={
+              <ProtectedRoute>
+                <Subscription />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/appointments/:id"
             element={
               <ProtectedRoute>
