@@ -180,6 +180,13 @@ class HealthRecordUpload(BaseModel):
     file_name: str
     notes: Optional[str] = None
 
+class SubscriptionCreate(BaseModel):
+    razorpay_payment_method_id: Optional[str] = None
+    razorpay_subscription_id: Optional[str] = None
+
+class WalletTopUp(BaseModel):
+    amount: int  # in INR
+
 class OTPVerifyRequest(BaseModel):
     phone_number: str
     otp: str
