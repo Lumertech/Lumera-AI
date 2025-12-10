@@ -173,6 +173,13 @@ class UserUpdate(BaseModel):
     profession: Optional[str] = None
     is_active: Optional[bool] = None
 
+class HealthRecordUpload(BaseModel):
+    client_phone: str
+    record_type: str  # "prescription_photo", "lab_report", "case_notes", "other"
+    file_base64: str
+    file_name: str
+    notes: Optional[str] = None
+
 class OTPVerifyRequest(BaseModel):
     phone_number: str
     otp: str
