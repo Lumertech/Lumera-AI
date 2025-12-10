@@ -152,6 +152,17 @@ const RequestPaymentModal = ({ open, onClose, clientPhone, clientName }) => {
                 </CardContent>
               </Card>
 
+              <div className="text-xs text-slate-600 font-inter p-3 bg-slate-50 rounded-lg border border-slate-200 mb-4">
+                By proceeding, you agree to Lumer Tech LLC's{' '}
+                <a href="/policies#terms-of-service" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+                  Terms of Service
+                </a>{' '}
+                and{' '}
+                <a href="/policies#payment-disclaimer" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+                  Payment Disclaimer
+                </a>.
+              </div>
+
               <div className="flex justify-end space-x-3">
                 <Button variant="outline" onClick={handleClose}>
                   Cancel
