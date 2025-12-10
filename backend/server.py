@@ -413,7 +413,7 @@ async def login(credentials: UserLogin):
     if not user or not pwd_context.verify(credentials.password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    token = create_token(user["id"])
+    token = create_access_token({"user_id": user["id"], "email": user["email"]})
     user_data = {k: v for k, v in user.items() if k not in ["hashed_password", "_id"]}
     return {"token": token, "user": user_data}
 
