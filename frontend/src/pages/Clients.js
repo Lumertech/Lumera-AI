@@ -154,6 +154,81 @@ const Clients = () => {
           </Card>
         )}
       </div>
+
+      {/* Payment History Modal */}
+      <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-manrope text-xl">
+              Payment History - {selectedClient?.name}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4">
+            {loadingPayments ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+              </div>
+            ) : paymentHistory.length > 0 ? (
+              <div className="space-y-3">
+                {paymentHistory.map((payment) => (
+                  <Card key={payment.id} className="border-slate-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            {getPaymentStatusIcon(payment.payment_status)}
+                            <span className="font-manrope font-semibold text-slate-900">
+                              {payment.package.replace('_', ' ').toUpperCase()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-600">
+                            Amount: ₹{payment.amount}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {formatDate(payment.created_at)}
+                          </p>
+                          {payment.payment_link && (
+                            <a
+                              href={payment.payment_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-indigo-600 hover:underline mt-1 inline-block"
+                            >
+                              View Payment Link →
+                            </a>
+                          )}
+                        </div>
+                        <div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              payment.payment_status === 'paid'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}
+                          >
+                            {payment.payment_status}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <CreditCard className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="font-manrope font-semibold text-lg text-slate-900 mb-2">
+                  No Payment History
+                </h3>
+                <p className="text-slate-600 text-sm">
+                  No payment requests have been sent to this client yet.
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
