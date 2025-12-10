@@ -1267,8 +1267,11 @@ Detect the language and respond in the same language (Hindi, English, etc.)."""
 async def whatsapp_webhook(
     request: Request,
     From: str = Form(...),
-    Body: str = Form(...),
-    MessageSid: str = Form(...)
+    Body: str = Form(None),
+    MessageSid: str = Form(...),
+    NumMedia: int = Form(0),
+    MediaUrl0: str = Form(None),
+    MediaContentType0: str = Form(None)
 ):
     # Validate signature
     if twilio_validator:
@@ -1278,7 +1281,84 @@ async def whatsapp_webhook(
             raise HTTPException(status_code=403, detail="Invalid signature")
     
     phone = From.replace("whatsapp:", "")
-    message = Body.strip()
+    message = Body.strip() if Body else ""
+    
+    # Find the professional associated with this patient
+    professional = None
+    client = await db.clients.find_one({"phone": phone}, {"_id": 0})
+    if client:
+        professional = await db.users.find_one({"id": client['professional_id']}, {"_id": 0})
+    
+    # Store incoming message in health records
+    if professional and message:
+        try:
+            message_id = str(uuid.uuid4())
+            await db.whatsapp_messages.insert_one({
+                "id": message_id,
+                "professional_id": professional['id'],
+                "client_phone": phone,
+                "message_type": "text",
+                "content": message,
+                "direction": "incoming",
+                "message_sid": MessageSid,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+        except Exception as e:
+            logging.error(f"Failed to store WhatsApp message: {e}")
+    
+    # Store media (photos/documents) in health records
+    if professional and NumMedia > 0 and MediaUrl0:
+        try:
+            # Download the media file
+            async with httpx.AsyncClient() as client_http:
+                media_response = await client_http.get(
+                    MediaUrl0,
+                    auth=(os.environ.get('TWILIO_ACCOUNT_SID'), os.environ.get('TWILIO_AUTH_TOKEN'))
+                )
+                if media_response.status_code == 200:
+                    # Convert to base64
+                    media_base64 = base64.b64encode(media_response.content).decode()
+                    
+                    # Determine record type from content type
+                    record_type = "other"
+                    if MediaContentType0 and "image" in MediaContentType0:
+                        record_type = "photo"
+                    elif MediaContentType0 and "pdf" in MediaContentType0:
+                        record_type = "document"
+                    
+                    # Store in health records
+                    record_id = str(uuid.uuid4())
+                    await db.health_records.insert_one({
+                        "id": record_id,
+                        "professional_id": professional['id'],
+                        "client_phone": phone,
+                        "record_type": record_type,
+                        "file_base64": media_base64,
+                        "file_name": f"whatsapp_media_{MessageSid}",
+                        "notes": message if message else "Received via WhatsApp",
+                        "source": "whatsapp",
+                        "media_url": MediaUrl0,
+                        "content_type": MediaContentType0,
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    })
+                    
+                    # Also store in WhatsApp messages
+                    message_id = str(uuid.uuid4())
+                    await db.whatsapp_messages.insert_one({
+                        "id": message_id,
+                        "professional_id": professional['id'],
+                        "client_phone": phone,
+                        "message_type": "media",
+                        "content": message if message else "Media file",
+                        "media_url": MediaUrl0,
+                        "media_type": MediaContentType0,
+                        "direction": "incoming",
+                        "message_sid": MessageSid,
+                        "health_record_id": record_id,
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    })
+        except Exception as e:
+            logging.error(f"Failed to store WhatsApp media: {e}")
     
     response = MessagingResponse()
     
