@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -14,9 +15,37 @@ import {
   Check,
 } from 'lucide-react';
 
+const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
+
 const Landing = () => {
   const navigate = useNavigate();
   const [showAuth, setShowAuth] = useState(false);
+  const [content, setContent] = useState({
+    hero_title: 'Smart Booking, Happy Clients',
+    hero_subtitle: 'Transform your practice with WhatsApp booking, automated reminders, and an all-in-one CRM. Perfect for doctors, therapists, spas, lawyers, and wellness professionals.',
+    hero_image_url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800',
+    tagline: 'WhatsApp-Powered Appointments',
+    feature_1_title: 'WhatsApp Integration',
+    feature_1_description: 'Book appointments via WhatsApp with automated reminders',
+    feature_2_title: 'Smart CRM',
+    feature_2_description: 'Manage clients, prescriptions, and payments in one place',
+    feature_3_title: 'Automated Reminders',
+    feature_3_description: '24h and 4h reminders sent automatically via WhatsApp'
+  });
+
+  useEffect(() => {
+    fetchContent();
+  }, []);
+
+  const fetchContent = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/admin/content`);
+      setContent(response.data);
+    } catch (error) {
+      console.error('Failed to fetch content:', error);
+      // Keep default content on error
+    }
+  };
 
   const features = [
     {
