@@ -397,6 +397,100 @@ async def send_4hour_reminders():
         )
         logging.info(f"4h reminder sent for appointment {appt['id']}")
 
+async def check_trial_expiry():
+    """Check for expiring trials and send reminders"""
+    now = datetime.now(timezone.utc)
+    tomorrow = now + timedelta(days=1)
+    
+    # Find trials expiring tomorrow
+    subscriptions = await db.subscriptions.find({
+        "status": "trial",
+        "trial_end": {
+            "$gte": now.isoformat(),
+            "$lte": tomorrow.isoformat()
+        },
+        "trial_reminder_sent": {"$ne": True}
+    }, {"_id": 0}).to_list(None)
+    
+    for subscription in subscriptions:
+        user = await db.users.find_one({"id": subscription['user_id']}, {"_id": 0})
+        if user:
+            message = f"""🔔 Trial Ending Soon!
+
+Hi {user['name']},
+
+Your Lumer free trial ends tomorrow. You will be auto-charged ₹{SUBSCRIPTION_PRICE} unless you cancel.
+
+✓ ₹{SUBSCRIPTION_PRICE}/month
+✓ {BUNDLED_MESSAGES} WhatsApp messages included
+✓ Auto-renewal enabled
+
+To manage your subscription, visit your dashboard.
+
+Thank you for using Lumer!"""
+            
+            await send_whatsapp_message(user['phone_number'], message)
+            await db.subscriptions.update_one(
+                {"id": subscription['id']},
+                {"$set": {"trial_reminder_sent": True}}
+            )
+            logging.info(f"Trial expiry reminder sent to user {user['id']}")
+
+async def process_expired_trials():
+    """Convert expired trials to active subscriptions (if autopay is set up)"""
+    now = datetime.now(timezone.utc)
+    
+    # Find expired trials
+    subscriptions = await db.subscriptions.find({
+        "status": "trial",
+        "trial_end": {"$lte": now.isoformat()},
+        "auto_renew": True
+    }, {"_id": 0}).to_list(None)
+    
+    for subscription in subscriptions:
+        user = await db.users.find_one({"id": subscription['user_id']}, {"_id": 0})
+        if user and subscription.get('razorpay_subscription_id'):
+            # Trial ended, subscription should auto-activate via Razorpay webhook
+            # For now, just update status
+            next_billing = now + timedelta(days=30)
+            await db.subscriptions.update_one(
+                {"id": subscription['id']},
+                {"$set": {
+                    "status": "active",
+                    "next_billing_date": next_billing.isoformat(),
+                    "updated_at": now.isoformat()
+                }}
+            )
+            
+            # Initialize wallet with first month
+            wallet = await db.wallet.find_one({"user_id": user['id']}, {"_id": 0})
+            if not wallet:
+                await db.wallet.insert_one({
+                    "user_id": user['id'],
+                    "balance": 0,
+                    "transactions": [{
+                        "id": str(uuid.uuid4()),
+                        "type": "subscription_started",
+                        "amount": 0,
+                        "description": f"Subscription activated - {BUNDLED_MESSAGES} messages included",
+                        "timestamp": now.isoformat()
+                    }]
+                })
+            
+            # Send confirmation
+            message = f"""✅ Subscription Activated!
+
+Your Lumer subscription has been activated.
+
+Monthly Plan: ₹{SUBSCRIPTION_PRICE}
+Included: {BUNDLED_MESSAGES} WhatsApp messages
+Next billing: {next_billing.strftime('%d %b %Y')}
+
+Thank you for choosing Lumer!"""
+            
+            await send_whatsapp_message(user['phone_number'], message)
+            logging.info(f"Trial converted to active for user {user['id']}")
+
 # Auth Routes
 @api_router.post("/auth/register")
 async def register(user_data: UserCreate):
