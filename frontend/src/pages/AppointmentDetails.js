@@ -271,17 +271,56 @@ const AppointmentDetails = () => {
               />
             </div>
 
-            <Button
-              onClick={savePatientDetails}
-              className="w-full bg-indigo-600 hover:bg-indigo-700"
-              data-testid="save-patient-details-btn"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Patient Details
-            </Button>
+                <Button
+                  onClick={savePatientDetails}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700"
+                  data-testid="save-patient-details-btn"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Patient Details
+                </Button>
+              </TabsContent>
+
+              {/* Request Payment Tab */}
+              <TabsContent value="payment">
+                <div className="text-center py-12">
+                  <CreditCard className="h-16 w-16 text-indigo-600 mx-auto mb-4" />
+                  <h3 className="font-manrope font-semibold text-xl text-slate-900 mb-3">
+                    Request Payment
+                  </h3>
+                  <p className="font-inter text-slate-600 mb-6">
+                    Send a payment link to {appointment?.client_name} via WhatsApp
+                  </p>
+                  <Button
+                    onClick={() => setPaymentModalOpen(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Generate Payment Link
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* Health Records Tab */}
+              <TabsContent value="records">
+                {appointment && (
+                  <HealthRecordsTab clientPhone={appointment.client_phone} />
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
+
+      {/* Payment Request Modal */}
+      {appointment && (
+        <RequestPaymentModal
+          open={paymentModalOpen}
+          onClose={() => setPaymentModalOpen(false)}
+          clientPhone={appointment.client_phone}
+          clientName={appointment.client_name}
+        />
+      )}
     </DashboardLayout>
   );
 };
