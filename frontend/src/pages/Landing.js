@@ -365,16 +365,63 @@ const Landing = () => {
       {/* Footer */}
       <footer className="bg-slate-900 text-white py-12">
         <div className="container mx-auto px-6">
-          <div className="text-center">
-            <div className="flex items-center justify-center space-x-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-teal-600 flex items-center justify-center">
-                <span className="text-white font-manrope font-bold text-lg">L</span>
+          <div className="max-w-6xl mx-auto">
+            {/* Top Section */}
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8 pb-8 border-b border-slate-700">
+              <div className="flex items-center space-x-3 mb-4 md:mb-0">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-teal-600 flex items-center justify-center">
+                  <span className="text-white font-manrope font-bold text-lg">L</span>
+                </div>
+                <span className="font-manrope font-bold text-xl">Lumer</span>
               </div>
-              <span className="font-manrope font-bold text-xl">Lumer</span>
+              <div className="text-center md:text-right">
+                <p className="font-inter text-slate-400 text-sm mb-1">
+                  Questions or concerns?
+                </p>
+                <a href="mailto:ravee@lumer.me" className="text-indigo-400 hover:text-indigo-300 font-semibold">
+                  ravee@lumer.me
+                </a>
+              </div>
             </div>
-            <p className="font-inter text-slate-400">
-              © 2025 Lumer. All rights reserved. Built with care for professionals.
-            </p>
+
+            {/* Policy Links */}
+            <div className="mb-8">
+              <h3 className="font-manrope font-semibold text-lg mb-4 text-center">Policies & Disclaimers</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <Link to="/policies#privacy-policy" className="text-slate-400 hover:text-white transition-colors font-inter text-center">
+                  Privacy Policy
+                </Link>
+                <Link to="/policies#terms-of-service" className="text-slate-400 hover:text-white transition-colors font-inter text-center">
+                  Terms of Service
+                </Link>
+                <Link to="/policies#medical-disclaimer" className="text-slate-400 hover:text-white transition-colors font-inter text-center">
+                  Medical Disclaimer
+                </Link>
+                <Link to="/policies#payment-disclaimer" className="text-slate-400 hover:text-white transition-colors font-inter text-center">
+                  Payment Disclaimer
+                </Link>
+                <Link to="/policies#whatsapp-disclaimer" className="text-slate-400 hover:text-white transition-colors font-inter text-center">
+                  WhatsApp Disclaimer
+                </Link>
+                <Link to="/policies#data-security" className="text-slate-400 hover:text-white transition-colors font-inter text-center">
+                  Data Security
+                </Link>
+                <Link to="/policies#cookie-policy" className="text-slate-400 hover:text-white transition-colors font-inter text-center">
+                  Cookie Policy
+                </Link>
+                <Link to="/policies#limitation-liability" className="text-slate-400 hover:text-white transition-colors font-inter text-center">
+                  Liability
+                </Link>
+              </div>
+            </div>
+
+            {/* Copyright */}
+            <div className="text-center pt-8 border-t border-slate-700">
+              <p className="font-inter text-slate-400 text-sm">
+                © 2025 Lumer Tech LLC. All rights reserved. <br className="md:hidden" />
+                Governed by Indian law, Pune jurisdiction.
+              </p>
+            </div>
           </div>
         </div>
       </footer>
