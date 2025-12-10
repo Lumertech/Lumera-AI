@@ -30,6 +30,7 @@ const AppointmentDetails = () => {
     chronic_conditions: '',
     emergency_contact: '',
   });
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   useEffect(() => {
     fetchAppointment();
