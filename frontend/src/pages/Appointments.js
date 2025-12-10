@@ -99,6 +99,48 @@ const Appointments = () => {
     }
   };
 
+  const handleUploadClick = (appt, e) => {
+    e.stopPropagation();
+    setSelectedAppointment(appt);
+    setUploadModalOpen(true);
+  };
+
+  const handlePrescriptionClick = (appt, e) => {
+    e.stopPropagation();
+    navigate(`/appointments/${appt.id}/prescription`);
+  };
+
+  const handleFileUpload = async () => {
+    if (!uploadFile || !selectedAppointment) return;
+
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result.split(',')[1];
+
+        await axios.post(`${API_URL}/health-records/upload`, {
+          client_phone: selectedAppointment.client_phone,
+          record_type: 'prescription_photo',
+          file_base64: base64String,
+          file_name: uploadFile.name,
+          notes: `Uploaded from appointment on ${formatDate(selectedAppointment.appointment_date)}`
+        });
+
+        toast.success('Document uploaded successfully!');
+        setUploadModalOpen(false);
+        setUploadFile(null);
+        setSelectedAppointment(null);
+      };
+      reader.readAsDataURL(uploadFile);
+    } catch (error) {
+      console.error('Failed to upload:', error);
+      toast.error('Failed to upload document');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6" data-testid="appointments-page">
