@@ -146,15 +146,27 @@ const AppointmentDetails = () => {
           </CardContent>
         </Card>
 
-        {/* Patient Details Form */}
+        {/* Tabs for Patient Details, Request Payment, Health Records */}
         <Card className="border-slate-200">
-          <CardHeader>
-            <CardTitle className="font-manrope flex items-center space-x-2">
-              <User className="h-5 w-5" />
-              <span>Patient Details</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="p-6">
+            <Tabs defaultValue="details" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="details" className="flex items-center space-x-2">
+                  <User className="h-4 w-4" />
+                  <span>Patient Details</span>
+                </TabsTrigger>
+                <TabsTrigger value="payment" className="flex items-center space-x-2">
+                  <CreditCard className="h-4 w-4" />
+                  <span>Request Payment</span>
+                </TabsTrigger>
+                <TabsTrigger value="records" className="flex items-center space-x-2">
+                  <FolderOpen className="h-4 w-4" />
+                  <span>Health Records</span>
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Patient Details Tab */}
+              <TabsContent value="details" className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="font-manrope font-semibold">Patient Name *</Label>
