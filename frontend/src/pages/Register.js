@@ -102,7 +102,7 @@ const Register = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone" className="font-manrope font-semibold">Phone Number</Label>
+              <Label htmlFor="phone" className="font-manrope font-semibold">WhatsApp Business Phone Number</Label>
               <Input
                 id="phone"
                 type="tel"
@@ -113,6 +113,12 @@ const Register = () => {
                 data-testid="phone-input"
                 className="font-inter"
               />
+              <Alert className="bg-blue-50 border-blue-200">
+                <AlertCircle className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-xs text-blue-800 font-inter">
+                  Your WhatsApp account will be authenticated as per Meta Business API guidelines. Ensure this number is registered with WhatsApp Business.
+                </AlertDescription>
+              </Alert>
             </div>
 
             <div className="space-y-2">
