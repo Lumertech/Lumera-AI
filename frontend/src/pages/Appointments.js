@@ -311,7 +311,7 @@ const Appointments = () => {
                 data-testid={`appointment-card-${index}`}
               >
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center">
                         <Calendar className="h-6 w-6 text-indigo-600" />
@@ -325,20 +325,42 @@ const Appointments = () => {
                           {formatDate(appt.appointment_date)} at {formatTime(appt.start_time)} -{' '}
                           {formatTime(appt.end_time)}
                         </p>
+                        {appt.notes && (
+                          <p className="font-inter text-sm text-slate-600 mt-2">{appt.notes}</p>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-manrope font-semibold ${getStatusColor(appt.status)}`}>
-                        {appt.status}
-                      </span>
-                      <span className="px-3 py-1 rounded-full text-xs font-manrope font-semibold bg-slate-100 text-slate-700">
-                        {appt.consultation_mode}
-                      </span>
+                    <div className="flex flex-col items-end space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-manrope font-semibold ${getStatusColor(appt.status)}`}>
+                          {appt.status}
+                        </span>
+                        <span className="px-3 py-1 rounded-full text-xs font-manrope font-semibold bg-slate-100 text-slate-700">
+                          {appt.consultation_mode}
+                        </span>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => handleUploadClick(appt, e)}
+                          className="text-xs"
+                        >
+                          <Upload className="h-3 w-3 mr-1" />
+                          Upload
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => handlePrescriptionClick(appt, e)}
+                          className="text-xs"
+                        >
+                          <FileText className="h-3 w-3 mr-1" />
+                          Prescription
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  {appt.notes && (
-                    <p className="font-inter text-sm text-slate-600 mt-4 pl-16">{appt.notes}</p>
-                  )}
                 </CardContent>
               </Card>
             ))}
