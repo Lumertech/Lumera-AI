@@ -19,6 +19,13 @@ import Payments from '@/pages/Payments';
 import Reminders from '@/pages/Reminders';
 import Settings from '@/pages/Settings';
 
+// Admin Pages
+import AdminLogin from '@/pages/AdminLogin';
+import AdminDashboard from '@/pages/AdminDashboard';
+import AdminUsers from '@/pages/AdminUsers';
+import AdminAnalytics from '@/pages/AdminAnalytics';
+import AdminContentEditor from '@/pages/AdminContentEditor';
+
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
