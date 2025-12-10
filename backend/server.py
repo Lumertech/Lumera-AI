@@ -1700,6 +1700,125 @@ async def get_dashboard_analytics(current_user: dict = Depends(get_current_user)
         "total_revenue": revenue[0]['total'] if revenue else 0
     }
 
+# Admin Endpoints
+@api_router.post("/admin/login")
+async def admin_login(credentials: AdminLogin):
+    """Admin login endpoint"""
+    # Check if admin user exists
+    admin = await db.users.find_one({"email": credentials.email, "role": "admin"}, {"_id": 0})
+    
+    if not admin or not pwd_context.verify(credentials.password, admin['hashed_password']):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    token = create_token(admin['id'])
+    return {"token": token, "user": {
+        "id": admin['id'],
+        "name": admin['name'],
+        "email": admin['email'],
+        "role": admin['role']
+    }}
+
+@api_router.get("/admin/users")
+async def get_all_users(admin: dict = Depends(get_admin_user)):
+    """Get all users (admin only)"""
+    users = await db.users.find(
+        {"role": {"$ne": "admin"}},
+        {"_id": 0, "hashed_password": 0}
+    ).to_list(1000)
+    return users
+
+@api_router.get("/admin/analytics")
+async def get_admin_analytics(admin: dict = Depends(get_admin_user)):
+    """Get analytics for admin dashboard"""
+    # Count users by profession
+    pipeline = [
+        {"$match": {"role": {"$ne": "admin"}}},
+        {"$group": {"_id": "$profession", "count": {"$sum": 1}}}
+    ]
+    profession_stats = await db.users.aggregate(pipeline).to_list(100)
+    
+    # Total users
+    total_users = await db.users.count_documents({"role": {"$ne": "admin"}})
+    
+    # Total appointments across all users
+    total_appointments = await db.appointments.count_documents({})
+    
+    # Recent registrations (last 30 days)
+    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    recent_users = await db.users.count_documents({
+        "role": {"$ne": "admin"},
+        "created_at": {"$gte": thirty_days_ago}
+    })
+    
+    return {
+        "total_users": total_users,
+        "total_appointments": total_appointments,
+        "recent_registrations": recent_users,
+        "users_by_profession": {stat['_id']: stat['count'] for stat in profession_stats}
+    }
+
+@api_router.put("/admin/users/{user_id}")
+async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends(get_admin_user)):
+    """Update user details (admin only)"""
+    update_data = {k: v for k, v in user_data.dict().items() if v is not None}
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No data to update")
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": "User updated successfully"}
+
+@api_router.delete("/admin/users/{user_id}")
+async def delete_user(user_id: str, admin: dict = Depends(get_admin_user)):
+    """Delete user (admin only)"""
+    result = await db.users.delete_one({"id": user_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Also delete user's appointments and time-offs
+    await db.appointments.delete_many({"professional_id": user_id})
+    await db.time_offs.delete_many({"user_id": user_id})
+    
+    return {"message": "User deleted successfully"}
+
+@api_router.get("/admin/content")
+async def get_landing_content():
+    """Get landing page content"""
+    content = await db.landing_content.find_one({}, {"_id": 0})
+    if not content:
+        # Return default content
+        return {
+            "hero_title": "Smart Booking, Happy Clients",
+            "hero_subtitle": "Transform your practice with WhatsApp booking, automated reminders, and an all-in-one CRM. Perfect for doctors, therapists, spas, lawyers, and wellness professionals.",
+            "hero_image_url": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800",
+            "tagline": "WhatsApp-Powered Appointments",
+            "feature_1_title": "WhatsApp Integration",
+            "feature_1_description": "Book appointments via WhatsApp with automated reminders",
+            "feature_2_title": "Smart CRM",
+            "feature_2_description": "Manage clients, prescriptions, and payments in one place",
+            "feature_3_title": "Automated Reminders",
+            "feature_3_description": "24h and 4h reminders sent automatically via WhatsApp"
+        }
+    return content
+
+@api_router.put("/admin/content")
+async def update_landing_content(content: LandingPageContent, admin: dict = Depends(get_admin_user)):
+    """Update landing page content (admin only)"""
+    await db.landing_content.update_one(
+        {},
+        {"$set": content.dict()},
+        upsert=True
+    )
+    return {"message": "Content updated successfully"}
+
 app.include_router(api_router)
 
 app.add_middleware(
