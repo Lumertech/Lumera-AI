@@ -125,6 +125,15 @@ const Clients = () => {
                           </span>
                         </div>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => fetchPaymentHistory(client)}
+                        className="w-full mt-4 text-xs"
+                      >
+                        <CreditCard className="h-3 w-3 mr-1" />
+                        View Payment History
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
