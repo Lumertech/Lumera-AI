@@ -101,7 +101,7 @@ class RazorpayConfig(BaseModel):
 class PaymentFees(BaseModel):
     consultation_fee: int = 500
     followup_fee: int = 300
-    full_checkup_fee: int = 1000
+    custom_payment_types: Optional[List[Dict[str, Any]]] = []
 
 class PaymentRequest(BaseModel):
     package: str
