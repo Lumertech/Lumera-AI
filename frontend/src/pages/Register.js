@@ -27,6 +27,12 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!agreedToTerms) {
+      setError('You must agree to the Terms of Service and Privacy Policy to continue');
+      return;
+    }
+
     setLoading(true);
 
     const result = await register(
