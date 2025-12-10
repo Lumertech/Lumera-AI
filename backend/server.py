@@ -404,7 +404,7 @@ async def register(user_data: UserCreate):
     }
     await db.users.insert_one(user)
     
-    token = create_token(user_id)
+    token = create_access_token({"user_id": user_id, "email": user_data.email})
     return {"token": token, "user": {k: v for k, v in user.items() if k not in ["hashed_password", "_id"]}}
 
 @api_router.post("/auth/login")
