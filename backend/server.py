@@ -1820,6 +1820,223 @@ async def update_landing_content(content: LandingPageContent, admin: dict = Depe
     )
     return {"message": "Content updated successfully"}
 
+# Payment Request for Clients
+@api_router.post("/clients/{client_phone}/request-payment")
+async def request_payment_for_client(
+    client_phone: str,
+    package: str,
+    amount: Optional[int] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate payment link and send to client via WhatsApp"""
+    try:
+        # Get user's Razorpay credentials
+        user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
+        
+        if not user.get("razorpay_configured"):
+            raise HTTPException(
+                status_code=400,
+                detail="Please configure your Razorpay credentials in Settings first"
+            )
+        
+        # Create user-specific Razorpay client
+        user_razorpay = razorpay.Client(auth=(user["razorpay_key_id"], user["razorpay_key_secret"]))
+        
+        # Determine amount
+        if amount:
+            amount_inr = amount
+        else:
+            # Get user's configured payment fees
+            payment_fees = user.get("payment_fees", {
+                "consultation_fee": 500,
+                "followup_fee": 300,
+                "full_checkup_fee": 1000
+            })
+            
+            fee_mapping = {
+                "consultation": payment_fees.get("consultation_fee", 500),
+                "follow_up": payment_fees.get("followup_fee", 300),
+                "full_checkup": payment_fees.get("full_checkup_fee", 1000)
+            }
+            amount_inr = fee_mapping.get(package, 500)
+        
+        amount_paise = amount_inr * 100
+        
+        # Get client info
+        client = await db.clients.find_one({
+            "professional_id": current_user['id'],
+            "phone": client_phone
+        }, {"_id": 0})
+        
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        # Create payment link
+        payment_link_data = {
+            "amount": amount_paise,
+            "currency": "INR",
+            "description": f"{package.replace('_', ' ').title()} - {current_user['name']}",
+            "customer": {
+                "name": client['name'],
+                "contact": client_phone.replace("+", "")
+            },
+            "notify": {
+                "sms": False,
+                "email": False,
+                "whatsapp": True
+            },
+            "reminder_enable": False,
+            "callback_url": f"{os.environ.get('REACT_APP_BACKEND_URL', '')}/dashboard",
+            "callback_method": "get"
+        }
+        
+        payment_link = user_razorpay.payment_link.create(payment_link_data)
+        
+        # Store payment request in database
+        payment_request_id = str(uuid.uuid4())
+        await db.payment_requests.insert_one({
+            "id": payment_request_id,
+            "payment_link_id": payment_link['id'],
+            "payment_link": payment_link['short_url'],
+            "user_id": current_user['id'],
+            "client_phone": client_phone,
+            "client_name": client['name'],
+            "amount": amount_inr,
+            "currency": "INR",
+            "package": package,
+            "payment_status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        # Generate QR code
+        qr_code_base64 = generate_qr_code(payment_link['short_url'])
+        
+        # Send payment link via WhatsApp
+        message = f"""💳 Payment Request from {current_user['name']}
+
+Amount: ₹{amount_inr}
+Service: {package.replace('_', ' ').title()}
+
+Please click the link below to complete your payment:
+{payment_link['short_url']}
+
+Thank you!"""
+        
+        await send_whatsapp_message(client_phone, message)
+        
+        return {
+            "payment_request_id": payment_request_id,
+            "payment_link": payment_link['short_url'],
+            "qr_code": qr_code_base64,
+            "amount": amount_inr,
+            "status": "sent"
+        }
+    except Exception as e:
+        logging.error(f"Payment request creation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/clients/{client_phone}/payment-history")
+async def get_client_payment_history(
+    client_phone: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get payment history for a specific client"""
+    payments = await db.payment_requests.find(
+        {
+            "user_id": current_user['id'],
+            "client_phone": client_phone
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return payments
+
+# Health Records Management
+class HealthRecordUpload(BaseModel):
+    client_phone: str
+    record_type: str  # "prescription_photo", "lab_report", "case_notes", "other"
+    file_base64: str
+    file_name: str
+    notes: Optional[str] = None
+
+@api_router.post("/health-records/upload")
+async def upload_health_record(
+    record: HealthRecordUpload,
+    current_user: dict = Depends(get_current_user)
+):
+    """Upload health record (photo/document) for a client"""
+    try:
+        record_id = str(uuid.uuid4())
+        
+        health_record = {
+            "id": record_id,
+            "professional_id": current_user['id'],
+            "client_phone": record.client_phone,
+            "record_type": record.record_type,
+            "file_base64": record.file_base64,
+            "file_name": record.file_name,
+            "notes": record.notes,
+            "source": "manual_upload",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.health_records.insert_one(health_record)
+        
+        # Update client record
+        await db.clients.update_one(
+            {"professional_id": current_user['id'], "phone": record.client_phone},
+            {"$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        return {"message": "Health record uploaded successfully", "record_id": record_id}
+    except Exception as e:
+        logging.error(f"Health record upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload health record")
+
+@api_router.get("/health-records/{client_phone}")
+async def get_health_records(
+    client_phone: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get all health records for a client"""
+    records = await db.health_records.find(
+        {
+            "professional_id": current_user['id'],
+            "client_phone": client_phone
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(1000)
+    
+    # Also get WhatsApp messages
+    whatsapp_messages = await db.whatsapp_messages.find(
+        {
+            "professional_id": current_user['id'],
+            "client_phone": client_phone
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(1000)
+    
+    return {
+        "health_records": records,
+        "whatsapp_messages": whatsapp_messages
+    }
+
+@api_router.delete("/health-records/{record_id}")
+async def delete_health_record(
+    record_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete a health record"""
+    result = await db.health_records.delete_one({
+        "id": record_id,
+        "professional_id": current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Health record not found")
+    
+    return {"message": "Health record deleted successfully"}
+
 app.include_router(api_router)
 
 app.add_middleware(
