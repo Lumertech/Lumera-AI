@@ -395,16 +395,17 @@ async def register(user_data: UserCreate):
         "id": user_id,
         "name": user_data.name,
         "email": user_data.email,
-        "password": hash_password(user_data.password),
+        "hashed_password": pwd_context.hash(user_data.password),
         "phone_number": user_data.phone_number,
         "profession": user_data.profession,
+        "role": "user",  # Default role
         "whatsapp_verified": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user)
     
-    token = create_access_token({"user_id": user_id, "email": user_data.email})
-    return {"token": token, "user": {k: v for k, v in user.items() if k != "password"}}
+    token = create_token(user_id)
+    return {"token": token, "user": {k: v for k, v in user.items() if k not in ["hashed_password", "_id"]}}
 
 @api_router.post("/auth/login")
 async def login(credentials: UserLogin):
