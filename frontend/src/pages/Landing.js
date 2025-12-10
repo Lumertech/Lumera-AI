@@ -171,13 +171,13 @@ const Landing = () => {
             <div className="space-y-8 animate-fade-in">
               <div className="inline-block px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-indigo-200">
                 <span className="font-manrope font-semibold text-sm text-indigo-600">
-                  WhatsApp-Powered Appointments
+                  {content.tagline}
                 </span>
               </div>
               <h1 className="font-manrope font-bold text-4xl sm:text-5xl lg:text-6xl text-slate-900 leading-tight tracking-tight">
-                Smart Booking,
+                {content.hero_title.split(',')[0]},
                 <br />
-                <span className="text-indigo-600">Happy Clients</span>
+                <span className="text-indigo-600">{content.hero_title.split(',')[1] || 'Happy Clients'}</span>
               </h1>
               <p className="font-inter text-lg text-slate-600 leading-relaxed max-w-xl">
                 Transform your practice with WhatsApp booking, automated reminders, and an
