@@ -15,6 +15,10 @@ const Clients = () => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   useEffect(() => {
     fetchClients();
