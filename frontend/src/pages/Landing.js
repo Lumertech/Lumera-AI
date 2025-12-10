@@ -180,9 +180,7 @@ const Landing = () => {
                 <span className="text-indigo-600">{content.hero_title.split(',')[1] || 'Happy Clients'}</span>
               </h1>
               <p className="font-inter text-lg text-slate-600 leading-relaxed max-w-xl">
-                Transform your practice with WhatsApp booking, automated reminders, and an
-                all-in-one CRM. Perfect for doctors, therapists, spas, lawyers, and wellness
-                professionals.
+                {content.hero_subtitle}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
@@ -205,7 +203,7 @@ const Landing = () => {
             </div>
             <div className="relative">
               <img
-                src="https://images.unsplash.com/photo-1758691462749-a95ce1bd7f96?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwxfHxkb2N0b3IlMjBjb25zdWx0YXRpb24lMjBtb2Rlcm4lMjBjbGluaWN8ZW58MHx8fHwxNzY1MjAwODg5fDA&ixlib=rb-4.1.0&q=85"
+                src={content.hero_image_url}
                 alt="Healthcare professional using Lumer"
                 className="rounded-2xl shadow-2xl border border-slate-200"
               />
