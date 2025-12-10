@@ -89,6 +89,15 @@ const AdminLogin = () => {
             >
               {loading ? 'Signing in...' : 'Sign In as Admin'}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/')}
+              className="w-full"
+            >
+              <Home className="h-4 w-4 mr-2" />
+              Back to Landing
+            </Button>
           </form>
         </CardContent>
       </Card>
