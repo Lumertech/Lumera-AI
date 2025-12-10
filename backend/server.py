@@ -289,6 +289,12 @@ async def get_current_user(authorization: str = Header(None)):
         raise HTTPException(status_code=401, detail="User not found")
     return user
 
+async def get_admin_user(current_user: dict = Depends(get_current_user)):
+    """Check if current user is admin"""
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
 def generate_qr_code(data: str) -> str:
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(data)
