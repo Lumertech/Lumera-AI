@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Plus, Trash2, Sparkles, Send } from 'lucide-react';
+import { Loader2, Plus, Trash2, Sparkles, Send, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
+import RequestPaymentModal from '@/components/RequestPaymentModal';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
