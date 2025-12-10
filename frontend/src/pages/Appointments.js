@@ -391,6 +391,60 @@ const Appointments = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Upload Modal */}
+      <Dialog open={uploadModalOpen} onOpenChange={setUploadModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-manrope">
+              Upload Document - {selectedAppointment?.client_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="font-manrope font-semibold">Select File</Label>
+              <Input
+                type="file"
+                accept="image/*,.pdf"
+                onChange={(e) => setUploadFile(e.target.files[0])}
+              />
+              <p className="text-xs text-slate-500">
+                Max file size: 5MB. Supported: Images, PDF
+              </p>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setUploadModalOpen(false);
+                  setUploadFile(null);
+                  setSelectedAppointment(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleFileUpload}
+                disabled={uploading || !uploadFile}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
