@@ -33,6 +33,7 @@ const PrescriptionWriter = () => {
   ]);
   const [generalInstructions, setGeneralInstructions] = useState('');
   const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   useEffect(() => {
     fetchAppointment();
