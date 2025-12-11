@@ -2279,7 +2279,18 @@ async def get_subscription_status(current_user: dict = Depends(get_current_user)
     
     # Get current period usage
     now = datetime.now(timezone.utc)
-    period_start = datetime.fromisoformat(subscription.get('next_billing_date', now.isoformat())) - timedelta(days=30)
+    
+    # Calculate period dates
+    next_billing_date = subscription.get('next_billing_date', now.isoformat())
+    try:
+        next_billing_dt = datetime.fromisoformat(next_billing_date)
+        period_start_dt = next_billing_dt - timedelta(days=30)
+        period_start = period_start_dt.isoformat()
+        period_end = next_billing_date
+    except:
+        # Fallback if date parsing fails
+        period_start = (now - timedelta(days=30)).isoformat()
+        period_end = now.isoformat()
     
     usage = await db.usage_tracking.find_one({
         "user_id": current_user['id'],
@@ -2288,20 +2299,27 @@ async def get_subscription_status(current_user: dict = Depends(get_current_user)
     }, {"_id": 0})
     
     if not usage:
+        # Create default usage object
         usage = {
             "user_id": current_user['id'],
-            "period_start": period_start.isoformat(),
-            "period_end": subscription.get('next_billing_date', now.isoformat()),
+            "period_start": period_start,
+            "period_end": period_end,
             "message_count": 0,
             "bundled_used": 0,
             "extra_used": 0
         }
+        # Initialize in database
+        usage["id"] = str(uuid.uuid4())
+        await db.usage_tracking.insert_one(usage)
     
     # Calculate days remaining in trial
     trial_days_remaining = 0
     if subscription['status'] == 'trial':
-        trial_end_dt = datetime.fromisoformat(subscription['trial_end'])
-        trial_days_remaining = max(0, (trial_end_dt - now).days)
+        try:
+            trial_end_dt = datetime.fromisoformat(subscription['trial_end'])
+            trial_days_remaining = max(0, (trial_end_dt - now).days)
+        except:
+            trial_days_remaining = TRIAL_DAYS
     
     return {
         "subscription": subscription,
@@ -2314,8 +2332,8 @@ async def get_subscription_status(current_user: dict = Depends(get_current_user)
             "bundled_quota": BUNDLED_MESSAGES,
             "bundled_used": usage.get('bundled_used', 0),
             "extra_used": usage.get('extra_used', 0),
-            "period_start": usage.get('period_start'),
-            "period_end": usage.get('period_end')
+            "period_start": usage.get('period_start', period_start),
+            "period_end": usage.get('period_end', period_end)
         },
         "pricing": {
             "subscription_price": SUBSCRIPTION_PRICE,
