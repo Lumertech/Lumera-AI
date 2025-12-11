@@ -2632,6 +2632,284 @@ async def track_message_usage(current_user: dict = Depends(get_current_user)):
         "charged": MESSAGE_PRICE if extra_used > 0 and subscription['status'] == 'active' else 0
     }
 
+# ============================================================================
+# ABDM COMPLIANCE - CONSENT MANAGEMENT
+# ============================================================================
+
+@api_router.post("/consent/request")
+async def request_consent(
+    consent_req: ConsentRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Request consent from patient via WhatsApp"""
+    try:
+        # Check if client exists
+        client = await db.clients.find_one({
+            "professional_id": current_user['id'],
+            "phone": consent_req.client_phone
+        }, {"_id": 0})
+        
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        # Create consent request
+        consent_id = str(uuid.uuid4())
+        consent_data = {
+            "id": consent_id,
+            "professional_id": current_user['id'],
+            "professional_name": current_user['name'],
+            "client_phone": consent_req.client_phone,
+            "client_name": client['name'],
+            "purpose": consent_req.purpose,
+            "data_types": consent_req.data_types,
+            "status": "pending",
+            "requested_at": datetime.now(timezone.utc).isoformat(),
+            "expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+        }
+        
+        await db.consent_requests.insert_one(consent_data)
+        
+        # Send WhatsApp consent request
+        data_types_str = ", ".join(consent_req.data_types)
+        message = f"""🔒 Consent Request
+
+Hello {client['name']},
+
+Dr. {current_user['name']} is requesting your consent to access the following health data:
+• {data_types_str}
+
+Purpose: {consent_req.purpose}
+
+Please reply:
+✅ "YES CONSENT" to approve
+❌ "NO CONSENT" to decline
+
+You can revoke consent anytime by messaging "REVOKE CONSENT"."""
+        
+        await send_whatsapp_message(consent_req.client_phone, message)
+        
+        # Log audit
+        await db.consent_audit.insert_one({
+            "id": str(uuid.uuid4()),
+            "consent_id": consent_id,
+            "action": "requested",
+            "actor": "professional",
+            "actor_id": current_user['id'],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "details": consent_data
+        })
+        
+        return {
+            "consent_id": consent_id,
+            "status": "pending",
+            "message": "Consent request sent via WhatsApp"
+        }
+    except Exception as e:
+        logging.error(f"Consent request failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/consent/action")
+async def process_consent_action(
+    action: ConsentAction,
+    current_user: dict = Depends(get_current_user)
+):
+    """Process consent approval/revocation (can be called by patient or from WhatsApp webhook)"""
+    try:
+        if action.action == "approve":
+            # Find pending consent request
+            consent = await db.consent_requests.find_one({
+                "client_phone": action.client_phone,
+                "status": "pending"
+            }, {"_id": 0})
+            
+            if not consent:
+                raise HTTPException(status_code=404, detail="No pending consent request found")
+            
+            # Update consent status
+            await db.consent_requests.update_one(
+                {"id": consent['id']},
+                {"$set": {
+                    "status": "approved",
+                    "approved_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            # Send confirmation
+            message = f"""✅ Consent Approved
+
+Your consent has been recorded. Dr. {consent['professional_name']} can now access your health records.
+
+You can revoke this consent anytime by messaging "REVOKE CONSENT"."""
+            
+            await send_whatsapp_message(action.client_phone, message)
+            
+            # Audit log
+            await db.consent_audit.insert_one({
+                "id": str(uuid.uuid4()),
+                "consent_id": consent['id'],
+                "action": "approved",
+                "actor": "patient",
+                "actor_phone": action.client_phone,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            
+            return {"message": "Consent approved successfully", "consent_id": consent['id']}
+            
+        elif action.action == "revoke":
+            # Find active consent
+            consent = await db.consent_requests.find_one({
+                "client_phone": action.client_phone,
+                "status": "approved"
+            }, {"_id": 0})
+            
+            if not consent:
+                raise HTTPException(status_code=404, detail="No active consent found")
+            
+            # Revoke consent
+            await db.consent_requests.update_one(
+                {"id": consent['id']},
+                {"$set": {
+                    "status": "revoked",
+                    "revoked_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            # Notify professional
+            prof_message = f"""⚠️ Consent Revoked
+
+Patient {consent['client_name']} has revoked consent for accessing their health records.
+
+You can no longer access their data until they provide consent again."""
+            
+            # Get professional's phone
+            professional = await db.users.find_one({"id": consent['professional_id']}, {"_id": 0})
+            if professional:
+                await send_whatsapp_message(professional['phone_number'], prof_message)
+            
+            # Confirm to patient
+            patient_message = f"""✅ Consent Revoked
+
+Your consent has been revoked. Dr. {consent['professional_name']} can no longer access your health records."""
+            
+            await send_whatsapp_message(action.client_phone, patient_message)
+            
+            # Audit log
+            await db.consent_audit.insert_one({
+                "id": str(uuid.uuid4()),
+                "consent_id": consent['id'],
+                "action": "revoked",
+                "actor": "patient",
+                "actor_phone": action.client_phone,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            
+            return {"message": "Consent revoked successfully", "consent_id": consent['id']}
+        
+    except Exception as e:
+        logging.error(f"Consent action failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/consent/status/{client_phone}")
+async def get_consent_status(
+    client_phone: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get consent status for a specific patient"""
+    consent = await db.consent_requests.find_one({
+        "professional_id": current_user['id'],
+        "client_phone": client_phone,
+        "status": {"$in": ["approved", "pending"]}
+    }, {"_id": 0})
+    
+    if not consent:
+        return {
+            "has_consent": False,
+            "status": "none",
+            "message": "No active consent"
+        }
+    
+    return {
+        "has_consent": consent['status'] == 'approved',
+        "status": consent['status'],
+        "consent_id": consent['id'],
+        "purpose": consent.get('purpose'),
+        "data_types": consent.get('data_types', []),
+        "requested_at": consent.get('requested_at'),
+        "approved_at": consent.get('approved_at')
+    }
+
+@api_router.get("/consent/history/{client_phone}")
+async def get_consent_history(
+    client_phone: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get full consent history for a patient"""
+    # Get all consent requests
+    consents = await db.consent_requests.find({
+        "professional_id": current_user['id'],
+        "client_phone": client_phone
+    }, {"_id": 0}).sort("requested_at", -1).to_list(100)
+    
+    # Get audit logs
+    consent_ids = [c['id'] for c in consents]
+    audit_logs = await db.consent_audit.find({
+        "consent_id": {"$in": consent_ids}
+    }, {"_id": 0}).sort("timestamp", -1).to_list(500)
+    
+    return {
+        "consents": consents,
+        "audit_logs": audit_logs
+    }
+
+@api_router.get("/clients/{client_phone}/abha")
+async def get_client_abha(
+    client_phone: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get ABHA ID for a client"""
+    client = await db.clients.find_one({
+        "professional_id": current_user['id'],
+        "phone": client_phone
+    }, {"_id": 0})
+    
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    return {
+        "abha_id": client.get('abha_id'),
+        "name": client.get('name'),
+        "phone": client.get('phone')
+    }
+
+@api_router.put("/clients/{client_phone}/abha")
+async def update_client_abha(
+    client_phone: str,
+    abha_data: Dict[str, str],
+    current_user: dict = Depends(get_current_user)
+):
+    """Update ABHA ID for a client"""
+    abha_id = abha_data.get('abha_id', '')
+    
+    # Basic validation (14 digits)
+    if abha_id and (len(abha_id) != 14 or not abha_id.isdigit()):
+        raise HTTPException(status_code=400, detail="Invalid ABHA ID format. Must be 14 digits.")
+    
+    result = await db.clients.update_one(
+        {
+            "professional_id": current_user['id'],
+            "phone": client_phone
+        },
+        {"$set": {
+            "abha_id": abha_id,
+            "abha_updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    return {"message": "ABHA ID updated successfully", "abha_id": abha_id}
+
 app.include_router(api_router)
 
 app.add_middleware(
