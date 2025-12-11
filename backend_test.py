@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive Backend API Testing for Lumer Application
-Tests authentication, AI suggestions, patient management, and analytics
+Tests authentication, AI suggestions, patient management, analytics, and security hardening features
 """
 
 import requests
@@ -10,11 +10,14 @@ import sys
 import os
 from datetime import datetime, timedelta
 import uuid
+import time
 
 # Configuration
 BACKEND_URL = "https://medsync-app-6.preview.emergentagent.com/api"
 TEST_EMAIL = "sarah@test.com"
 TEST_PASSWORD = "test123456"
+ADMIN_EMAIL = "admin@lumer.com"
+ADMIN_PASSWORD = "admin123"
 
 class LumerAPITester:
     def __init__(self):
