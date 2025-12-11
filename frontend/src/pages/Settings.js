@@ -52,6 +52,7 @@ const Settings = () => {
     loadPaymentFees();
     loadBotInstructions();
     loadTabConfig();
+    loadPatientPaymentSetup();
   }, []);
 
   const checkRazorpayConfig = async () => {
