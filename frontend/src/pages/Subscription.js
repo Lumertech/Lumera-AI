@@ -87,11 +87,27 @@ const Subscription = () => {
     }
   };
 
-  if (loading) {
+  if (loading || !data) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-96">
           <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Safety check for data structure
+  if (!data.subscription || !data.wallet || !data.usage || !data.pricing) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-96">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load subscription data. Please refresh the page.
+            </AlertDescription>
+          </Alert>
         </div>
       </DashboardLayout>
     );
