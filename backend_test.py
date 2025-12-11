@@ -399,6 +399,390 @@ class LumerAPITester:
         except Exception as e:
             self.log_result("Payment Order Creation", False, error_details=str(e))
     
+    def test_health_check_endpoint(self):
+        """Test health check endpoint"""
+        print("🏥 Testing Health Check Endpoint...")
+        
+        try:
+            response = requests.get(f"{self.base_url}/health", timeout=10)
+            
+            if response.status_code == 200:
+                health_data = response.json()
+                required_fields = ["status", "timestamp", "components"]
+                
+                if all(field in health_data for field in required_fields):
+                    components = health_data.get("components", {})
+                    if "database" in components and "scheduler" in components:
+                        self.log_result(
+                            "Health Check Endpoint", 
+                            True, 
+                            f"Status: {health_data['status']}, DB: {components['database']}, Scheduler: {components['scheduler']}"
+                        )
+                    else:
+                        self.log_result("Health Check Endpoint", False, "Missing database or scheduler in components")
+                else:
+                    self.log_result("Health Check Endpoint", False, f"Missing required fields: {required_fields}")
+            else:
+                self.log_result("Health Check Endpoint", False, 
+                              f"Health check failed with status {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            self.log_result("Health Check Endpoint", False, error_details=str(e))
+    
+    def test_login_rate_limiting_and_lockout(self):
+        """Test login rate limiting and account lockout after 5 failed attempts"""
+        print("🔒 Testing Login Rate Limiting and Account Lockout...")
+        
+        try:
+            # Test with invalid credentials to trigger lockout
+            invalid_credentials = {
+                "email": TEST_EMAIL,
+                "password": "wrong_password"
+            }
+            
+            # Make 5 failed login attempts
+            for i in range(5):
+                response = requests.post(
+                    f"{self.base_url}/auth/login",
+                    json=invalid_credentials,
+                    headers={"Content-Type": "application/json"},
+                    timeout=10
+                )
+                
+                if response.status_code != 401:
+                    self.log_result("Login Rate Limiting", False, 
+                                  f"Expected 401 for invalid credentials, got {response.status_code}")
+                    return
+            
+            # 6th attempt should trigger lockout
+            response = requests.post(
+                f"{self.base_url}/auth/login",
+                json=invalid_credentials,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            
+            if response.status_code == 429:
+                error_msg = response.json().get("detail", "")
+                if "locked" in error_msg.lower():
+                    self.log_result(
+                        "Login Account Lockout", 
+                        True, 
+                        f"Account locked after 5 failed attempts: {error_msg}"
+                    )
+                else:
+                    self.log_result("Login Account Lockout", False, 
+                                  f"Expected lockout message, got: {error_msg}")
+            else:
+                self.log_result("Login Account Lockout", False, 
+                              f"Expected 429 status for lockout, got {response.status_code}")
+            
+            # Test that valid credentials also fail during lockout
+            valid_credentials = {
+                "email": TEST_EMAIL,
+                "password": TEST_PASSWORD
+            }
+            
+            response = requests.post(
+                f"{self.base_url}/auth/login",
+                json=valid_credentials,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            
+            if response.status_code == 429:
+                self.log_result(
+                    "Login Lockout Persistence", 
+                    True, 
+                    "Valid credentials also blocked during lockout period"
+                )
+            else:
+                self.log_result("Login Lockout Persistence", False, 
+                              "Valid credentials should be blocked during lockout")
+                
+        except Exception as e:
+            self.log_result("Login Rate Limiting and Lockout", False, error_details=str(e))
+    
+    def test_password_validation_on_registration(self):
+        """Test password validation requirements on registration"""
+        print("🔐 Testing Password Validation on Registration...")
+        
+        try:
+            # Test with weak password (should fail)
+            weak_password_data = {
+                "name": "Test User",
+                "email": f"testuser_{uuid.uuid4().hex[:8]}@test.com",
+                "password": "weak",  # Too short, no uppercase, no numbers, no special chars
+                "phone_number": "+919876543210",
+                "profession": "doctor"
+            }
+            
+            response = requests.post(
+                f"{self.base_url}/auth/register",
+                json=weak_password_data,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            
+            if response.status_code == 400:
+                error_msg = response.json().get("detail", "")
+                if any(keyword in error_msg.lower() for keyword in ["password", "character", "uppercase", "number", "special"]):
+                    self.log_result(
+                        "Password Validation - Weak Password", 
+                        True, 
+                        f"Weak password rejected with descriptive error: {error_msg}"
+                    )
+                else:
+                    self.log_result("Password Validation - Weak Password", False, 
+                                  f"Error message not descriptive enough: {error_msg}")
+            else:
+                self.log_result("Password Validation - Weak Password", False, 
+                              f"Weak password should be rejected, got status {response.status_code}")
+            
+            # Test with strong password (should succeed)
+            strong_password_data = {
+                "name": "Test User Strong",
+                "email": f"testuser_strong_{uuid.uuid4().hex[:8]}@test.com",
+                "password": "StrongPass123!",  # 8+ chars, uppercase, lowercase, number, special char
+                "phone_number": "+919876543211",
+                "profession": "doctor"
+            }
+            
+            response = requests.post(
+                f"{self.base_url}/auth/register",
+                json=strong_password_data,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "token" in data and "user" in data:
+                    self.test_user_id = data["user"].get("id")
+                    self.log_result(
+                        "Password Validation - Strong Password", 
+                        True, 
+                        "Strong password accepted and user created successfully"
+                    )
+                else:
+                    self.log_result("Password Validation - Strong Password", False, 
+                                  "Registration succeeded but missing token or user data")
+            else:
+                self.log_result("Password Validation - Strong Password", False, 
+                              f"Strong password registration failed: {response.status_code} - {response.text}")
+                
+        except Exception as e:
+            self.log_result("Password Validation on Registration", False, error_details=str(e))
+    
+    def test_security_headers(self):
+        """Test that security headers are present in responses"""
+        print("🛡️ Testing Security Headers...")
+        
+        try:
+            response = requests.get(f"{self.base_url}/health", timeout=10)
+            
+            security_headers = {
+                "X-Content-Type-Options": "nosniff",
+                "X-Frame-Options": "DENY",
+                "X-XSS-Protection": "1; mode=block"
+            }
+            
+            missing_headers = []
+            present_headers = []
+            
+            for header, expected_value in security_headers.items():
+                actual_value = response.headers.get(header)
+                if actual_value:
+                    present_headers.append(f"{header}: {actual_value}")
+                    if expected_value and actual_value != expected_value:
+                        missing_headers.append(f"{header} (expected: {expected_value}, got: {actual_value})")
+                else:
+                    missing_headers.append(header)
+            
+            if not missing_headers:
+                self.log_result(
+                    "Security Headers", 
+                    True, 
+                    f"All security headers present: {', '.join(present_headers)}"
+                )
+            else:
+                self.log_result("Security Headers", False, 
+                              f"Missing or incorrect headers: {', '.join(missing_headers)}")
+                
+        except Exception as e:
+            self.log_result("Security Headers", False, error_details=str(e))
+    
+    def test_admin_authentication(self):
+        """Test admin authentication"""
+        print("👑 Testing Admin Authentication...")
+        
+        try:
+            admin_credentials = {
+                "email": ADMIN_EMAIL,
+                "password": ADMIN_PASSWORD
+            }
+            
+            response = requests.post(
+                f"{self.base_url}/auth/login",
+                json=admin_credentials,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "token" in data and "user" in data:
+                    self.admin_token = data["token"]
+                    user_role = data["user"].get("role", "")
+                    if user_role == "admin":
+                        self.log_result(
+                            "Admin Authentication", 
+                            True, 
+                            f"Successfully logged in as admin: {data['user'].get('name', 'Unknown')}"
+                        )
+                    else:
+                        self.log_result("Admin Authentication", False, 
+                                      f"User role is '{user_role}', expected 'admin'")
+                else:
+                    self.log_result("Admin Authentication", False, "Missing token or user in response")
+            else:
+                self.log_result("Admin Authentication", False, 
+                              f"Admin login failed with status {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            self.log_result("Admin Authentication", False, error_details=str(e))
+    
+    def test_admin_user_management(self):
+        """Test admin user management endpoints"""
+        print("👥 Testing Admin User Management...")
+        
+        if not self.admin_token:
+            self.log_result("Admin User Management", False, "No admin token available")
+            return
+        
+        try:
+            headers = {
+                "Authorization": f"Bearer {self.admin_token}",
+                "Content-Type": "application/json"
+            }
+            
+            # Test GET /api/admin/users
+            response = requests.get(f"{self.base_url}/admin/users", headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                users = response.json()
+                if isinstance(users, list):
+                    self.log_result(
+                        "Admin Users List", 
+                        True, 
+                        f"Successfully retrieved {len(users)} users"
+                    )
+                    
+                    # Test updating a user if we have a test user
+                    if self.test_user_id and users:
+                        # Find our test user or use the first user
+                        target_user_id = self.test_user_id
+                        for user in users:
+                            if user.get("id") == self.test_user_id:
+                                break
+                        else:
+                            # Use first user if test user not found
+                            target_user_id = users[0].get("id")
+                        
+                        if target_user_id:
+                            # Test PUT /api/admin/users/{user_id}
+                            update_data = {
+                                "name": "Updated by Admin Test",
+                                "is_active": True
+                            }
+                            
+                            update_response = requests.put(
+                                f"{self.base_url}/admin/users/{target_user_id}",
+                                json=update_data,
+                                headers=headers,
+                                timeout=10
+                            )
+                            
+                            if update_response.status_code == 200:
+                                self.log_result(
+                                    "Admin User Update", 
+                                    True, 
+                                    f"Successfully updated user {target_user_id}"
+                                )
+                            else:
+                                self.log_result("Admin User Update", False, 
+                                              f"User update failed: {update_response.status_code} - {update_response.text}")
+                        else:
+                            self.log_result("Admin User Update", False, "No user ID available for testing")
+                else:
+                    self.log_result("Admin Users List", False, "Response is not a list of users")
+            else:
+                self.log_result("Admin Users List", False, 
+                              f"Admin users list failed: {response.status_code} - {response.text}")
+            
+            # Test access with regular user token (should fail)
+            if self.token:
+                regular_headers = {"Authorization": f"Bearer {self.token}"}
+                response = requests.get(f"{self.base_url}/admin/users", headers=regular_headers, timeout=10)
+                
+                if response.status_code == 403:
+                    self.log_result(
+                        "Admin Access Control", 
+                        True, 
+                        "Regular user correctly denied access to admin endpoints"
+                    )
+                else:
+                    self.log_result("Admin Access Control", False, 
+                                  f"Regular user should be denied access, got {response.status_code}")
+                
+        except Exception as e:
+            self.log_result("Admin User Management", False, error_details=str(e))
+    
+    def test_consent_history_endpoint(self):
+        """Test consent history endpoint"""
+        print("📋 Testing Consent History Endpoint...")
+        
+        if not self.token:
+            self.log_result("Consent History Endpoint", False, "No authentication token available")
+            return
+        
+        try:
+            headers = {"Authorization": f"Bearer {self.token}"}
+            
+            # Use a test phone number (from existing appointments if available)
+            test_phone = "+919876543210"  # From our test appointment creation
+            
+            response = requests.get(
+                f"{self.base_url}/consent/history/{test_phone}",
+                headers=headers,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                consent_history = response.json()
+                if isinstance(consent_history, list):
+                    self.log_result(
+                        "Consent History Endpoint", 
+                        True, 
+                        f"Successfully retrieved consent history with {len(consent_history)} records"
+                    )
+                else:
+                    self.log_result("Consent History Endpoint", False, 
+                                  "Response is not a list of consent records")
+            elif response.status_code == 404:
+                # No consent history found is also acceptable
+                self.log_result(
+                    "Consent History Endpoint", 
+                    True, 
+                    "No consent history found for test phone number (acceptable)"
+                )
+            else:
+                self.log_result("Consent History Endpoint", False, 
+                              f"Consent history failed: {response.status_code} - {response.text}")
+                
+        except Exception as e:
+            self.log_result("Consent History Endpoint", False, error_details=str(e))
+    
     def run_all_tests(self):
         """Run all backend tests"""
         print("🚀 Starting Lumer Backend API Tests")
