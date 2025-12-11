@@ -225,6 +225,16 @@ class ConsentAction(BaseModel):
     action: str  # "approve" or "revoke"
     consent_id: Optional[str] = None
 
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone_number: Optional[str] = None
+
+class OTPVerification(BaseModel):
+    contact: str  # email or phone
+    otp: str
+    verification_type: str  # "email" or "phone"
+
 class PrescriptionItem(BaseModel):
     medicine_name: str
     dosage: str
