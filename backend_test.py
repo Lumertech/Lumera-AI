@@ -784,12 +784,12 @@ class LumerAPITester:
             self.log_result("Consent History Endpoint", False, error_details=str(e))
     
     def run_all_tests(self):
-        """Run all backend tests"""
-        print("🚀 Starting Lumer Backend API Tests")
+        """Run all backend tests including security hardening features"""
+        print("🚀 Starting Lumer Backend API Tests (Including Security Hardening)")
         print(f"Backend URL: {self.base_url}")
-        print("=" * 60)
+        print("=" * 80)
         
-        # Run tests in order
+        # Run core functionality tests first
         self.test_authentication()
         self.test_ai_prescription_suggestions()
         self.test_appointments_api()
@@ -797,8 +797,21 @@ class LumerAPITester:
         self.test_dashboard_analytics()
         self.test_payment_order_creation()
         
+        print("\n" + "=" * 80)
+        print("🔒 SECURITY HARDENING TESTS")
+        print("=" * 80)
+        
+        # Run security hardening tests
+        self.test_health_check_endpoint()
+        self.test_security_headers()
+        self.test_password_validation_on_registration()
+        self.test_login_rate_limiting_and_lockout()
+        self.test_admin_authentication()
+        self.test_admin_user_management()
+        self.test_consent_history_endpoint()
+        
         # Print summary
-        print("=" * 60)
+        print("=" * 80)
         print("📋 TEST SUMMARY")
         print(f"✅ Passed: {self.results['passed']}")
         print(f"❌ Failed: {self.results['failed']}")
