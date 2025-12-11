@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 import uuid
 
 # Configuration
-BACKEND_URL = "https://appoint-hub-14.preview.emergentagent.com/api"
+BACKEND_URL = "https://medsync-app-6.preview.emergentagent.com/api"
 TEST_EMAIL = "sarah@test.com"
 TEST_PASSWORD = "test123456"
 
