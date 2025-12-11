@@ -59,7 +59,10 @@ const AppointmentDetails = () => {
       setAppointment(response.data);
       
       if (response.data.patient_details) {
-        setPatientDetails(response.data.patient_details);
+        setPatientDetails({
+          ...response.data.patient_details,
+          abha_id: response.data.patient_details.abha_id || ''
+        });
       } else {
         setPatientDetails(prev => ({ ...prev, name: response.data.client_name }));
       }
