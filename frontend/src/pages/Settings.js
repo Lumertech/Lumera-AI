@@ -31,6 +31,8 @@ const Settings = () => {
     followup_fee: 300,
     full_checkup_fee: 1000,
   });
+  const [upiId, setUpiId] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('none'); // 'none', 'upi', 'razorpay', 'both'
   const [botInstructions, setBotInstructions] = useState('');
   const [tabConfig, setTabConfig] = useState({
     dashboard: true,
