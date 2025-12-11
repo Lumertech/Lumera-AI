@@ -317,6 +317,156 @@ const Settings = () => {
             >
               {loading ? 'Saving...' : 'Save Razorpay Configuration'}
             </Button>
+
+            {razorpayConfigured && (
+              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-sm text-green-900 font-inter">
+                  ✅ <strong>Razorpay configured!</strong> You can now accept payments from patients via cards, net banking, and wallets.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Patient Payment Setup */}
+        <Card className="border-slate-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+          <CardHeader>
+            <CardTitle className="font-manrope flex items-center space-x-2">
+              <CreditCard className="h-5 w-5 text-indigo-600" />
+              <span>Patient Payment Setup</span>
+            </CardTitle>
+            <CardDescription className="font-inter">
+              Choose how your patients can pay you for consultations
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Current Setup Status */}
+            <div className="p-4 bg-white rounded-lg border border-indigo-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-manrope font-semibold text-slate-700">Current Setup:</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  paymentMethod === 'upi' ? 'bg-blue-100 text-blue-800' :
+                  paymentMethod === 'razorpay' ? 'bg-purple-100 text-purple-800' :
+                  paymentMethod === 'both' ? 'bg-green-100 text-green-800' :
+                  'bg-slate-100 text-slate-600'
+                }`}>
+                  {paymentMethod === 'upi' ? 'UPI Only' :
+                   paymentMethod === 'razorpay' ? 'Razorpay Only' :
+                   paymentMethod === 'both' ? 'UPI + Razorpay' :
+                   'Not Configured'}
+                </span>
+              </div>
+              {paymentMethod === 'none' && (
+                <p className="text-sm text-slate-600 font-inter">
+                  Set up at least one payment method to collect payments from patients.
+                </p>
+              )}
+            </div>
+
+            {/* Option 1: UPI Collect (Recommended) */}
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3 p-4 bg-white rounded-lg border-2 border-blue-200">
+                <div className="flex-shrink-0 mt-1">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-blue-600 font-bold">💳</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-manrope font-semibold text-lg text-slate-900 mb-1">
+                    UPI Collect (Recommended)
+                  </h3>
+                  <p className="text-sm text-slate-600 font-inter mb-3">
+                    Patients pay directly to your UPI ID. Simple, no KYC required. We'll generate payment links and QR codes for you.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <Label className="font-manrope font-semibold">Your UPI ID</Label>
+                    <Input
+                      type="text"
+                      placeholder="yourname@upi (e.g., doctor@paytm)"
+                      value={upiId}
+                      onChange={(e) => {
+                        setUpiId(e.target.value);
+                        if (e.target.value && paymentMethod === 'none') {
+                          setPaymentMethod('upi');
+                        } else if (e.target.value && paymentMethod === 'razorpay') {
+                          setPaymentMethod('both');
+                        }
+                      }}
+                      className="font-mono"
+                    />
+                    <p className="text-xs text-slate-500">
+                      Enter your UPI ID (e.g., yourname@paytm, yourname@phonepe, yourname@googlepay)
+                    </p>
+                  </div>
+
+                  {upiId && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-xs text-blue-900 font-inter">
+                        ✓ UPI payment links will be generated as: <code className="bg-blue-100 px-2 py-1 rounded">upi://pay?pa={upiId}&am=500</code>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Option 2: Razorpay Integration */}
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3 p-4 bg-white rounded-lg border-2 border-purple-200">
+                <div className="flex-shrink-0 mt-1">
+                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                    <span className="text-purple-600 font-bold">🌐</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-manrope font-semibold text-lg text-slate-900 mb-1">
+                    Razorpay Integration (Advanced)
+                  </h3>
+                  <p className="text-sm text-slate-600 font-inter mb-3">
+                    Enable cards, net banking, and wallet payments. Requires Razorpay KYC.
+                  </p>
+
+                  {razorpayConfigured ? (
+                    <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                      <p className="text-sm text-green-900 font-inter">
+                        ✅ <strong>Razorpay configured!</strong> Your patients can now pay via cards, net banking, and wallets.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                      <p className="text-sm text-orange-900 font-inter mb-3">
+                        ⚠️ Razorpay not configured. Configure above in "Razorpay Configuration" section.
+                      </p>
+                      <a
+                        href="https://razorpay.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-indigo-600 hover:underline font-semibold"
+                      >
+                        Complete Razorpay KYC →
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <Button
+              onClick={savePatientPaymentSetup}
+              disabled={loading || (!upiId && !razorpayConfigured)}
+              className="w-full bg-indigo-600 hover:bg-indigo-700"
+            >
+              {loading ? 'Saving...' : 'Save Patient Payment Setup'}
+            </Button>
+
+            {/* Help Text */}
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <p className="text-xs text-slate-600 font-inter">
+                <strong>💡 Tip:</strong> You can use both UPI and Razorpay together. UPI for simple payments, Razorpay for customers who prefer cards/wallets.
+              </p>
+            </div>
           </CardContent>
         </Card>
 
