@@ -612,10 +612,45 @@ async def register(user_data: UserCreate):
     return {"token": token, "user": {k: v for k, v in user.items() if k not in ["hashed_password", "_id"]}}
 
 @api_router.post("/auth/login")
-async def login(credentials: UserLogin):
+@limiter.limit("5/minute")
+async def login(request: Request, credentials: UserLogin):
+    # Check for account lockout
+    login_attempt = await db.login_attempts.find_one({"email": credentials.email}, {"_id": 0})
+    if login_attempt:
+        if login_attempt.get("locked_until"):
+            locked_until = datetime.fromisoformat(login_attempt["locked_until"])
+            if datetime.now(timezone.utc) < locked_until:
+                remaining = int((locked_until - datetime.now(timezone.utc)).total_seconds() / 60)
+                raise HTTPException(
+                    status_code=429, 
+                    detail=f"Account temporarily locked. Try again in {remaining} minutes."
+                )
+    
     user = await db.users.find_one({"email": credentials.email})
     if not user or not pwd_context.verify(credentials.password, user["hashed_password"]):
+        # Track failed attempt
+        await db.login_attempts.update_one(
+            {"email": credentials.email},
+            {
+                "$inc": {"failed_attempts": 1},
+                "$set": {"last_attempt": datetime.now(timezone.utc).isoformat()}
+            },
+            upsert=True
+        )
+        
+        # Check if should lock account (5 failed attempts)
+        updated_attempt = await db.login_attempts.find_one({"email": credentials.email}, {"_id": 0})
+        if updated_attempt and updated_attempt.get("failed_attempts", 0) >= 5:
+            lock_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+            await db.login_attempts.update_one(
+                {"email": credentials.email},
+                {"$set": {"locked_until": lock_until.isoformat()}}
+            )
+        
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Clear failed attempts on successful login
+    await db.login_attempts.delete_one({"email": credentials.email})
     
     token = create_access_token({"user_id": user["id"], "email": user["email"]})
     user_data = {k: v for k, v in user.items() if k not in ["hashed_password", "_id"]}
