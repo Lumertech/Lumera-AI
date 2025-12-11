@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Plus, Trash2, Sparkles, Send, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
-import RequestPaymentModal from '@/components/RequestPaymentModal';
+import RequestPaymentModalV2 from '@/components/RequestPaymentModalV2';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -428,7 +428,7 @@ const PrescriptionWriter = () => {
 
       {/* Payment Request Modal */}
       {appointment && (
-        <RequestPaymentModal
+        <RequestPaymentModalV2
           open={paymentModalOpen}
           onClose={() => setPaymentModalOpen(false)}
           clientPhone={appointment.client_phone}
