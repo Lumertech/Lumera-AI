@@ -437,7 +437,7 @@ const AppointmentDetails = () => {
 
       {/* Payment Request Modal */}
       {appointment && (
-        <RequestPaymentModal
+        <RequestPaymentModalV2
           open={paymentModalOpen}
           onClose={() => setPaymentModalOpen(false)}
           clientPhone={appointment.client_phone}
