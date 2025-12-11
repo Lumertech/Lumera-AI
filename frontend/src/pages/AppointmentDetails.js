@@ -29,8 +29,10 @@ const AppointmentDetails = () => {
     allergies: '',
     chronic_conditions: '',
     emergency_contact: '',
+    abha_id: '',
   });
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [consentHistory, setConsentHistory] = useState([]);
 
   useEffect(() => {
     fetchAppointment();
