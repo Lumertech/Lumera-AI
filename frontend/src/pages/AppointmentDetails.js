@@ -38,6 +38,21 @@ const AppointmentDetails = () => {
     fetchAppointment();
   }, [id]);
 
+  useEffect(() => {
+    if (appointment?.client_phone) {
+      fetchConsentHistory();
+    }
+  }, [appointment?.client_phone]);
+
+  const fetchConsentHistory = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/consent/history/${encodeURIComponent(appointment.client_phone)}`);
+      setConsentHistory(response.data.consents || []);
+    } catch (error) {
+      console.error('Failed to fetch consent history:', error);
+    }
+  };
+
   const fetchAppointment = async () => {
     try {
       const response = await axios.get(`${API_URL}/appointments/${id}`);
