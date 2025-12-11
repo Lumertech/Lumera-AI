@@ -2981,6 +2981,227 @@ async def update_client_abha(
     
     return {"message": "ABHA ID updated successfully", "abha_id": abha_id}
 
+# ============================================================================
+# USER PROFILE MANAGEMENT WITH OTP VERIFICATION
+# ============================================================================
+
+def generate_otp():
+    """Generate 6-digit OTP"""
+    return str(random.randint(100000, 999999))
+
+async def send_email_otp(email: str, otp: str, name: str):
+    """Send OTP via email (placeholder - integrate with email service)"""
+    # TODO: Integrate with SendGrid/AWS SES
+    logging.info(f"Email OTP to {email}: {otp}")
+    # For now, just log it. In production, send actual email
+    return True
+
+@api_router.get("/profile")
+async def get_user_profile(current_user: dict = Depends(get_current_user)):
+    """Get current user profile"""
+    user = await db.users.find_one({"id": current_user['id']}, {"_id": 0, "password": 0, "hashed_password": 0})
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "id": user['id'],
+        "name": user.get('name'),
+        "email": user.get('email'),
+        "phone_number": user.get('phone_number'),
+        "profession": user.get('profession', 'doctor'),
+        "email_verified": user.get('email_verified', False),
+        "phone_verified": user.get('phone_verified', False),
+        "created_at": user.get('created_at')
+    }
+
+@api_router.post("/profile/send-otp")
+async def send_profile_otp(
+    data: Dict[str, str],
+    current_user: dict = Depends(get_current_user)
+):
+    """Send OTP for email or phone verification"""
+    verification_type = data.get('verification_type')  # 'email' or 'phone'
+    contact = data.get('contact')
+    
+    if not verification_type or not contact:
+        raise HTTPException(status_code=400, detail="Missing verification_type or contact")
+    
+    # Generate OTP
+    otp = generate_otp()
+    otp_id = str(uuid.uuid4())
+    
+    # Store OTP with expiry (5 minutes)
+    otp_data = {
+        "id": otp_id,
+        "user_id": current_user['id'],
+        "contact": contact,
+        "otp": otp,
+        "verification_type": verification_type,
+        "verified": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
+    }
+    
+    await db.otp_verifications.insert_one(otp_data)
+    
+    # Send OTP
+    if verification_type == 'email':
+        user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
+        await send_email_otp(contact, otp, user.get('name', 'User'))
+        return {
+            "message": "OTP sent to email",
+            "otp_id": otp_id,
+            "debug_otp": otp if os.environ.get('DEBUG') else None  # Only in debug mode
+        }
+    
+    elif verification_type == 'phone':
+        message = f"""🔐 Lumer Verification Code
+
+Your OTP for phone verification is: {otp}
+
+This code will expire in 5 minutes.
+
+Do not share this code with anyone."""
+        
+        await send_whatsapp_message(contact, message)
+        return {
+            "message": "OTP sent via WhatsApp",
+            "otp_id": otp_id,
+            "debug_otp": otp if os.environ.get('DEBUG') else None
+        }
+    
+    raise HTTPException(status_code=400, detail="Invalid verification type")
+
+@api_router.post("/profile/verify-otp")
+async def verify_profile_otp(
+    verification: OTPVerification,
+    current_user: dict = Depends(get_current_user)
+):
+    """Verify OTP for email or phone"""
+    # Find OTP
+    otp_record = await db.otp_verifications.find_one({
+        "user_id": current_user['id'],
+        "contact": verification.contact,
+        "verification_type": verification.verification_type,
+        "verified": False
+    }, {"_id": 0})
+    
+    if not otp_record:
+        raise HTTPException(status_code=404, detail="OTP not found or already used")
+    
+    # Check expiry
+    expires_at = datetime.fromisoformat(otp_record['expires_at'])
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=400, detail="OTP expired. Please request a new one.")
+    
+    # Verify OTP
+    if otp_record['otp'] != verification.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
+    # Mark as verified
+    await db.otp_verifications.update_one(
+        {"id": otp_record['id']},
+        {"$set": {"verified": True, "verified_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Update user profile
+    update_data = {}
+    if verification.verification_type == 'email':
+        update_data = {
+            "email": verification.contact,
+            "email_verified": True,
+            "email_verified_at": datetime.now(timezone.utc).isoformat()
+        }
+    elif verification.verification_type == 'phone':
+        update_data = {
+            "phone_number": verification.contact,
+            "phone_verified": True,
+            "phone_verified_at": datetime.now(timezone.utc).isoformat()
+        }
+    
+    await db.users.update_one(
+        {"id": current_user['id']},
+        {"$set": update_data}
+    )
+    
+    return {
+        "message": f"{verification.verification_type.title()} verified successfully",
+        "verified": True
+    }
+
+@api_router.put("/profile")
+async def update_user_profile(
+    profile_data: ProfileUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update user profile (name only - email/phone require OTP)"""
+    update_data = {}
+    
+    # Name can be updated directly
+    if profile_data.name:
+        update_data['name'] = profile_data.name
+    
+    # Email and phone require OTP verification - reject here
+    if profile_data.email:
+        raise HTTPException(
+            status_code=400, 
+            detail="Email change requires OTP verification. Use /profile/send-otp endpoint first."
+        )
+    
+    if profile_data.phone_number:
+        raise HTTPException(
+            status_code=400,
+            detail="Phone number change requires OTP verification. Use /profile/send-otp endpoint first."
+        )
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.users.update_one(
+        {"id": current_user['id']},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Profile updated successfully"}
+
+@api_router.post("/auth/verify-registration")
+async def verify_registration(
+    verification: OTPVerification
+):
+    """Verify email/phone during registration (public endpoint)"""
+    # Find OTP
+    otp_record = await db.otp_verifications.find_one({
+        "contact": verification.contact,
+        "verification_type": verification.verification_type,
+        "verified": False
+    }, {"_id": 0})
+    
+    if not otp_record:
+        raise HTTPException(status_code=404, detail="OTP not found or already used")
+    
+    # Check expiry
+    expires_at = datetime.fromisoformat(otp_record['expires_at'])
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=400, detail="OTP expired. Please request a new one.")
+    
+    # Verify OTP
+    if otp_record['otp'] != verification.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
+    # Mark as verified
+    await db.otp_verifications.update_one(
+        {"id": otp_record['id']},
+        {"$set": {"verified": True, "verified_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {
+        "message": f"{verification.verification_type.title()} verified successfully",
+        "verified": True
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
