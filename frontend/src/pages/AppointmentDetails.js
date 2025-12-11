@@ -166,11 +166,11 @@ const AppointmentDetails = () => {
           </CardContent>
         </Card>
 
-        {/* Tabs for Patient Details, Request Payment, Health Records */}
+        {/* Tabs for Patient Details, Request Payment, Health Records, Consent */}
         <Card className="border-slate-200">
           <CardContent className="p-6">
             <Tabs defaultValue="details" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="details" className="flex items-center space-x-2">
                   <User className="h-4 w-4" />
                   <span>Patient Details</span>
@@ -182,6 +182,10 @@ const AppointmentDetails = () => {
                 <TabsTrigger value="records" className="flex items-center space-x-2">
                   <FolderOpen className="h-4 w-4" />
                   <span>Health Records</span>
+                </TabsTrigger>
+                <TabsTrigger value="consent" className="flex items-center space-x-2">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>Consent</span>
                 </TabsTrigger>
               </TabsList>
 
