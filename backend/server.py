@@ -3326,8 +3326,7 @@ async def track_requests(request: Request, call_next):
     request_tracker.start_request(
         request_id=request_id,
         endpoint=str(request.url.path),
-        method=request.method,
-        user_id=None  # Will be set by auth middleware if applicable
+        method=request.method
     )
     
     try:
