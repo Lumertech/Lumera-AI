@@ -391,6 +391,42 @@ frontend:
         agent: "main"
         comment: "Frontend code is correct. Updates local state and fetches from server after save. Backend API tested and working. Likely was a caching issue"
 
+  - task: "Appointment Details Page with 4 tabs and ABHA ID field"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/AppointmentDetails.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "CONFIRMED WORKING: All 4 tabs (Patient Details, Request Payment, Health Records, Consent) are present and functional. ABHA ID field found in Patient Details tab with correct label 'ABHA ID (ABDM Compliance)' and is visible. Consent tab contains 'Consent Management' header and 'Request Consent' button as required."
+
+  - task: "Admin User Management Page with stats and action buttons"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/AdminUsers.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "CONFIRMED WORKING: Admin User Management page accessible via sidebar. Stats cards display correctly (8 Total Users, 7 Doctors, 8 Active Users). User table has all required columns (User, Profession, Contact, Status, Joined, Actions). Action buttons (Edit, Toggle Status, Delete) are present for each user row."
+
+  - task: "Request Payment Modal V2 with amount selection and payment tabs"
+    implemented: true
+    working: true
+    file: "frontend/src/components/RequestPaymentModalV2.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "CONFIRMED WORKING: Request Payment Modal V2 opens successfully when clicking 'Generate Payment Link' button in appointment details. Modal structure is correct with amount selection and payment method tabs (UPI/Razorpay). Note: Payment methods require configuration in Settings to be fully functional, but modal UI is working as designed."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
