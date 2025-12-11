@@ -213,6 +213,17 @@ class PatientDetails(BaseModel):
     allergies: Optional[str] = None
     chronic_conditions: Optional[str] = None
     emergency_contact: Optional[str] = None
+    abha_id: Optional[str] = None  # ABDM compliance
+
+class ConsentRequest(BaseModel):
+    client_phone: str
+    purpose: str
+    data_types: List[str]  # e.g., ["prescriptions", "health_records", "appointments"]
+
+class ConsentAction(BaseModel):
+    client_phone: str
+    action: str  # "approve" or "revoke"
+    consent_id: Optional[str] = None
 
 class PrescriptionItem(BaseModel):
     medicine_name: str
