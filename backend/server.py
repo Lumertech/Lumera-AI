@@ -1495,6 +1495,67 @@ async def whatsapp_webhook(
     
     response = MessagingResponse()
     
+    # ABDM Consent Handling (Priority)
+    message_lower = message.lower().strip()
+    
+    if "yes consent" in message_lower or message_lower == "yes":
+        # Approve pending consent
+        await process_consent_action(
+            ConsentAction(client_phone=phone, action="approve"),
+            current_user={"id": "system", "name": "System"}  # System action
+        )
+        return Response(content=str(response), media_type="application/xml")
+    
+    elif "no consent" in message_lower or (message_lower == "no" and await db.consent_requests.find_one({"client_phone": phone, "status": "pending"})):
+        # Decline consent
+        consent = await db.consent_requests.find_one({"client_phone": phone, "status": "pending"}, {"_id": 0})
+        if consent:
+            await db.consent_requests.update_one(
+                {"id": consent['id']},
+                {"$set": {"status": "declined", "declined_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            
+            # Audit log
+            await db.consent_audit.insert_one({
+                "id": str(uuid.uuid4()),
+                "consent_id": consent['id'],
+                "action": "declined",
+                "actor": "patient",
+                "actor_phone": phone,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            
+            response.message("Your response has been recorded. You have declined to provide consent.")
+        return Response(content=str(response), media_type="application/xml")
+    
+    elif "revoke consent" in message_lower or "cancel consent" in message_lower:
+        # Revoke active consent
+        try:
+            result = await process_consent_action(
+                ConsentAction(client_phone=phone, action="revoke"),
+                current_user={"id": "system", "name": "System"}
+            )
+        except:
+            response.message("You don't have any active consent to revoke.")
+        return Response(content=str(response), media_type="application/xml")
+    
+    elif "consent history" in message_lower or "show consent" in message_lower or "my consent" in message_lower:
+        # Show consent history
+        consents = await db.consent_requests.find({"client_phone": phone}, {"_id": 0}).sort("requested_at", -1).limit(5).to_list(5)
+        
+        if not consents:
+            response.message("You don't have any consent history.")
+        else:
+            history_msg = "📋 Your Consent History:\n\n"
+            for i, consent in enumerate(consents, 1):
+                status_emoji = "✅" if consent['status'] == 'approved' else "❌" if consent['status'] == 'declined' else "⏳"
+                history_msg += f"{i}. {status_emoji} {consent['status'].upper()}\n"
+                history_msg += f"   Dr. {consent.get('professional_name', 'Unknown')}\n"
+                history_msg += f"   Date: {consent['requested_at'][:10]}\n\n"
+            
+            response.message(history_msg)
+        return Response(content=str(response), media_type="application/xml")
+    
     # Get or create conversation state
     conversation = await db.whatsapp_conversations.find_one({"phone": phone})
     if not conversation:
