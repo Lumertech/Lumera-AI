@@ -1725,7 +1725,7 @@ async def whatsapp_webhook(
     elif state == "awaiting_sex":
         # Store sex
         data["sex"] = message
-        reply = f"Got it! Would you like a clinic visit or phone consultation?"
+        reply = "Got it! Would you like a clinic visit or phone consultation?"
         await db.whatsapp_conversations.update_one(
             {"phone": phone},
             {"$set": {
@@ -1760,7 +1760,7 @@ async def whatsapp_webhook(
         
     elif state == "awaiting_slot":
         # Confirm booking
-        confirmation = f"✅ Appointment Confirmed!\n\n"
+        confirmation = "✅ Appointment Confirmed!\n\n"
         confirmation += f"Name: {data.get('name')}\n"
         confirmation += f"Type: {data.get('type', 'clinic')} consultation\n"
         confirmation += f"Time: {message}\n\n"
@@ -2775,7 +2775,7 @@ async def track_message_usage(current_user: dict = Depends(get_current_user)):
                 "id": str(uuid.uuid4()),
                 "type": "message_charge",
                 "amount": -MESSAGE_PRICE,
-                "description": f"WhatsApp message charge",
+                "description": "WhatsApp message charge",
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
             
@@ -3333,7 +3333,7 @@ async def track_requests(request: Request, call_next):
         response = await call_next(request)
         request_tracker.end_request(request_id, response.status_code)
         return response
-    except Exception as e:
+    except Exception:
         request_tracker.end_request(request_id, 500)
         raise
 
