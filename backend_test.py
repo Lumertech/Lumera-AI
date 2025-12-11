@@ -23,8 +23,10 @@ class LumerAPITester:
     def __init__(self):
         self.base_url = BACKEND_URL
         self.token = None
+        self.admin_token = None
         self.user_data = None
         self.test_appointment_id = None
+        self.test_user_id = None
         self.results = {
             "passed": 0,
             "failed": 0,
