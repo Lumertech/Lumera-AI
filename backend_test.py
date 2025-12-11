@@ -623,7 +623,7 @@ class LumerAPITester:
             }
             
             response = requests.post(
-                f"{self.base_url}/auth/login",
+                f"{self.base_url}/admin/login",
                 json=admin_credentials,
                 headers={"Content-Type": "application/json"},
                 timeout=10
