@@ -20,6 +20,7 @@ import Payments from '@/pages/Payments';
 import Reminders from '@/pages/Reminders';
 import Settings from '@/pages/Settings';
 import Subscription from '@/pages/Subscription';
+import Profile from '@/pages/Profile';
 
 // Admin Pages
 import AdminLogin from '@/pages/AdminLogin';
