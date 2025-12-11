@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  User,
 } from 'lucide-react';
 
 const DashboardLayout = ({ children }) => {
