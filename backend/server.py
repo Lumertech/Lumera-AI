@@ -3308,11 +3308,45 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    for header, value in SECURITY_HEADERS.items():
+        response.headers[header] = value
+    return response
+
+# Request Tracking Middleware
+@app.middleware("http")
+async def track_requests(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+    
+    # Track request start
+    request_tracker.start_request(
+        request_id=request_id,
+        endpoint=str(request.url.path),
+        method=request.method,
+        user_id=None  # Will be set by auth middleware if applicable
+    )
+    
+    try:
+        response = await call_next(request)
+        request_tracker.end_request(request_id, response.status_code)
+        return response
+    except Exception as e:
+        request_tracker.end_request(request_id, 500)
+        raise
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Initialize monitoring components
+audit_logger = AuditLogger(db)
+error_tracker = ErrorTracker(db)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
