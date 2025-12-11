@@ -32,6 +32,7 @@ const DashboardLayout = ({ children }) => {
     { name: 'Reminders', href: '/reminders', icon: Bell },
     { name: 'Subscription', href: '/subscription', icon: CreditCard },
     { name: 'Tools', href: '/tools', icon: FileText },
+    { name: 'Profile', href: '/profile', icon: User },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
