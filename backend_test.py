@@ -464,7 +464,7 @@ class LumerAPITester:
             
             if response.status_code == 429:
                 error_msg = response.json().get("detail", "")
-                if "locked" in error_msg.lower():
+                if "locked" in error_msg.lower() or "try again" in error_msg.lower():
                     self.log_result(
                         "Login Account Lockout", 
                         True, 
