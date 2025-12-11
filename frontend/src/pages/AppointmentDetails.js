@@ -295,6 +295,26 @@ const AppointmentDetails = () => {
               />
             </div>
 
+            {/* ABDM Compliance - ABHA ID */}
+            <div className="space-y-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <Label className="font-manrope font-semibold flex items-center">
+                <ShieldCheck className="h-4 w-4 mr-2 text-blue-600" />
+                ABHA ID (ABDM Compliance)
+              </Label>
+              <Input
+                value={patientDetails.abha_id}
+                onChange={(e) =>
+                  setPatientDetails({ ...patientDetails, abha_id: e.target.value })
+                }
+                placeholder="14-digit ABHA ID (Optional)"
+                maxLength={17}
+                data-testid="abha-id-input"
+              />
+              <p className="text-xs text-blue-600">
+                Ayushman Bharat Health Account ID for national health records integration
+              </p>
+            </div>
+
                 <Button
                   onClick={savePatientDetails}
                   className="w-full bg-indigo-600 hover:bg-indigo-700"
@@ -329,6 +349,85 @@ const AppointmentDetails = () => {
               <TabsContent value="records">
                 {appointment && (
                   <HealthRecordsTab clientPhone={appointment.client_phone} />
+                )}
+              </TabsContent>
+
+              {/* Consent History Tab (ABDM Compliance) */}
+              <TabsContent value="consent" className="space-y-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-manrope font-semibold text-lg">Consent Management</h3>
+                    <p className="text-sm text-slate-600">ABDM-compliant consent tracking</p>
+                  </div>
+                  <Button
+                    onClick={async () => {
+                      try {
+                        await axios.post(`${API_URL}/consent/request`, {
+                          client_phone: appointment.client_phone,
+                          purpose: "Access health records for treatment",
+                          data_types: ["prescriptions", "health_records", "appointments"]
+                        });
+                        toast.success("Consent request sent via WhatsApp!");
+                        fetchConsentHistory();
+                      } catch (error) {
+                        toast.error("Failed to send consent request");
+                      }
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <ShieldCheck className="h-4 w-4 mr-2" />
+                    Request Consent
+                  </Button>
+                </div>
+
+                {consentHistory.length === 0 ? (
+                  <div className="text-center py-12 bg-slate-50 rounded-lg">
+                    <ShieldCheck className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-600">No consent history found</p>
+                    <p className="text-sm text-slate-500 mt-2">
+                      Request consent from the patient to access their health records
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {consentHistory.map((consent, index) => (
+                      <Card key={consent.id || index} className="border-slate-200">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-3 h-3 rounded-full ${
+                                consent.status === 'approved' ? 'bg-green-500' :
+                                consent.status === 'pending' ? 'bg-yellow-500' :
+                                consent.status === 'revoked' ? 'bg-red-500' : 'bg-slate-400'
+                              }`} />
+                              <div>
+                                <p className="font-semibold capitalize">{consent.status}</p>
+                                <p className="text-sm text-slate-600">{consent.purpose}</p>
+                              </div>
+                            </div>
+                            <div className="text-right text-sm text-slate-500">
+                              <p>Requested: {new Date(consent.requested_at).toLocaleDateString()}</p>
+                              {consent.approved_at && (
+                                <p className="text-green-600">Approved: {new Date(consent.approved_at).toLocaleDateString()}</p>
+                              )}
+                              {consent.revoked_at && (
+                                <p className="text-red-600">Revoked: {new Date(consent.revoked_at).toLocaleDateString()}</p>
+                              )}
+                            </div>
+                          </div>
+                          {consent.data_types && (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {consent.data_types.map((type, i) => (
+                                <span key={i} className="px-2 py-1 bg-slate-100 rounded text-xs capitalize">
+                                  {type.replace('_', ' ')}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 )}
               </TabsContent>
             </Tabs>
