@@ -123,7 +123,7 @@ const Subscription = () => {
     }
   };
 
-  const usagePercentage = (data.usage.bundled_used / data.pricing.bundled_messages) * 100;
+  const usagePercentage = data?.usage ? (data.usage.bundled_used / data.pricing.bundled_messages) * 100 : 0;
 
   return (
     <DashboardLayout>
