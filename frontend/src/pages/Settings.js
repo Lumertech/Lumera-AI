@@ -94,6 +94,38 @@ const Settings = () => {
     }
   };
 
+  const loadPatientPaymentSetup = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/settings/patient-payment`);
+      setUpiId(response.data.upi_id || '');
+      setPaymentMethod(response.data.payment_method || 'none');
+    } catch (error) {
+      console.error('Failed to load patient payment setup:', error);
+    }
+  };
+
+  const savePatientPaymentSetup = async () => {
+    if (!upiId && paymentMethod === 'upi') {
+      toast.error('Please enter a valid UPI ID');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await axios.post(`${API_URL}/settings/patient-payment`, {
+        upi_id: upiId,
+        payment_method: paymentMethod
+      });
+      toast.success('Patient payment setup saved successfully!');
+      loadPatientPaymentSetup();
+    } catch (error) {
+      console.error('Save failed:', error);
+      toast.error('Failed to save payment setup');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const saveRazorpayConfig = async () => {
     if (!razorpayConfig.razorpay_key_id || !razorpayConfig.razorpay_key_secret) {
       toast.error('Please enter both Razorpay Key ID and Secret');
