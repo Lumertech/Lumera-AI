@@ -2505,6 +2505,43 @@ async def get_billing_history(current_user: dict = Depends(get_current_user)):
         "payment_history": payment_history
     }
 
+@api_router.get("/settings/patient-payment")
+async def get_patient_payment_setup(current_user: dict = Depends(get_current_user)):
+    """Get patient payment configuration (UPI/Razorpay)"""
+    user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
+    
+    payment_setup = {
+        "upi_id": user.get("upi_id", ""),
+        "payment_method": user.get("payment_method", "none"),
+        "razorpay_configured": user.get("razorpay_configured", False)
+    }
+    
+    return payment_setup
+
+@api_router.post("/settings/patient-payment")
+async def save_patient_payment_setup(
+    payment_data: Dict[str, str],
+    current_user: dict = Depends(get_current_user)
+):
+    """Save patient payment configuration"""
+    upi_id = payment_data.get("upi_id", "")
+    payment_method = payment_data.get("payment_method", "none")
+    
+    # Validate UPI ID format (basic validation)
+    if upi_id and "@" not in upi_id:
+        raise HTTPException(status_code=400, detail="Invalid UPI ID format")
+    
+    await db.users.update_one(
+        {"id": current_user['id']},
+        {"$set": {
+            "upi_id": upi_id,
+            "payment_method": payment_method,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Patient payment setup saved successfully"}
+
 @api_router.post("/usage/track")
 async def track_message_usage(current_user: dict = Depends(get_current_user)):
     """Increment message usage counter (called after sending WhatsApp message)"""
