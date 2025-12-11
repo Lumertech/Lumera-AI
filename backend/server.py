@@ -2300,7 +2300,9 @@ async def get_subscription_status(current_user: dict = Depends(get_current_user)
     
     if not usage:
         # Create default usage object
-        usage = {
+        usage_id = str(uuid.uuid4())
+        usage_data = {
+            "id": usage_id,
             "user_id": current_user['id'],
             "period_start": period_start,
             "period_end": period_end,
@@ -2309,8 +2311,9 @@ async def get_subscription_status(current_user: dict = Depends(get_current_user)
             "extra_used": 0
         }
         # Initialize in database
-        usage["id"] = str(uuid.uuid4())
-        await db.usage_tracking.insert_one(usage)
+        await db.usage_tracking.insert_one(usage_data)
+        # Return the usage object without _id
+        usage = usage_data
     
     # Calculate days remaining in trial
     trial_days_remaining = 0
