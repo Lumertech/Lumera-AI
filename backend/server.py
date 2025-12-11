@@ -29,6 +29,23 @@ import random
 import httpx
 import json
 from emergentintegrations.llm.chat import LlmChat, UserMessage
+import time
+
+# Import security and reliability modules
+from security import (
+    PasswordValidator, InputSanitizer, encryption_manager,
+    MongoQueryValidator, SECURITY_HEADERS
+)
+from reliability import (
+    with_retry, health_checker, TransactionManager,
+    rate_limit_store
+)
+from monitoring import (
+    AuditLogger, AuditAction, performance_monitor,
+    request_tracker, ErrorTracker, system_metrics, logger
+)
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
