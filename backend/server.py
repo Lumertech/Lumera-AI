@@ -550,6 +550,32 @@ Thank you for choosing Lumer!"""
             await send_whatsapp_message(user['phone_number'], message)
             logging.info(f"Trial converted to active for user {user['id']}")
 
+# Health Check Endpoint
+@api_router.get("/health")
+async def health_check():
+    """Basic health check endpoint"""
+    try:
+        # Check MongoDB connection
+        await db.command("ping")
+        db_status = "healthy"
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+    
+    return {
+        "status": "healthy" if db_status == "healthy" else "degraded",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "components": {
+            "database": db_status,
+            "scheduler": "running" if scheduler.running else "stopped"
+        }
+    }
+
+@api_router.get("/health/detailed")
+async def detailed_health_check(current_user: dict = Depends(get_admin_user)):
+    """Detailed health check for admins"""
+    checks = await health_checker.get_system_health(client, None, None)
+    return checks
+
 # Auth Routes
 @api_router.post("/auth/register")
 async def register(user_data: UserCreate):
@@ -557,10 +583,18 @@ async def register(user_data: UserCreate):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    # Validate password strength
+    is_valid, error_msg = PasswordValidator.validate(user_data.password)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+    
+    # Sanitize inputs
+    sanitized_name = InputSanitizer.sanitize_html(user_data.name)
+    
     user_id = str(uuid.uuid4())
     user = {
         "id": user_id,
-        "name": user_data.name,
+        "name": sanitized_name,
         "email": user_data.email,
         "hashed_password": pwd_context.hash(user_data.password),
         "phone_number": user_data.phone_number,
@@ -570,6 +604,9 @@ async def register(user_data: UserCreate):
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user)
+    
+    # Increment system metrics
+    system_metrics.increment("users_created")
     
     token = create_access_token({"user_id": user_id, "email": user_data.email})
     return {"token": token, "user": {k: v for k, v in user.items() if k not in ["hashed_password", "_id"]}}
