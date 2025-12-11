@@ -160,6 +160,18 @@ class InputSanitizer:
             return False, "ABHA ID must contain only digits"
         
         return True, None
+    
+    @staticmethod
+    def sanitize_html(text: str) -> str:
+        """Remove HTML tags and sanitize text"""
+        if not text:
+            return ""
+        
+        # Remove HTML tags
+        text = re.sub(r'<[^>]+>', '', text)
+        
+        # Use existing sanitize_string method
+        return InputSanitizer.sanitize_string(text)
 
 # ============================================================================
 # MONGO QUERY VALIDATION
