@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Form, Depends, Header, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Form, Depends, Header, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response, RedirectResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -46,6 +46,12 @@ from monitoring import (
 )
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
+
+# Import voice bot module
+from voice_bot import (
+    init_voice_services, SupportedLanguage, VoiceCallSession,
+    AzureSpeechService, ExotelService, UnifiedBotLogic, VoiceCallManager
+)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
