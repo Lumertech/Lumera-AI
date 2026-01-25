@@ -16,6 +16,7 @@ import AppointmentDetails from '@/pages/AppointmentDetails';
 import PrescriptionWriter from '@/pages/PrescriptionWriter';
 import Clients from '@/pages/Clients';
 import WhatsAppConfig from '@/pages/WhatsAppConfig';
+import VoiceBotConfig from '@/pages/VoiceBotConfig';
 import Payments from '@/pages/Payments';
 import Reminders from '@/pages/Reminders';
 import Settings from '@/pages/Settings';
