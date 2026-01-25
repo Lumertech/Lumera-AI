@@ -3084,6 +3084,310 @@ async def update_client_abha(
     return {"message": "ABHA ID updated successfully", "abha_id": abha_id}
 
 # ============================================================================
+# VOICE BOT - AZURE SPEECH + EXOTEL INTEGRATION
+# ============================================================================
+
+# Initialize voice services
+voice_services = None
+
+@app.on_event("startup")
+async def init_voice():
+    global voice_services
+    try:
+        voice_services = init_voice_services(db)
+        logging.info("Voice services initialized")
+    except Exception as e:
+        logging.warning(f"Voice services initialization failed: {str(e)}")
+
+# Voice Bot Configuration Models
+class VoiceBotConfig(BaseModel):
+    enabled: bool = False
+    virtual_number: Optional[str] = None
+    default_language: str = "hi-IN"
+    voice_gender: str = "female"
+    greeting_message: Optional[str] = None
+
+class ExotelConfig(BaseModel):
+    exotel_sid: Optional[str] = None
+    exotel_api_key: Optional[str] = None
+    exotel_api_token: Optional[str] = None
+    virtual_numbers: List[str] = []
+
+class AzureSpeechConfig(BaseModel):
+    azure_speech_key: Optional[str] = None
+    azure_speech_region: str = "centralindia"
+
+@api_router.get("/voice/config")
+async def get_voice_config(current_user: dict = Depends(get_current_user)):
+    """Get voice bot configuration for current user"""
+    user = await db.users.find_one({"id": current_user['id']}, {"_id": 0})
+    
+    voice_config = user.get('voice_config', {})
+    
+    return {
+        "enabled": voice_config.get('enabled', False),
+        "virtual_number": voice_config.get('virtual_number'),
+        "default_language": voice_config.get('default_language', 'hi-IN'),
+        "voice_gender": voice_config.get('voice_gender', 'female'),
+        "greeting_message": voice_config.get('greeting_message'),
+        "supported_languages": [
+            {"code": "hi-IN", "name": "Hindi"},
+            {"code": "mr-IN", "name": "Marathi"},
+            {"code": "ta-IN", "name": "Tamil"},
+            {"code": "te-IN", "name": "Telugu"},
+            {"code": "bn-IN", "name": "Bengali"},
+            {"code": "en-IN", "name": "English (India)"}
+        ],
+        "exotel_configured": bool(voice_config.get('exotel_sid')),
+        "azure_configured": bool(os.environ.get('AZURE_SPEECH_KEY'))
+    }
+
+@api_router.put("/voice/config")
+async def update_voice_config(
+    config: VoiceBotConfig,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update voice bot configuration"""
+    await db.users.update_one(
+        {"id": current_user['id']},
+        {"$set": {
+            "voice_config.enabled": config.enabled,
+            "voice_config.virtual_number": config.virtual_number,
+            "voice_config.default_language": config.default_language,
+            "voice_config.voice_gender": config.voice_gender,
+            "voice_config.greeting_message": config.greeting_message,
+            "voice_config.updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Voice configuration updated successfully"}
+
+@api_router.put("/voice/exotel-config")
+async def update_exotel_config(
+    config: ExotelConfig,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update Exotel credentials (encrypted)"""
+    # Encrypt sensitive data before storing
+    encrypted_key = encryption_manager.encrypt(config.exotel_api_key) if config.exotel_api_key else None
+    encrypted_token = encryption_manager.encrypt(config.exotel_api_token) if config.exotel_api_token else None
+    
+    await db.users.update_one(
+        {"id": current_user['id']},
+        {"$set": {
+            "voice_config.exotel_sid": config.exotel_sid,
+            "voice_config.exotel_api_key_encrypted": encrypted_key,
+            "voice_config.exotel_api_token_encrypted": encrypted_token,
+            "voice_config.virtual_numbers": config.virtual_numbers,
+            "voice_config.exotel_updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Exotel configuration updated successfully"}
+
+@api_router.post("/voice/webhook/exotel/incoming")
+async def exotel_incoming_call_webhook(
+    request: Request,
+    CallSid: str = Form(...),
+    From: str = Form(...),
+    To: str = Form(...),
+    CallType: str = Form(default="incoming"),
+    Direction: str = Form(default="incoming")
+):
+    """
+    Exotel incoming call webhook.
+    Called when a call comes in to a virtual number.
+    Returns WebSocket URL for AgentStream bidirectional audio.
+    """
+    logging.info(f"Incoming call: {CallSid} from {From} to {To}")
+    
+    # Find professional by virtual number
+    user = await db.users.find_one({
+        "voice_config.virtual_number": To
+    }, {"_id": 0})
+    
+    professional_id = user.get('id') if user else None
+    
+    if voice_services and voice_services.get('voice_manager'):
+        result = await voice_services['voice_manager'].handle_incoming_call(
+            call_sid=CallSid,
+            from_phone=From,
+            to_phone=To,
+            professional_id=professional_id
+        )
+        
+        # Return WebSocket URL for AgentStream
+        backend_url = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001')
+        ws_url = backend_url.replace('http', 'ws') + f"/api/voice/stream/{CallSid}"
+        
+        return {
+            "url": ws_url,
+            "sample_rate": 16000,
+            "session_id": CallSid
+        }
+    
+    return {"error": "Voice services not available"}
+
+@api_router.post("/voice/webhook/exotel/status")
+async def exotel_call_status_webhook(
+    request: Request,
+    CallSid: str = Form(...),
+    Status: str = Form(...),
+    Duration: Optional[str] = Form(default=None),
+    RecordingUrl: Optional[str] = Form(default=None)
+):
+    """Exotel call status webhook - called when call ends"""
+    logging.info(f"Call status update: {CallSid} - {Status}")
+    
+    # Update call record
+    await db.voice_sessions.update_one(
+        {"call_sid": CallSid},
+        {"$set": {
+            "status": Status,
+            "duration": Duration,
+            "recording_url": RecordingUrl,
+            "ended_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # End session in voice manager
+    if voice_services and voice_services.get('voice_manager'):
+        await voice_services['voice_manager'].end_call(CallSid)
+    
+    return {"status": "ok"}
+
+@api_router.websocket("/voice/stream/{call_sid}")
+async def voice_stream_websocket(websocket: WebSocket, call_sid: str):
+    """
+    WebSocket endpoint for Exotel AgentStream bidirectional audio.
+    Receives audio from caller, processes with Azure Speech, returns TTS audio.
+    """
+    await websocket.accept()
+    logging.info(f"Voice stream connected: {call_sid}")
+    
+    try:
+        if not voice_services or not voice_services.get('voice_manager'):
+            await websocket.send_json({"error": "Voice services not available"})
+            await websocket.close()
+            return
+        
+        voice_manager = voice_services['voice_manager']
+        
+        while True:
+            try:
+                # Receive audio frame from Exotel
+                data = await websocket.receive_text()
+                frame = json.loads(data)
+                
+                if 'audio' in frame:
+                    # Decode base64 PCM audio
+                    audio_bytes = base64.b64decode(frame['audio'])
+                    
+                    # Process audio through STT -> Bot Logic -> TTS
+                    result = await voice_manager.process_audio(call_sid, audio_bytes)
+                    
+                    if result.get('response_audio'):
+                        # Send TTS audio back to Exotel
+                        await websocket.send_json({
+                            "audio": result['response_audio']
+                        })
+                        
+                elif frame.get('type') == 'end':
+                    break
+                    
+            except WebSocketDisconnect:
+                logging.info(f"Voice stream disconnected: {call_sid}")
+                break
+            except Exception as e:
+                logging.error(f"Voice stream error: {str(e)}")
+                break
+    
+    finally:
+        if voice_services and voice_services.get('voice_manager'):
+            await voice_services['voice_manager'].end_call(call_sid)
+        try:
+            await websocket.close()
+        except:
+            pass
+
+@api_router.get("/voice/sessions")
+async def get_voice_sessions(
+    current_user: dict = Depends(get_current_user),
+    limit: int = Query(default=50, le=100),
+    skip: int = Query(default=0)
+):
+    """Get voice call sessions for the professional"""
+    sessions = await db.voice_sessions.find(
+        {"professional_id": current_user['id']},
+        {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "sessions": sessions,
+        "count": len(sessions)
+    }
+
+@api_router.get("/voice/sessions/{call_sid}")
+async def get_voice_session_details(
+    call_sid: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get details of a specific voice call session"""
+    session = await db.voice_sessions.find_one({
+        "call_sid": call_sid,
+        "professional_id": current_user['id']
+    }, {"_id": 0})
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    return session
+
+@api_router.post("/voice/test-tts")
+async def test_text_to_speech(
+    text: str = Form(...),
+    language: str = Form(default="hi-IN"),
+    voice_gender: str = Form(default="female"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Test TTS functionality - converts text to speech and returns audio"""
+    if not voice_services or not voice_services.get('speech_service'):
+        raise HTTPException(status_code=503, detail="Azure Speech services not available")
+    
+    speech_service = voice_services['speech_service']
+    
+    try:
+        lang = SupportedLanguage(language)
+    except:
+        lang = SupportedLanguage.HINDI
+    
+    audio = await speech_service.text_to_speech(text, lang, voice_gender)
+    
+    if audio:
+        return {
+            "audio": base64.b64encode(audio).decode(),
+            "format": "wav",
+            "language": language,
+            "voice_gender": voice_gender
+        }
+    
+    raise HTTPException(status_code=500, detail="TTS conversion failed")
+
+@api_router.get("/voice/languages")
+async def get_supported_languages():
+    """Get list of supported languages for voice bot"""
+    return {
+        "languages": [
+            {"code": "hi-IN", "name": "Hindi", "native_name": "हिन्दी"},
+            {"code": "mr-IN", "name": "Marathi", "native_name": "मराठी"},
+            {"code": "ta-IN", "name": "Tamil", "native_name": "தமிழ்"},
+            {"code": "te-IN", "name": "Telugu", "native_name": "తెలుగు"},
+            {"code": "bn-IN", "name": "Bengali", "native_name": "বাংলা"},
+            {"code": "en-IN", "name": "English (India)", "native_name": "English"}
+        ]
+    }
+
+# ============================================================================
 # USER PROFILE MANAGEMENT WITH OTP VERIFICATION
 # ============================================================================
 
