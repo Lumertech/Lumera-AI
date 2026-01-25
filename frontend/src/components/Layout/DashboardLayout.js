@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   User,
+  Phone,
 } from 'lucide-react';
 
 const DashboardLayout = ({ children }) => {
@@ -29,6 +30,7 @@ const DashboardLayout = ({ children }) => {
     { name: 'Appointments', href: '/appointments', icon: Calendar },
     { name: 'Clients', href: '/clients', icon: Users },
     { name: 'WhatsApp Bot', href: '/whatsapp', icon: MessageSquare },
+    { name: 'Voice Bot', href: '/voice-bot', icon: Phone },
     { name: 'Payments', href: '/payments', icon: CreditCard },
     { name: 'Reminders', href: '/reminders', icon: Bell },
     { name: 'Subscription', href: '/subscription', icon: CreditCard },
