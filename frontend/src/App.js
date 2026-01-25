@@ -136,6 +136,14 @@ function App() {
             }
           />
           <Route
+            path="/voice-bot"
+            element={
+              <ProtectedRoute>
+                <VoiceBotConfig />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/payments"
             element={
               <ProtectedRoute>
