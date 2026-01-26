@@ -1,4 +1,4 @@
-# Twilio WhatsApp Integration Guide for Lumer
+# Twilio WhatsApp Integration Guide for Lumera
 
 ## Quick Start (5 Minutes Setup)
 
@@ -25,8 +25,8 @@
 4. You'll get a confirmation: "You are all set!"
 5. **Copy the sandbox number**: `whatsapp:+14155238886`
 
-### Step 4: Add Credentials to Lumer
-1. **In Lumer**, go to **Settings** page
+### Step 4: Add Credentials to Lumera
+1. **In Lumera**, go to **Settings** page
 2. Scroll to **"WhatsApp Configuration"** section
 3. Enter:
    - **Twilio Account SID**: Paste from Step 2
@@ -58,14 +58,14 @@
    - Business Description
    - Facebook Business Manager ID (create at [business.facebook.com](https://business.facebook.com))
 4. Wait 24-48 hours for approval
-5. Once approved, update the WhatsApp number in Lumer Settings
+5. Once approved, update the WhatsApp number in Lumera Settings
 
 ### Message Templates (Production Only)
 For production, WhatsApp requires pre-approved message templates:
 
 **1. OTP Template**
 ```
-Your Lumer verification code is {{1}}. Valid for 10 minutes. Do not share this code.
+Your Lumera verification code is {{1}}. Valid for 10 minutes. Do not share this code.
 ```
 
 **2. Appointment Confirmation**
@@ -156,7 +156,7 @@ Feel better soon!
 - [ ] Twilio account created and verified
 - [ ] Account SID and Auth Token copied
 - [ ] WhatsApp sandbox activated (sent join message)
-- [ ] Credentials added to Lumer Settings
+- [ ] Credentials added to Lumera Settings
 - [ ] Test OTP: Register new user with phone number
 - [ ] Test appointment: Create appointment, check WhatsApp confirmation
 - [ ] Test prescription: Write prescription, check WhatsApp delivery

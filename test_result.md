@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Lumer - WhatsApp-based appointment booking and CRM platform for doctors with AI-powered features, automated reminders, and payment integration"
+user_problem_statement: "Lumera - WhatsApp-based appointment booking and CRM platform for doctors with AI-powered features, automated reminders, and payment integration"
 
 backend:
   - task: "App compilation and stability"
