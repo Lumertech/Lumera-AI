@@ -153,7 +153,7 @@ const RequestPaymentModal = ({ open, onClose, clientPhone, clientName }) => {
               </Card>
 
               <div className="text-xs text-slate-600 font-inter p-3 bg-slate-50 rounded-lg border border-slate-200 mb-4">
-                By proceeding, you agree to Lumer Tech LLC's{' '}
+                By proceeding, you agree to Lumera Tech LLC's{' '}
                 <a href="/policies#terms-of-service" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
                   Terms of Service
                 </a>{' '}

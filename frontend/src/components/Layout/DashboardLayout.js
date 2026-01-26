@@ -71,7 +71,7 @@ const DashboardLayout = ({ children }) => {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-teal-600 flex items-center justify-center">
                 <span className="text-white font-manrope font-bold text-lg">L</span>
               </div>
-              <span className="font-manrope font-bold text-xl text-slate-900">Lumer</span>
+              <span className="font-manrope font-bold text-xl text-slate-900">Lumera</span>
             </Link>
             <Button
               variant="ghost"

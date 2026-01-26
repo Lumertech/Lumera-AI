@@ -31,7 +31,7 @@ const AdminLayout = ({ children }) => {
               <Shield className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="font-manrope font-bold text-xl">Lumer Admin</h2>
+              <h2 className="font-manrope font-bold text-xl">Lumera Admin</h2>
               <p className="text-slate-400 text-xs">{user.email}</p>
             </div>
           </div>

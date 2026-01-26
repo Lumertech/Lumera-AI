@@ -87,7 +87,7 @@ const Payments = () => {
         key: key_id,
         amount: amount,
         currency: currency,
-        name: 'Lumer',
+        name: 'Lumera',
         description: 'Appointment Payment',
         order_id: order_id,
         handler: async function (response) {

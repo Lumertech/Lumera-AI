@@ -1,5 +1,5 @@
 """
-Reliability utilities for Lumer
+Reliability utilities for Lumera
 - Retry logic with exponential backoff
 - Circuit breaker pattern
 - Health checks

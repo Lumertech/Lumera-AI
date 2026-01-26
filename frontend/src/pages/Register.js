@@ -59,7 +59,7 @@ const Register = () => {
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-teal-600 flex items-center justify-center">
               <span className="text-white font-manrope font-bold text-xl">L</span>
             </div>
-            <span className="font-manrope font-bold text-2xl text-slate-900">Lumer</span>
+            <span className="font-manrope font-bold text-2xl text-slate-900">Lumera</span>
           </div>
           <CardTitle className="font-manrope text-2xl">Create your account</CardTitle>
           <CardDescription className="font-inter">
@@ -166,7 +166,7 @@ const Register = () => {
                 htmlFor="terms"
                 className="text-sm font-inter text-slate-700 leading-relaxed cursor-pointer"
               >
-                I agree to Lumer Tech LLC's{' '}
+                I agree to Lumera Tech LLC's{' '}
                 <Link to="/policies#terms-of-service" target="_blank" className="text-indigo-600 hover:underline font-semibold">
                   Terms of Service
                 </Link>

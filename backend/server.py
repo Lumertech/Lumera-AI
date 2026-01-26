@@ -484,7 +484,7 @@ async def check_trial_expiry():
 
 Hi {user['name']},
 
-Your Lumer free trial ends tomorrow. You will be auto-charged ₹{SUBSCRIPTION_PRICE} unless you cancel.
+Your Lumera free trial ends tomorrow. You will be auto-charged ₹{SUBSCRIPTION_PRICE} unless you cancel.
 
 ✓ ₹{SUBSCRIPTION_PRICE}/month
 ✓ {BUNDLED_MESSAGES} WhatsApp messages included
@@ -492,7 +492,7 @@ Your Lumer free trial ends tomorrow. You will be auto-charged ₹{SUBSCRIPTION_P
 
 To manage your subscription, visit your dashboard.
 
-Thank you for using Lumer!"""
+Thank you for using Lumera!"""
             
             await send_whatsapp_message(user['phone_number'], message)
             await db.subscriptions.update_one(
@@ -545,13 +545,13 @@ async def process_expired_trials():
             # Send confirmation
             message = f"""✅ Subscription Activated!
 
-Your Lumer subscription has been activated.
+Your Lumera subscription has been activated.
 
 Monthly Plan: ₹{SUBSCRIPTION_PRICE}
 Included: {BUNDLED_MESSAGES} WhatsApp messages
 Next billing: {next_billing.strftime('%d %b %Y')}
 
-Thank you for choosing Lumer!"""
+Thank you for choosing Lumera!"""
             
             await send_whatsapp_message(user['phone_number'], message)
             logging.info(f"Trial converted to active for user {user['id']}")
@@ -685,7 +685,7 @@ async def send_otp(request: PhoneVerifyRequest):
     )
     
     # Send OTP via WhatsApp
-    message = f"Your Lumer verification code is {otp}. Valid for 10 minutes. Do not share this code with anyone."
+    message = f"Your Lumera verification code is {otp}. Valid for 10 minutes. Do not share this code with anyone."
     await send_whatsapp_message(request.phone_number, message)
     
     return {"message": "OTP sent successfully", "phone_number": request.phone_number}
@@ -1052,11 +1052,11 @@ async def export_calendar(current_user: dict = Depends(get_current_user)):
     from icalendar import Calendar, Event as ICalEvent
     
     cal = Calendar()
-    cal.add('prodid', '-//Lumer Calendar//lumer.app//')
+    cal.add('prodid', '-//Lumera Calendar//lumer.app//')
     cal.add('version', '2.0')
     cal.add('calscale', 'GREGORIAN')
     cal.add('method', 'PUBLISH')
-    cal.add('x-wr-calname', f'Lumer - {current_user["name"]}')
+    cal.add('x-wr-calname', f'Lumera - {current_user["name"]}')
     cal.add('x-wr-timezone', 'UTC')
     
     # Add appointments
@@ -1312,7 +1312,7 @@ async def create_payment_order(
         payment_link_data = {
             "amount": amount_paise,
             "currency": "INR",
-            "description": f"{package.replace('_', ' ').title()} - Lumer",
+            "description": f"{package.replace('_', ' ').title()} - Lumera",
             "customer": {
                 "name": current_user['name'],
                 "email": current_user.get('email', ''),
@@ -1414,7 +1414,7 @@ async def generate_payment_qr(amount: int, current_user: dict = Depends(get_curr
         payment_link = razorpay_client.payment_link.create({
             "amount": amount * 100,  # Convert to paise
             "currency": "INR",
-            "description": "Lumer Appointment Payment",
+            "description": "Lumera Appointment Payment",
             "customer": {
                 "name": current_user['name'],
                 "email": current_user['email'],
@@ -1474,7 +1474,7 @@ async def get_bot_response(message: str, phone: str, conversation_state: dict) -
         api_key = os.environ.get('EMERGENT_LLM_KEY')
         
         # Build conversation context
-        context = f"""You are Lumer, a helpful medical appointment booking assistant for a clinic.
+        context = f"""You are Lumera, a helpful medical appointment booking assistant for a clinic.
 
 Current conversation state: {conversation_state}
 Patient message: {message}
@@ -1506,7 +1506,7 @@ Detect the language and respond in the same language (Hindi, English, etc.)."""
             return result["choices"][0]["message"]["content"]
     except Exception as e:
         logging.error(f"Bot AI error: {e}")
-        return "Hello! Welcome to Lumer. Please share your full name to book an appointment."
+        return "Hello! Welcome to Lumera. Please share your full name to book an appointment."
 
 @api_router.post("/webhook/whatsapp")
 async def whatsapp_webhook(
@@ -1693,7 +1693,7 @@ async def whatsapp_webhook(
     
     # State machine for booking flow
     if state == "new":
-        reply = "Hello! Welcome to Lumer 🏥\n\nI'll help you book an appointment.\n\nWhat is your full name?"
+        reply = "Hello! Welcome to Lumera 🏥\n\nI'll help you book an appointment.\n\nWhat is your full name?"
         await db.whatsapp_conversations.update_one(
             {"phone": phone},
             {"$set": {"state": "awaiting_name", "last_message": message}}
@@ -1813,7 +1813,7 @@ async def whatsapp_webhook(
         response.message(welcome)
     else:
         # Default welcome
-        welcome = "Hello! Welcome to Lumer 🏥\n\n"
+        welcome = "Hello! Welcome to Lumera 🏥\n\n"
         welcome += "I can help you:\n"
         welcome += "• Book appointments (just say Hi!)\n"
         welcome += "• Check appointment status\n"
@@ -2554,7 +2554,7 @@ async def start_subscription(
             "period": "monthly",
             "interval": 1,
             "item": {
-                "name": "Lumer Monthly Subscription",
+                "name": "Lumera Monthly Subscription",
                 "amount": SUBSCRIPTION_PRICE * 100,  # in paise
                 "currency": "INR"
             }
@@ -2634,7 +2634,7 @@ async def wallet_topup(
         payment_link = user_razorpay.payment_link.create({
             "amount": topup.amount * 100,  # in paise
             "currency": "INR",
-            "description": f"Lumer Wallet Top-up - ₹{topup.amount}",
+            "description": f"Lumera Wallet Top-up - ₹{topup.amount}",
             "customer": {
                 "name": user['name'],
                 "email": user['email']
@@ -3462,7 +3462,7 @@ async def send_profile_otp(
         }
     
     elif verification_type == 'phone':
-        message = f"""🔐 Lumer Verification Code
+        message = f"""🔐 Lumera Verification Code
 
 Your OTP for phone verification is: {otp}
 

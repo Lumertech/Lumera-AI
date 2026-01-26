@@ -1,5 +1,5 @@
 """
-Security utilities for Lumer
+Security utilities for Lumera
 - Password validation
 - Encryption/Decryption
 - Rate limiting

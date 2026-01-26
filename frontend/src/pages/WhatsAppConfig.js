@@ -63,7 +63,7 @@ const WhatsAppConfig = () => {
           <CardHeader>
             <CardTitle className="font-manrope">Setup Instructions</CardTitle>
             <CardDescription className="font-inter">
-              Follow these steps to integrate WhatsApp with Lumer
+              Follow these steps to integrate WhatsApp with Lumera
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -135,7 +135,7 @@ const WhatsAppConfig = () => {
             <div className="space-y-2">
               <Label className="font-manrope font-semibold">Welcome Message</Label>
               <Input
-                defaultValue="Welcome to Lumer! Reply 'Book' to schedule an appointment."
+                defaultValue="Welcome to Lumera! Reply 'Book' to schedule an appointment."
                 className="font-inter"
                 data-testid="welcome-message-input"
               />

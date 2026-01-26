@@ -1,5 +1,5 @@
 """
-Azure Speech + Exotel Voice Bot Integration for Lumer
+Azure Speech + Exotel Voice Bot Integration for Lumera
 Unified bot logic for WhatsApp and Voice channels
 Supports multiple Indian languages (Hindi, Marathi, Tamil, Telugu, Bengali)
 """

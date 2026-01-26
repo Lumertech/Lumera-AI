@@ -150,7 +150,7 @@ const Subscription = () => {
             Subscription & Billing
           </h1>
           <p className="font-inter text-slate-600 mt-2">
-            Manage your Lumer subscription, usage, and payments
+            Manage your Lumera subscription, usage, and payments
           </p>
         </div>
 

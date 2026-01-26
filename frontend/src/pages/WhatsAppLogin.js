@@ -106,7 +106,7 @@ const WhatsAppLogin = () => {
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center">
               <MessageSquare className="h-6 w-6 text-white" />
             </div>
-            <span className="font-manrope font-bold text-2xl text-slate-900">Lumer</span>
+            <span className="font-manrope font-bold text-2xl text-slate-900">Lumera</span>
           </div>
           <CardTitle className="font-manrope text-2xl">WhatsApp Login</CardTitle>
           <CardDescription className="font-inter">

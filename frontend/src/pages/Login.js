@@ -38,7 +38,7 @@ const Login = () => {
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-teal-600 flex items-center justify-center">
               <span className="text-white font-manrope font-bold text-xl">L</span>
             </div>
-            <span className="font-manrope font-bold text-2xl text-slate-900">Lumer</span>
+            <span className="font-manrope font-bold text-2xl text-slate-900">Lumera</span>
           </div>
           <CardTitle className="font-manrope text-2xl">Welcome back</CardTitle>
           <CardDescription className="font-inter">

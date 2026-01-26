@@ -39,7 +39,7 @@ const Policies = () => {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-teal-600 flex items-center justify-center">
                 <span className="text-white font-manrope font-bold text-lg">L</span>
               </div>
-              <span className="font-manrope font-bold text-xl text-slate-900">Lumer</span>
+              <span className="font-manrope font-bold text-xl text-slate-900">Lumera</span>
             </div>
             <Button
               variant="outline"
@@ -60,7 +60,7 @@ const Policies = () => {
               📜 Policies & Disclaimers
             </h1>
             <p className="text-lg text-slate-600 font-inter">
-              Lumer Tech LLC
+              Lumera Tech LLC
             </p>
           </div>
 
@@ -95,7 +95,7 @@ const Policies = () => {
                   <h2 className="font-manrope font-bold text-2xl text-slate-900">Privacy Policy</h2>
                 </div>
                 <div className="space-y-4 text-slate-700 font-inter">
-                  <p>Lumer Tech LLC ("Lumer") values your privacy.</p>
+                  <p>Lumera Tech LLC ("Lumera") values your privacy.</p>
                   <p>We collect personal information such as name, contact details, appointment history, and payment records to provide scheduling, reminders, and communication services.</p>
                   <ul className="list-disc pl-6 space-y-2">
                     <li>Data is stored securely and used only for service delivery.</li>
@@ -117,11 +117,11 @@ const Policies = () => {
                   <h2 className="font-manrope font-bold text-2xl text-slate-900">Terms of Service</h2>
                 </div>
                 <div className="space-y-4 text-slate-700 font-inter">
-                  <p>By using Lumer, you agree to:</p>
+                  <p>By using Lumera, you agree to:</p>
                   <ul className="list-disc pl-6 space-y-2">
                     <li>Provide accurate information during registration.</li>
                     <li>Use the service only for lawful purposes.</li>
-                    <li>Accept that Lumer is a facilitator of communication and scheduling, not a medical or professional service provider.</li>
+                    <li>Accept that Lumera is a facilitator of communication and scheduling, not a medical or professional service provider.</li>
                     <li>Acknowledge that liability for advice, prescriptions, or services rests solely with the registered professional.</li>
                   </ul>
                   <p>Refunds and cancellations are subject to the Payment Disclaimer below.</p>
@@ -140,7 +140,7 @@ const Policies = () => {
                   <h2 className="font-manrope font-bold text-2xl text-slate-900">Medical Disclaimer</h2>
                 </div>
                 <div className="space-y-4 text-slate-700 font-inter">
-                  <p>Lumer does not provide medical advice.</p>
+                  <p>Lumera does not provide medical advice.</p>
                   <p>All medical information, prescriptions, and communication are the responsibility of the registered professional.</p>
                   <p>Patients should consult licensed professionals for medical decisions.</p>
                 </div>
@@ -157,10 +157,10 @@ const Policies = () => {
                   <h2 className="font-manrope font-bold text-2xl text-slate-900">Payment Disclaimer</h2>
                 </div>
                 <div className="space-y-4 text-slate-700 font-inter">
-                  <p>Payments are processed via <strong>Razorpay</strong>. Lumer does not store sensitive payment details.</p>
+                  <p>Payments are processed via <strong>Razorpay</strong>. Lumera does not store sensitive payment details.</p>
                   <ul className="list-disc pl-6 space-y-2">
                     <li>Refunds are available within <strong>7 days</strong> if an appointment is cancelled at least <strong>24 hours prior</strong> to the scheduled time.</li>
-                    <li>Cash payments marked as "collected" are recorded for tracking but not processed by Lumer.</li>
+                    <li>Cash payments marked as "collected" are recorded for tracking but not processed by Lumera.</li>
                     <li>Refunds and cancellations are managed directly by the professional or clinic.</li>
                   </ul>
                 </div>
@@ -179,7 +179,7 @@ const Policies = () => {
                 <div className="space-y-4 text-slate-700 font-inter">
                   <p>Communication occurs via the <strong>WhatsApp Business API</strong>.</p>
                   <p>Patients will see the professional's verified WhatsApp number.</p>
-                  <p>Lumer is not responsible for delivery issues or delays caused by WhatsApp.</p>
+                  <p>Lumera is not responsible for delivery issues or delays caused by WhatsApp.</p>
                 </div>
               </CardContent>
             </Card>
@@ -211,7 +211,7 @@ const Policies = () => {
                   <h2 className="font-manrope font-bold text-2xl text-slate-900">Cookie Policy</h2>
                 </div>
                 <div className="space-y-4 text-slate-700 font-inter">
-                  <p>Lumer uses cookies for session management, personalization, and analytics.</p>
+                  <p>Lumera uses cookies for session management, personalization, and analytics.</p>
                   <p>We also use <strong>Google Analytics</strong> to improve user experience.</p>
                   <p>Users can opt out of cookies via browser settings.</p>
                 </div>
@@ -228,7 +228,7 @@ const Policies = () => {
                   <h2 className="font-manrope font-bold text-2xl text-slate-900">Limitation of Liability</h2>
                 </div>
                 <div className="space-y-4 text-slate-700 font-inter">
-                  <p>Lumer Tech LLC is a medium for communication and scheduling.</p>
+                  <p>Lumera Tech LLC is a medium for communication and scheduling.</p>
                   <p>We are not liable for missed appointments, miscommunication, or errors in medical or service delivery.</p>
                   <p>Responsibility lies solely with the professional.</p>
                 </div>

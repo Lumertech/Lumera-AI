@@ -1,5 +1,5 @@
 """
-Monitoring and logging utilities for Lumer
+Monitoring and logging utilities for Lumera
 - Structured logging
 - Audit trail
 - Performance metrics

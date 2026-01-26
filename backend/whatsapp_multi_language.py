@@ -85,7 +85,7 @@ class MultiLanguageBot:
             
             # Generate response based on state
             if state == 'new':
-                response = "Hello! Welcome to Lumer 🏥\nI'll help you book an appointment.\n\nWhat is your full name?"
+                response = "Hello! Welcome to Lumera 🏥\nI'll help you book an appointment.\n\nWhat is your full name?"
             elif state == 'awaiting_age':
                 name = data.get('name', 'there')
                 response = f"Thanks {name}! What is your age?"
