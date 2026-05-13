@@ -214,8 +214,10 @@ const Consultations = () => {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/consultations`);
-      setItems(res.data || []);
+      const res = await axios.get(`${API_URL}/consultations?limit=50&offset=0`);
+      // Paginated response: { items, total, limit, offset }
+      const data = res.data;
+      setItems(Array.isArray(data) ? data : (data?.items || []));
     } catch (err) {
       toast.error('Failed to load consultations');
     } finally {

@@ -72,11 +72,19 @@ async def create_consultation(
 
 
 @router.get("")
-async def list_consultations(current_user: dict = Depends(require_doctor_or_owner)):
-    items = await db.consultations.find(
+async def list_consultations(
+    limit: int = 50,
+    offset: int = 0,
+    current_user: dict = Depends(require_doctor_or_owner),
+):
+    limit = max(1, min(200, int(limit)))
+    offset = max(0, int(offset))
+    cursor = db.consultations.find(
         {"professional_id": current_user['id']}, {"_id": 0}
-    ).sort("created_at", -1).limit(200).to_list(200)
-    return items
+    ).sort("created_at", -1).skip(offset).limit(limit)
+    items = await cursor.to_list(limit)
+    total = await db.consultations.count_documents({"professional_id": current_user['id']})
+    return {"items": items, "total": total, "limit": limit, "offset": offset}
 
 
 @router.get("/{consultation_id}")

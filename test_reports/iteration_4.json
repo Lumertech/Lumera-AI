@@ -1,0 +1,44 @@
+{
+  "summary": "Tested backlog: WhatsApp Medication Reminders (auto-schedule from prescription frequency/duration) + Consultations pagination. Backend: 13/14 pass (93%). All parser, auto-schedule, CRUD, recep permission, regression (empty-frequency Rx 200), consultations pagination shape & clamp tests pass. ONE backend bug found: past-end-date reminders are NOT auto-marked 'completed' by send_due_medication_reminders() — they are silently skipped by an outer `continue` before the completion branch in `_process_one` is reached. Twilio absent → send_whatsapp_message returns None gracefully (no exception), but because the send fails, sent_log is never appended, so dedup is effectively trivial in this env (cannot be exercised end-to-end without Twilio creds). Frontend: /reminders renders MedicationRemindersPanel below Appointment/Follow-up/Feedback cards, 10 auto-created reminders displayed, pause→resume toggle works, delete buttons present. /consultations renders without crash with paginated response.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "send_due_medication_reminders()", "issue": "Past-end-date reminders are NOT auto-marked status='completed'. The outer loop in `send_due_medication_reminders` does `if today > (rem.get('end_date') or today): continue` which short-circuits BEFORE reaching the dead-code completion branch in `_process_one`. Result: expired reminders linger as 'active' forever. Fix: replace the outer `continue` with an inline `await db.medication_reminders.update_one({'id': rem['id']}, {'$set': {'status':'completed'}})` then continue."},
+      {"endpoint": "send_due_medication_reminders() + sent_log", "issue": "When Twilio is unconfigured (current env), send_whatsapp_message returns None, _process_one returns False, and sent_log is NEVER appended. So the 'idempotency via sent_log' guarantee only kicks in when sends succeed. If Twilio is intermittent, the same dose could resend on next 5-min tick. Consider appending sent_log even on a 'mock'/no-creds path or guarding with a separate 'attempted_log' for ops visibility."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_medication_reminders.py",
+    "/app/test_reports/pytest/medication_reminders.xml"
+  ],
+  "action_items": [
+    "Fix past-end-date completion in /app/backend/medication_reminders.py::send_due_medication_reminders — mark status='completed' instead of `continue`. (Failing test: TestSendDueJob::test_sends_once_then_dedups_and_completes_past_endate).",
+    "Optional: append sent_log even when Twilio send returns None so idempotency holds in unconfigured environments."
+  ],
+  "critical_code_review_comments": [
+    "medication_reminders.py: dead code in _process_one — the `if reminder.get('end_date') and today > reminder['end_date']` block is unreachable because the outer loop in send_due_medication_reminders already `continue`s past expired reminders without updating status. Either move completion to the outer loop OR drop the outer guard so _process_one's branch runs.",
+    "schedule_reminders_for_prescription idempotency is per prescription_id — correct. But two separate POST /api/prescriptions calls produce two prescription_ids, so they each spawn their own reminder set. This matches the spec ('idempotency is per-prescription_id') and tests confirm it.",
+    "routes/medication_reminders.py: PUT/DELETE scope updates to {id, professional_id: owner_id} — verified receptionists can't touch other doctors' reminders (404 returned for unknown ids; recep can list parent's 200).",
+    "consultations pagination: limit clamped 1..200 and offset>=0 verified. Frontend Consultations.js handles the {items,total,limit,offset} shape (no console errors on /consultations).",
+    "server.py:120-135 wraps async send_due_medication_reminders in a sync wrapper using `_asyncio.new_event_loop()` inside APScheduler BackgroundScheduler. This works but creates a fresh loop every 5 min — not ideal performance-wise. Consider AsyncIOScheduler if/when migrating.",
+    "Prescription create wraps schedule_reminders_for_prescription in try/except (good) — empty frequency Rx returns 200 and produces a sensible default reminder (1 dose × 7 days at 09:00)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_medication_reminders.py (new — 14 tests covering parsers, auto-schedule, CRUD, recep perms, send-job, consultations pagination)"
+  ],
+  "success_rate": {
+    "backend": "93% (13/14 — 1 failure is the past-end-date completion bug)",
+    "frontend": "100% (login, /reminders panel, pause/resume toggle, /consultations all verified)"
+  },
+  "test_credentials": "Doctor: sarah@test.com / test123456 (verified). Receptionists: recep_medrem_<hex>@test.com / Recep@12345 (auto-created in tests).",
+  "seed_data_creation": "Tests create TEST_-prefixed appointments, prescriptions, and reminders for sarah@test.com; reminder send-job test inserts/deletes its own ephemeral doc. No teardown of older test rows.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Re-run /app/backend/tests/test_medication_reminders.py after the past-end-date completion fix is applied — the failing test TestSendDueJob::test_sends_once_then_dedups_and_completes_past_endate should then pass. Twilio creds are NOT set in this env, so send_whatsapp_message returns None and sent_log will only be populated once Twilio is configured. Test command: `cd /app/backend && pytest tests/test_medication_reminders.py -v --asyncio-mode=auto`. Reuse the same test for regression in future iterations.",
+  "rca of the issue": "send_due_medication_reminders() main loop does `if today > (rem.get('end_date') or today): continue` BEFORE the inner times loop. This means an expired reminder is skipped entirely and never reaches _process_one(), where the `if reminder.get('end_date') and today > reminder['end_date']: $set status=completed` block exists. That branch is therefore dead code. Reproduction: insert a reminder with end_date=yesterday status='active', call send_due_medication_reminders(), observe status remains 'active'. Mitigation: in the outer loop, replace `continue` with `await db.medication_reminders.update_one({'id': rem['id']}, {'$set': {'status': 'completed'}})` then `continue`."
+}

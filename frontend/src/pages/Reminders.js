@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Bell, Clock, MessageSquare } from 'lucide-react';
+import { Bell, Clock, MessageSquare, Pill } from 'lucide-react';
 import { toast } from 'sonner';
+import MedicationRemindersPanel from '@/components/MedicationRemindersPanel';
 
 const Reminders = () => {
   const [reminderSettings, setReminderSettings] = useState({
@@ -208,6 +209,9 @@ const Reminders = () => {
             Save Reminder Settings
           </Button>
         </div>
+
+        {/* Medication Reminders (auto-scheduled from prescriptions) */}
+        <MedicationRemindersPanel />
       </div>
     </DashboardLayout>
   );

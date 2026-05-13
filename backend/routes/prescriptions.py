@@ -29,6 +29,7 @@ from shared import (
     get_llm_key,
     strip_json_fences,
 )
+from medication_reminders import schedule_reminders_for_prescription
 
 router = APIRouter(prefix="/prescriptions", tags=["prescriptions"])
 
@@ -361,6 +362,13 @@ GENERAL INSTRUCTIONS:
 For queries, contact: {current_user.get('phone_number', 'clinic')}
 """
     message_sent = await send_whatsapp_message(appointment["client_phone"], prescription_message)
+
+    # Auto-schedule dose-time medication reminders (idempotent per prescription)
+    try:
+        await schedule_reminders_for_prescription(prescription_data)
+    except Exception as e:
+        logging.warning(f"Failed to schedule medication reminders: {e}")
+
     return {**prescription_data, "whatsapp_sent": bool(message_sent)}
 
 

@@ -117,6 +117,22 @@ async def lifespan(app: FastAPI):
         id="process_expired_trials",
         name="Process expired trials"
     )
+    # Medication reminders - check every 5 minutes for due doses
+    from medication_reminders import send_due_medication_reminders
+    import asyncio as _asyncio
+    def _sync_med_reminders_job():
+        try:
+            loop = _asyncio.new_event_loop()
+            loop.run_until_complete(send_due_medication_reminders())
+            loop.close()
+        except Exception as e:
+            logging.error(f"Medication reminder job error: {e}")
+    scheduler.add_job(
+        _sync_med_reminders_job,
+        CronTrigger(minute="*/5"),  # Every 5 minutes
+        id="medication_reminders",
+        name="Send due medication reminders"
+    )
     scheduler.start()
     yield
     # Shutdown
@@ -3521,6 +3537,9 @@ app.include_router(_prescriptions_router_mod.router, prefix="/api")
 app.include_router(_consultations_router_mod.router, prefix="/api")
 app.include_router(_clinics_router_mod.router, prefix="/api")
 app.include_router(_hexa_router_mod.router, prefix="/api")
+
+from routes import medication_reminders as _med_reminders_router_mod
+app.include_router(_med_reminders_router_mod.router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
