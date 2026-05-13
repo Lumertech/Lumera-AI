@@ -117,13 +117,9 @@ def _now_hm() -> str:
 
 
 async def _process_one(reminder: Dict[str, Any], now_hm: str, today: str) -> bool:
-    """Send WhatsApp for a single due reminder. Returns True if sent."""
-    # Already finished?
-    if reminder.get("end_date") and today > reminder["end_date"]:
-        await db.medication_reminders.update_one(
-            {"id": reminder["id"]}, {"$set": {"status": "completed"}}
-        )
-        return False
+    """Send WhatsApp for a single due reminder. Returns True if sent.
+    Caller (send_due_medication_reminders) is responsible for skipping
+    expired reminders before invoking this."""
     # Idempotency: do not send twice for same date+time
     sent_log = reminder.get("sent_log", [])
     key = f"{today} {now_hm}"
@@ -166,7 +162,11 @@ async def send_due_medication_reminders() -> int:
     count = 0
     async for rem in cur:
         rem.pop("_id", None)
-        if today > (rem.get("end_date") or today):
+        if rem.get("end_date") and today > rem["end_date"]:
+            # Past end date — mark completed and skip
+            await db.medication_reminders.update_one(
+                {"id": rem["id"]}, {"$set": {"status": "completed"}}
+            )
             continue
         for t in rem.get("times", []):
             if t in candidate_times:

@@ -79,6 +79,17 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - `server.py`: **4432 → 3572 lines** (-860 lines extracted into modular routers)
 - **Tests: 65/65 backend pass** (Phase 1 + Phase 2/3 + 23 refactor regression tests)
 
+### Phase 6 — Medication Reminders + Pagination (2026-05-13) ✅
+- **WhatsApp Medication Reminders** auto-scheduled from prescription frequency + duration
+  - Smart frequency parser: OD/BD/TDS/QID/"twice daily"/"every 8 hours"... → dose times
+  - Smart duration parser: "7 days", "1 week", "2 weeks", "1 month", "SOS"
+  - Default dose times: 1×=09:00 · 2×=09/21 · 3×=08/14/20 · 4×=08/12/16/20
+  - APScheduler cron every 5 min — dedup via `sent_log`, auto-complete past `end_date`
+  - Endpoints: GET / GET-by-prescription / PUT (pause|active|completed) / DELETE
+  - UI: `MedicationRemindersPanel` embedded in `/reminders` page (grouped by patient)
+- **Consultations pagination** — `GET /api/consultations?limit=&offset=` → `{items, total, limit, offset}` (clamped 1..200 / >=0)
+- Tests: 14/14 medication reminder pytest pass after fixing expired-reminder auto-complete bug
+
 ## P1 Backlog (next)
 
 ### Phase 2 — AI Documentation Engine
