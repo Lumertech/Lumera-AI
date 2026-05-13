@@ -64,6 +64,21 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 
 **Test status:** Backend 27/27 pytest pass. Frontend smoke OK after fixing Optional[EmailStr] → Optional[str] coercion + shared `extractApiError()` util.
 
+### Modular Refactor (2026-05-13) ✅
+- **`/app/backend/shared.py`** — single source of truth: db, pwd_context, JWT, `get_current_user`, `resolve_owner_id`, `require_doctor_or_owner`, `send_whatsapp_message`, `get_llm_key`, `strip_json_fences`, `safe_regex`
+- **`/app/backend/routes/`** — extracted modules:
+  - `prescriptions.py` (AI suggestions, drug interactions, transcribe, private notes, ABHA linking, create/list)
+  - `consultations.py` (CRUD, long-audio transcribe, SOAP generation)
+  - `clinics.py` (clinic CRUD, sub-users, OPD analytics)
+  - `hexa.py` (Hexa command — read intents + confirmation-gated write intents)
+- **Improvements during refactor:**
+  - Hexa: `re.escape()` patient-name regex (safe with O'Brien, special chars)
+  - Hexa: WhatsApp send moved to `BackgroundTasks` for snappy response
+  - Empty `email` field now coerces to None on clinic create/update
+- **Top-level React `ErrorBoundary`** wrapping the entire app
+- `server.py`: **4432 → 3572 lines** (-860 lines extracted into modular routers)
+- **Tests: 65/65 backend pass** (Phase 1 + Phase 2/3 + 23 refactor regression tests)
+
 ## P1 Backlog (next)
 
 ### Phase 2 — AI Documentation Engine
