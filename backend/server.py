@@ -375,7 +375,7 @@ class ClinicCreate(BaseModel):
     name: str
     address: Optional[str] = ""
     phone: Optional[str] = ""
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None  # accept empty string from frontend
     branding_color: Optional[str] = "#4F46E5"
     is_primary: Optional[bool] = False
 
@@ -383,7 +383,7 @@ class ClinicUpdate(BaseModel):
     name: Optional[str] = None
     address: Optional[str] = None
     phone: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     branding_color: Optional[str] = None
     is_primary: Optional[bool] = None
 
@@ -4114,7 +4114,7 @@ async def create_clinic(payload: ClinicCreate, current_user: dict = Depends(requ
         "name": InputSanitizer.sanitize_html(payload.name),
         "address": payload.address or "",
         "phone": payload.phone or "",
-        "email": payload.email,
+        "email": (payload.email or "").strip() or None,
         "branding_color": payload.branding_color or "#4F46E5",
         "is_primary": bool(payload.is_primary),
         "created_at": datetime.now(timezone.utc).isoformat(),

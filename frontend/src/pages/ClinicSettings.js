@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Building2, Plus, Trash2, Star, Users, UserPlus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { extractApiError } from '@/lib/errors';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -51,7 +52,7 @@ const ClinicSettings = () => {
       setClinicForm(emptyClinic);
       refresh();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || 'Failed to add clinic');
+      toast.error(extractApiError(err, 'Failed to add clinic'));
     } finally {
       setCreatingClinic(false);
     }

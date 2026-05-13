@@ -43,6 +43,27 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - **Mic button → Whisper STT** on Symptoms, Special Instructions, General Instructions, and Private Notes (via Emergent LLM key)
 - 15/15 backend pytest pass; UI smoke test green
 
+### Phase 2-4 — AI Documentation + Clinic Management + Hexa + Seal (2026-05-13) ✅
+**Phase 2 — AI Documentation Engine (HiGalen)**
+- `Consultations` page with create / list / collapsible cards
+- Long-form audio recording → Whisper transcription (`/api/consultations/transcribe`)
+- One-click SOAP note generation (`/api/consultations/soap`) — Indian-medicine-tuned prompt
+- Structured viewer for Subjective/Objective/Assessment/Plan
+
+**Phase 3 — Clinics / Receptionists / OPD / Hexa (Eka.Care)**
+- Multi-location clinic CRUD with primary-clinic toggle (`/api/clinics`)
+- Receptionist sub-user creation (max 2/clinic), strict role enforcement via `resolve_owner_id()` helper
+- Receptionists see parent doctor's appointments/clients; blocked (403) from prescriptions, clinics, hexa, consultations, OPD
+- OPD Performance widget on dashboard (today/week/month + revenue + incentive tier: Bronze/Silver/Gold/Platinum)
+- **Hexa** floating AI assistant — voice (Whisper) + text → safe actions:
+  - Read: list today's/upcoming appointments, list unpaid invoices, search patient, summarize day
+  - Write (requires_confirmation gate): send WhatsApp reminder, update bot instructions
+
+**Phase 4 — Trust UI**
+- "Seal of Privacy" badge component in dashboard footer with detail dialog (ABDM, HIPAA-ready, encrypted storage, role-based access, private notes)
+
+**Test status:** Backend 27/27 pytest pass. Frontend smoke OK after fixing Optional[EmailStr] → Optional[str] coercion + shared `extractApiError()` util.
+
 ## P1 Backlog (next)
 
 ### Phase 2 — AI Documentation Engine
