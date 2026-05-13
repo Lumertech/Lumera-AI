@@ -4,15 +4,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/Layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, IndianRupee, Clock } from 'lucide-react';
+import { Calendar, Users, IndianRupee, Clock, TrendingUp, Award } from 'lucide-react';
 import { formatDate, formatTime, formatCurrency } from '@/lib/utils';
 import { Link } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [analytics, setAnalytics] = useState(null);
+  const [opd, setOpd] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,6 +25,12 @@ const Dashboard = () => {
     try {
       const response = await axios.get(`${API_URL}/analytics/dashboard`);
       setAnalytics(response.data);
+      if (user?.role !== 'receptionist') {
+        try {
+          const opdRes = await axios.get(`${API_URL}/analytics/opd`);
+          setOpd(opdRes.data);
+        } catch (e) { /* non-blocking */ }
+      }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
     } finally {
@@ -91,6 +99,49 @@ const Dashboard = () => {
             );
           })}
         </div>
+
+        {/* OPD Performance Widget (doctors only, Eka.Care-style) */}
+        {opd && (
+          <Card className="border-slate-200 shadow-sm" data-testid="opd-widget">
+            <CardHeader className="border-b border-slate-200">
+              <CardTitle className="font-manrope text-xl flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-indigo-600" />
+                OPD Performance
+                <Badge className="ml-2 bg-amber-100 text-amber-800"><Award className="h-3 w-3 mr-1" />{opd.incentive?.tier}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-3 rounded-lg bg-indigo-50">
+                  <p className="text-xs text-slate-500 font-medium">Today</p>
+                  <p className="text-2xl font-bold text-slate-900">{opd.today.total}</p>
+                  <p className="text-xs text-slate-600">{opd.today.completed} done · {opd.today.scheduled} scheduled</p>
+                </div>
+                <div className="p-3 rounded-lg bg-teal-50">
+                  <p className="text-xs text-slate-500 font-medium">This week</p>
+                  <p className="text-2xl font-bold text-slate-900">{opd.this_week.total}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-purple-50">
+                  <p className="text-xs text-slate-500 font-medium">This month</p>
+                  <p className="text-2xl font-bold text-slate-900">{opd.this_month.total}</p>
+                  <p className="text-xs text-slate-600">{opd.this_month.new_patients} new · {opd.this_month.followup_patients} follow-up</p>
+                </div>
+                <div className="p-3 rounded-lg bg-emerald-50">
+                  <p className="text-xs text-slate-500 font-medium">Monthly revenue</p>
+                  <p className="text-2xl font-bold text-slate-900">₹{(opd.this_month.revenue || 0).toLocaleString('en-IN')}</p>
+                </div>
+              </div>
+              {opd.incentive?.next_target && (
+                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-900">
+                    <Award className="h-4 w-4 inline mr-1" />
+                    <span className="font-semibold">{opd.incentive.next_target - opd.incentive.current}</span> more OPDs this month to reach the next tier.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Upcoming Appointments */}
         <Card className="border-slate-200 shadow-sm">

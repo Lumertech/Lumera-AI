@@ -22,6 +22,8 @@ import Reminders from '@/pages/Reminders';
 import Settings from '@/pages/Settings';
 import Subscription from '@/pages/Subscription';
 import Profile from '@/pages/Profile';
+import ClinicSettings from '@/pages/ClinicSettings';
+import Consultations from '@/pages/Consultations';
 
 // Admin Pages
 import AdminLogin from '@/pages/AdminLogin';
@@ -180,6 +182,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clinics"
+            element={
+              <ProtectedRoute>
+                <ClinicSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/consultations"
+            element={
+              <ProtectedRoute>
+                <Consultations />
               </ProtectedRoute>
             }
           />

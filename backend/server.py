@@ -352,6 +352,52 @@ class DrugInteractionRequest(BaseModel):
     patient_age: Optional[int] = None
     patient_conditions: Optional[List[str]] = None
 
+# ---- Phase 2: AI Documentation Engine ----
+class ConsultationCreate(BaseModel):
+    appointment_id: Optional[str] = None
+    client_name: Optional[str] = None
+    client_phone: Optional[str] = None
+    transcript: Optional[str] = ""
+
+class ConsultationUpdate(BaseModel):
+    transcript: Optional[str] = None
+    soap: Optional[Dict[str, Any]] = None
+    chief_complaint: Optional[str] = None
+
+class SOAPGenerateRequest(BaseModel):
+    transcript: str
+    patient_age: Optional[int] = None
+    patient_sex: Optional[str] = None
+    chief_complaint: Optional[str] = None
+
+# ---- Phase 3: Clinics, Sub-users, Hexa ----
+class ClinicCreate(BaseModel):
+    name: str
+    address: Optional[str] = ""
+    phone: Optional[str] = ""
+    email: Optional[EmailStr] = None
+    branding_color: Optional[str] = "#4F46E5"
+    is_primary: Optional[bool] = False
+
+class ClinicUpdate(BaseModel):
+    name: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[EmailStr] = None
+    branding_color: Optional[str] = None
+    is_primary: Optional[bool] = None
+
+class SubUserCreate(BaseModel):
+    name: str
+    email: EmailStr
+    phone_number: str
+    password: str
+    clinic_id: Optional[str] = None  # which clinic they belong to
+
+class HexaCommand(BaseModel):
+    text: str
+    confirm: Optional[bool] = False   # when True, execute the suggested action
+
 # Helper Functions
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -388,6 +434,19 @@ async def get_admin_user(current_user: dict = Depends(get_current_user)):
     """Check if current user is admin"""
     if current_user.get('role') != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+def resolve_owner_id(current_user: dict) -> str:
+    """Returns parent doctor's user_id for sub-users (receptionists), else the user's own id.
+    All clinic-scoped data (appointments, clients, prescriptions) is stored under the owning doctor."""
+    if current_user.get('role') == 'receptionist' and current_user.get('parent_user_id'):
+        return current_user['parent_user_id']
+    return current_user['id']
+
+async def require_doctor_or_owner(current_user: dict = Depends(get_current_user)):
+    """Blocks receptionists from sensitive endpoints (pricing, bot instructions, prescriptions, subscription, analytics revenue)."""
+    if current_user.get('role') == 'receptionist':
+        raise HTTPException(status_code=403, detail="Receptionists do not have access to this feature. Contact your clinic administrator.")
     return current_user
 
 def generate_qr_code(data: str) -> str:
@@ -803,10 +862,12 @@ async def google_callback(code: str, current_user: dict = Depends(get_current_us
 # Appointments
 @api_router.post("/appointments")
 async def create_appointment(appt: AppointmentCreate, current_user: dict = Depends(get_current_user)):
+    owner_id = resolve_owner_id(current_user)
+    owner = await db.users.find_one({"id": owner_id}, {"_id": 0}) if owner_id != current_user['id'] else current_user
     appointment_id = str(uuid.uuid4())
     appointment = {
         "id": appointment_id,
-        "professional_id": current_user['id'],
+        "professional_id": owner_id,
         "client_name": appt.client_name,
         "client_phone": appt.client_phone,
         "client_email": appt.client_email,
@@ -818,13 +879,14 @@ async def create_appointment(appt: AppointmentCreate, current_user: dict = Depen
         "notes": appt.notes,
         "reminder_sent": False,
         "payment_status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": current_user['id'],
     }
     result = await db.appointments.insert_one(appointment.copy())
     
     # Update or create client record
     client = await db.clients.find_one({
-        "professional_id": current_user['id'],
+        "professional_id": owner_id,
         "phone": appt.client_phone
     }, {"_id": 0})
     if client:
@@ -836,7 +898,7 @@ async def create_appointment(appt: AppointmentCreate, current_user: dict = Depen
         client_id = str(uuid.uuid4())
         await db.clients.insert_one({
             "id": client_id,
-            "professional_id": current_user['id'],
+            "professional_id": owner_id,
             "name": appt.client_name,
             "phone": appt.client_phone,
             "email": appt.client_email,
@@ -848,23 +910,25 @@ async def create_appointment(appt: AppointmentCreate, current_user: dict = Depen
     # Send WhatsApp confirmation
     await send_whatsapp_message(
         appt.client_phone,
-        f"Your appointment with {current_user['name']} is confirmed for {appt.appointment_date} at {appt.start_time}."
+        f"Your appointment with {(owner or {}).get('name','your doctor')} is confirmed for {appt.appointment_date} at {appt.start_time}."
     )
     
     return appointment
 
 @api_router.get("/appointments")
 async def get_appointments(current_user: dict = Depends(get_current_user)):
+    owner_id = resolve_owner_id(current_user)
     appointments = await db.appointments.find(
-        {"professional_id": current_user['id']},
+        {"professional_id": owner_id},
         {"_id": 0}
     ).sort("appointment_date", -1).to_list(100)
     return appointments
 
 @api_router.get("/appointments/{appointment_id}")
 async def get_appointment(appointment_id: str, current_user: dict = Depends(get_current_user)):
+    owner_id = resolve_owner_id(current_user)
     appt = await db.appointments.find_one(
-        {"id": appointment_id, "professional_id": current_user['id']},
+        {"id": appointment_id, "professional_id": owner_id},
         {"_id": 0}
     )
     if not appt:
@@ -873,8 +937,9 @@ async def get_appointment(appointment_id: str, current_user: dict = Depends(get_
 
 @api_router.put("/appointments/{appointment_id}")
 async def update_appointment(appointment_id: str, updates: dict, current_user: dict = Depends(get_current_user)):
+    owner_id = resolve_owner_id(current_user)
     result = await db.appointments.update_one(
-        {"id": appointment_id, "professional_id": current_user['id']},
+        {"id": appointment_id, "professional_id": owner_id},
         {"$set": updates}
     )
     if result.matched_count == 0:
@@ -883,8 +948,9 @@ async def update_appointment(appointment_id: str, updates: dict, current_user: d
 
 @api_router.delete("/appointments/{appointment_id}")
 async def delete_appointment(appointment_id: str, current_user: dict = Depends(get_current_user)):
+    owner_id = resolve_owner_id(current_user)
     result = await db.appointments.delete_one(
-        {"id": appointment_id, "professional_id": current_user['id']}
+        {"id": appointment_id, "professional_id": owner_id}
     )
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Appointment not found")
@@ -893,30 +959,35 @@ async def delete_appointment(appointment_id: str, current_user: dict = Depends(g
 # Clients
 @api_router.get("/clients")
 async def get_clients(current_user: dict = Depends(get_current_user)):
+    owner_id = resolve_owner_id(current_user)
     clients = await db.clients.find(
-        {"professional_id": current_user['id']},
+        {"professional_id": owner_id},
         {"_id": 0}
     ).to_list(1000)
     return clients
 
 @api_router.get("/clients/{client_id}")
 async def get_client(client_id: str, current_user: dict = Depends(get_current_user)):
+    owner_id = resolve_owner_id(current_user)
     client = await db.clients.find_one(
-        {"id": client_id, "professional_id": current_user['id']},
+        {"id": client_id, "professional_id": owner_id},
         {"_id": 0}
     )
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
     
     appointments = await db.appointments.find(
-        {"professional_id": current_user['id'], "client_phone": client['phone']},
+        {"professional_id": owner_id, "client_phone": client['phone']},
         {"_id": 0}
     ).to_list(100)
     
-    prescriptions = await db.prescriptions.find(
-        {"professional_id": current_user['id'], "client_phone": client['phone']},
-        {"_id": 0}
-    ).to_list(100)
+    # Receptionists don't see prescriptions
+    prescriptions = []
+    if current_user.get('role') != 'receptionist':
+        prescriptions = await db.prescriptions.find(
+            {"professional_id": owner_id, "client_phone": client['phone']},
+            {"_id": 0}
+        ).to_list(100)
     
     return {**client, "appointments": appointments, "prescriptions": prescriptions}
 
@@ -3831,6 +3902,482 @@ async def verify_registration(
         "message": f"{verification.verification_type.title()} verified successfully",
         "verified": True
     }
+
+
+# ============================================================
+# PHASE 2 — AI DOCUMENTATION ENGINE (Consultations + SOAP)
+# ============================================================
+
+@api_router.post("/consultations")
+async def create_consultation(
+    payload: ConsultationCreate,
+    current_user: dict = Depends(require_doctor_or_owner)
+):
+    if current_user.get('profession') != 'doctor':
+        raise HTTPException(status_code=403, detail="Only doctors can create consultations")
+    consultation_id = str(uuid.uuid4())
+    doc = {
+        "id": consultation_id,
+        "professional_id": current_user['id'],
+        "appointment_id": payload.appointment_id,
+        "client_name": payload.client_name,
+        "client_phone": payload.client_phone,
+        "transcript": payload.transcript or "",
+        "soap": None,
+        "chief_complaint": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.consultations.insert_one(doc.copy())
+    return doc
+
+
+@api_router.get("/consultations")
+async def list_consultations(current_user: dict = Depends(require_doctor_or_owner)):
+    items = await db.consultations.find(
+        {"professional_id": current_user['id']}, {"_id": 0}
+    ).sort("created_at", -1).limit(200).to_list(200)
+    return items
+
+
+@api_router.get("/consultations/{consultation_id}")
+async def get_consultation(consultation_id: str, current_user: dict = Depends(require_doctor_or_owner)):
+    item = await db.consultations.find_one(
+        {"id": consultation_id, "professional_id": current_user['id']}, {"_id": 0}
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+    return item
+
+
+@api_router.put("/consultations/{consultation_id}")
+async def update_consultation(
+    consultation_id: str,
+    payload: ConsultationUpdate,
+    current_user: dict = Depends(require_doctor_or_owner)
+):
+    updates = {k: v for k, v in payload.dict().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="No updates provided")
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.consultations.update_one(
+        {"id": consultation_id, "professional_id": current_user['id']},
+        {"$set": updates}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+    item = await db.consultations.find_one(
+        {"id": consultation_id, "professional_id": current_user['id']}, {"_id": 0}
+    )
+    return item
+
+
+@api_router.post("/consultations/transcribe")
+async def transcribe_consultation_audio(
+    audio: UploadFile = File(...),
+    language: Optional[str] = Form("en"),
+    current_user: dict = Depends(require_doctor_or_owner)
+):
+    """Long-form consultation transcription via Whisper. Same constraints as Phase 1 transcribe."""
+    if current_user.get('profession') != 'doctor':
+        raise HTTPException(status_code=403, detail="Only doctors can use voice input")
+    api_key = os.environ.get('EMERGENT_LLM_KEY')
+    if not api_key or api_key == 'your_openai_api_key':
+        raise HTTPException(status_code=503, detail="LLM key not configured")
+    audio_bytes = await audio.read()
+    if len(audio_bytes) == 0:
+        raise HTTPException(status_code=400, detail="Empty audio file")
+    if len(audio_bytes) > 25 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Audio file exceeds 25 MB limit")
+    filename = audio.filename or "audio.webm"
+    if "." not in filename:
+        ct = (audio.content_type or "").lower()
+        ext = "webm"
+        if "mp3" in ct or "mpeg" in ct: ext = "mp3"
+        elif "wav" in ct: ext = "wav"
+        elif "m4a" in ct or "mp4" in ct: ext = "m4a"
+        filename = f"audio.{ext}"
+    buf = io.BytesIO(audio_bytes); buf.name = filename
+    try:
+        stt = OpenAISpeechToText(api_key=api_key)
+        response = await stt.transcribe(
+            file=buf, model="whisper-1", response_format="json",
+            language=language or "en",
+            prompt="Doctor-patient consultation in India. Includes Indian brand drug names, regional medical terms, dosages, frequencies, complaints, examination findings.",
+        )
+        text = getattr(response, "text", None) or (response.get("text") if isinstance(response, dict) else "")
+        return {"text": text or ""}
+    except Exception as e:
+        logging.error(f"Consultation transcription error: {e}")
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+
+
+@api_router.post("/consultations/soap")
+async def generate_soap_note(
+    payload: SOAPGenerateRequest,
+    current_user: dict = Depends(require_doctor_or_owner)
+):
+    """Generate SOAP (Subjective/Objective/Assessment/Plan) note from a transcript using LLM, tuned for Indian medical practice."""
+    if current_user.get('profession') != 'doctor':
+        raise HTTPException(status_code=403, detail="Only doctors can generate SOAP notes")
+    api_key = os.environ.get('EMERGENT_LLM_KEY')
+    if not api_key or api_key == 'your_openai_api_key':
+        raise HTTPException(status_code=503, detail="LLM key not configured")
+    if not (payload.transcript or "").strip():
+        raise HTTPException(status_code=400, detail="Transcript is empty")
+
+    prompt = f"""You are an experienced clinical scribe assisting an Indian doctor. Generate a structured SOAP note from the consultation transcript below. Use Indian medical conventions and recognise common Indian brand-name medicines and regional terms (e.g., 'sugar' for diabetes, 'BP' for hypertension).
+
+Patient age: {payload.patient_age or 'unknown'}
+Patient sex: {payload.patient_sex or 'unknown'}
+Stated chief complaint (if any): {payload.chief_complaint or 'not stated'}
+
+Transcript:
+\"\"\"
+{payload.transcript.strip()}
+\"\"\"
+
+Return ONLY a JSON object with this exact shape (no markdown, no prose):
+{{
+  "chief_complaint": "Short summary of why patient came in",
+  "subjective": {{
+    "history_of_present_illness": "Narrative HPI in 3-6 sentences",
+    "past_medical_history": ["item 1", "item 2"],
+    "medications": ["current medicine 1", ...],
+    "allergies": ["allergy 1", ...],
+    "social_history": "lifestyle / occupation / habits"
+  }},
+  "objective": {{
+    "vitals": {{"bp": "", "pulse": "", "temperature": "", "spo2": "", "weight": ""}},
+    "physical_exam": "Key examination findings",
+    "investigations": ["test 1", ...]
+  }},
+  "assessment": {{
+    "primary_diagnosis": "Most likely diagnosis",
+    "differential_diagnoses": ["DD1", "DD2"],
+    "icd10": ""
+  }},
+  "plan": {{
+    "medications": [
+      {{"medicine_name": "", "dosage": "", "frequency": "", "duration": "", "instructions": ""}}
+    ],
+    "investigations_ordered": ["test 1", ...],
+    "patient_education": "Lifestyle and education advice",
+    "follow_up": "When to return / red flags"
+  }}
+}}
+
+If something is not mentioned in the transcript, leave the field empty (""), empty list ([]), or omit. Do NOT fabricate findings."""
+
+    try:
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"soap_{current_user['id']}_{uuid.uuid4()}",
+            system_message="You are a precise clinical scribe. Respond only with valid JSON. Do not invent findings."
+        ).with_model("openai", "gpt-4o-mini")
+        text = await chat.send_message(UserMessage(text=prompt))
+        cleaned = text.strip()
+        if cleaned.startswith("```json"): cleaned = cleaned[7:]
+        if cleaned.startswith("```"): cleaned = cleaned[3:]
+        if cleaned.endswith("```"): cleaned = cleaned[:-3]
+        soap = json.loads(cleaned.strip())
+        return {"soap": soap}
+    except json.JSONDecodeError:
+        logging.warning("SOAP response was not valid JSON")
+        raise HTTPException(status_code=502, detail="Unable to parse SOAP note from AI")
+    except Exception as e:
+        logging.error(f"SOAP generation failed: {e}")
+        raise HTTPException(status_code=500, detail="SOAP generation failed")
+
+
+# ============================================================
+# PHASE 3 — CLINICS, RECEPTIONIST SUB-USERS, OPD, HEXA
+# ============================================================
+
+@api_router.get("/clinics")
+async def list_clinics(current_user: dict = Depends(get_current_user)):
+    owner_id = resolve_owner_id(current_user)
+    clinics = await db.clinics.find({"owner_id": owner_id}, {"_id": 0}).sort("created_at", 1).to_list(50)
+    return clinics
+
+
+@api_router.post("/clinics")
+async def create_clinic(payload: ClinicCreate, current_user: dict = Depends(require_doctor_or_owner)):
+    owner_id = current_user['id']
+    clinic_id = str(uuid.uuid4())
+    # If is_primary requested, unset others
+    if payload.is_primary:
+        await db.clinics.update_many({"owner_id": owner_id}, {"$set": {"is_primary": False}})
+    doc = {
+        "id": clinic_id,
+        "owner_id": owner_id,
+        "name": InputSanitizer.sanitize_html(payload.name),
+        "address": payload.address or "",
+        "phone": payload.phone or "",
+        "email": payload.email,
+        "branding_color": payload.branding_color or "#4F46E5",
+        "is_primary": bool(payload.is_primary),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.clinics.insert_one(doc.copy())
+    return doc
+
+
+@api_router.put("/clinics/{clinic_id}")
+async def update_clinic(clinic_id: str, payload: ClinicUpdate, current_user: dict = Depends(require_doctor_or_owner)):
+    owner_id = current_user['id']
+    updates = {k: v for k, v in payload.dict().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="No updates provided")
+    if updates.get("is_primary"):
+        await db.clinics.update_many({"owner_id": owner_id}, {"$set": {"is_primary": False}})
+    result = await db.clinics.update_one({"id": clinic_id, "owner_id": owner_id}, {"$set": updates})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Clinic not found")
+    item = await db.clinics.find_one({"id": clinic_id, "owner_id": owner_id}, {"_id": 0})
+    return item
+
+
+@api_router.delete("/clinics/{clinic_id}")
+async def delete_clinic(clinic_id: str, current_user: dict = Depends(require_doctor_or_owner)):
+    owner_id = current_user['id']
+    # Detach sub-users from this clinic (don't delete them)
+    await db.users.update_many({"parent_user_id": owner_id, "clinic_id": clinic_id}, {"$unset": {"clinic_id": ""}})
+    result = await db.clinics.delete_one({"id": clinic_id, "owner_id": owner_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Clinic not found")
+    return {"success": True}
+
+
+@api_router.get("/clinics/sub-users")
+async def list_sub_users(current_user: dict = Depends(require_doctor_or_owner)):
+    owner_id = current_user['id']
+    users = await db.users.find(
+        {"parent_user_id": owner_id, "role": "receptionist"},
+        {"_id": 0, "hashed_password": 0}
+    ).to_list(100)
+    return users
+
+
+@api_router.post("/clinics/sub-users")
+async def create_sub_user(payload: SubUserCreate, current_user: dict = Depends(require_doctor_or_owner)):
+    """Create a receptionist sub-user under this doctor's account (max 2 per clinic)."""
+    owner_id = current_user['id']
+    # Enforce max 2 per clinic
+    if payload.clinic_id:
+        existing = await db.users.count_documents({
+            "parent_user_id": owner_id,
+            "role": "receptionist",
+            "clinic_id": payload.clinic_id
+        })
+        if existing >= 2:
+            raise HTTPException(status_code=400, detail="Maximum 2 receptionists allowed per clinic")
+
+    # Email uniqueness
+    if await db.users.find_one({"email": payload.email}):
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    is_valid, error_msg = PasswordValidator.validate(payload.password)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+
+    user_id = str(uuid.uuid4())
+    user = {
+        "id": user_id,
+        "name": InputSanitizer.sanitize_html(payload.name),
+        "email": payload.email,
+        "hashed_password": pwd_context.hash(payload.password),
+        "phone_number": payload.phone_number,
+        "profession": "receptionist",
+        "role": "receptionist",
+        "parent_user_id": owner_id,
+        "clinic_id": payload.clinic_id,
+        "whatsapp_verified": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.users.insert_one(user.copy())
+    return {k: v for k, v in user.items() if k not in ["hashed_password", "_id"]}
+
+
+@api_router.delete("/clinics/sub-users/{sub_user_id}")
+async def delete_sub_user(sub_user_id: str, current_user: dict = Depends(require_doctor_or_owner)):
+    owner_id = current_user['id']
+    result = await db.users.delete_one({"id": sub_user_id, "parent_user_id": owner_id, "role": "receptionist"})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Sub-user not found")
+    return {"success": True}
+
+
+# OPD analytics (Eka.Care-style)
+@api_router.get("/analytics/opd")
+async def get_opd_analytics(current_user: dict = Depends(require_doctor_or_owner)):
+    owner_id = current_user['id']
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
+    month_ago = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+
+    today_total = await db.appointments.count_documents({"professional_id": owner_id, "appointment_date": today_str})
+    today_completed = await db.appointments.count_documents({"professional_id": owner_id, "appointment_date": today_str, "status": "completed"})
+    today_scheduled = await db.appointments.count_documents({"professional_id": owner_id, "appointment_date": today_str, "status": "scheduled"})
+
+    week_total = await db.appointments.count_documents({"professional_id": owner_id, "appointment_date": {"$gte": week_ago, "$lte": today_str}})
+    month_total = await db.appointments.count_documents({"professional_id": owner_id, "appointment_date": {"$gte": month_ago, "$lte": today_str}})
+
+    # New vs follow-up (rough heuristic from notes / appointment count per client)
+    new_patients_pipeline = [
+        {"$match": {"professional_id": owner_id, "appointment_date": {"$gte": month_ago}}},
+        {"$group": {"_id": "$client_phone", "count": {"$sum": 1}}},
+    ]
+    grouped = await db.appointments.aggregate(new_patients_pipeline).to_list(10000)
+    new_patients = sum(1 for g in grouped if g["count"] == 1)
+    followup_patients = sum(1 for g in grouped if g["count"] > 1)
+
+    # Revenue this month
+    rev = await db.payment_transactions.aggregate([
+        {"$match": {"user_id": owner_id, "payment_status": "paid", "created_at": {"$gte": month_ago}}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+    ]).to_list(1)
+    month_revenue = rev[0]['total'] if rev else 0
+
+    # Incentive tiers (simple, transparent — doctor-configurable later)
+    incentive_tier = "Bronze"
+    incentive_target_next = 50
+    if month_total >= 200:
+        incentive_tier, incentive_target_next = "Platinum", None
+    elif month_total >= 100:
+        incentive_tier, incentive_target_next = "Gold", 200
+    elif month_total >= 50:
+        incentive_tier, incentive_target_next = "Silver", 100
+
+    return {
+        "today": {"total": today_total, "completed": today_completed, "scheduled": today_scheduled},
+        "this_week": {"total": week_total},
+        "this_month": {
+            "total": month_total,
+            "new_patients": new_patients,
+            "followup_patients": followup_patients,
+            "revenue": month_revenue,
+        },
+        "incentive": {"tier": incentive_tier, "next_target": incentive_target_next, "current": month_total}
+    }
+
+
+# ---- Hexa AI Assistant ----
+HEXA_SYSTEM = """You are Hexa, the AI admin assistant for Lumera (a doctor's practice management app). Convert the doctor's natural-language request into a single safe action.
+
+Allowed actions (return one of these as action.type):
+- "list_today_appointments" — show today's appointments
+- "list_upcoming_appointments" — next 7 days
+- "send_reminder_now" — send appointment reminder; params: {appointment_id?: str OR client_name?: str}
+- "list_unpaid_invoices" — show unpaid invoices
+- "update_bot_instructions" — propose a draft (params: {draft: str}); never apply silently
+- "search_patient" — params: {query: str}
+- "summarize_day" — summary of today
+- "unknown" — when not parseable
+
+Return ONLY JSON: {"action":{"type":"...","params":{...}}, "speech": "Short reply for the doctor", "requires_confirmation": true|false}
+For destructive or write actions, set requires_confirmation: true and DO NOT execute until the client sends confirm=true."""
+
+@api_router.post("/hexa/command")
+async def hexa_command(payload: HexaCommand, current_user: dict = Depends(require_doctor_or_owner)):
+    if not (payload.text or "").strip():
+        raise HTTPException(status_code=400, detail="Empty command")
+    api_key = os.environ.get('EMERGENT_LLM_KEY')
+    if not api_key or api_key == 'your_openai_api_key':
+        raise HTTPException(status_code=503, detail="LLM key not configured")
+
+    try:
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"hexa_{current_user['id']}_{uuid.uuid4()}",
+            system_message=HEXA_SYSTEM
+        ).with_model("openai", "gpt-4o-mini")
+        text = await chat.send_message(UserMessage(text=payload.text.strip()))
+        cleaned = text.strip()
+        if cleaned.startswith("```json"): cleaned = cleaned[7:]
+        if cleaned.startswith("```"): cleaned = cleaned[3:]
+        if cleaned.endswith("```"): cleaned = cleaned[:-3]
+        parsed = json.loads(cleaned.strip())
+    except json.JSONDecodeError:
+        parsed = {"action": {"type": "unknown", "params": {}}, "speech": "I couldn't understand that. Try: 'show today's appointments'.", "requires_confirmation": False}
+    except Exception as e:
+        logging.error(f"Hexa parse failed: {e}")
+        raise HTTPException(status_code=500, detail="Hexa failed to parse command")
+
+    action = parsed.get("action", {}) or {}
+    a_type = action.get("type", "unknown")
+    a_params = action.get("params", {}) or {}
+    requires_conf = bool(parsed.get("requires_confirmation"))
+    speech = parsed.get("speech", "")
+
+    owner_id = current_user['id']
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    result_data = None
+
+    # Read-only actions: safe to execute immediately
+    if a_type == "list_today_appointments":
+        result_data = await db.appointments.find(
+            {"professional_id": owner_id, "appointment_date": today_str}, {"_id": 0}
+        ).sort("start_time", 1).to_list(100)
+    elif a_type == "list_upcoming_appointments":
+        end = (datetime.now(timezone.utc) + timedelta(days=7)).strftime("%Y-%m-%d")
+        result_data = await db.appointments.find(
+            {"professional_id": owner_id, "appointment_date": {"$gte": today_str, "$lte": end}}, {"_id": 0}
+        ).sort([("appointment_date", 1), ("start_time", 1)]).to_list(200)
+    elif a_type == "list_unpaid_invoices":
+        result_data = await db.appointments.find(
+            {"professional_id": owner_id, "payment_status": "pending"}, {"_id": 0}
+        ).limit(50).to_list(50)
+    elif a_type == "search_patient":
+        q = a_params.get("query", "")
+        regex = {"$regex": q, "$options": "i"} if q else None
+        if regex:
+            result_data = await db.clients.find(
+                {"professional_id": owner_id, "$or": [{"name": regex}, {"phone": regex}]},
+                {"_id": 0}
+            ).limit(20).to_list(20)
+        else:
+            result_data = []
+    elif a_type == "summarize_day":
+        appts = await db.appointments.find(
+            {"professional_id": owner_id, "appointment_date": today_str}, {"_id": 0}
+        ).sort("start_time", 1).to_list(100)
+        completed = sum(1 for a in appts if a.get("status") == "completed")
+        result_data = {"total": len(appts), "completed": completed, "appointments": appts}
+    elif a_type == "send_reminder_now":
+        # Write action — require explicit confirm
+        if not payload.confirm:
+            return {"action": action, "speech": speech or "Confirm sending the reminder?", "requires_confirmation": True, "executed": False}
+        # Find appointment
+        appt = None
+        if a_params.get("appointment_id"):
+            appt = await db.appointments.find_one({"id": a_params["appointment_id"], "professional_id": owner_id}, {"_id": 0})
+        elif a_params.get("client_name"):
+            appt = await db.appointments.find_one({
+                "professional_id": owner_id,
+                "client_name": {"$regex": a_params["client_name"], "$options": "i"},
+                "appointment_date": {"$gte": today_str}
+            }, {"_id": 0})
+        if not appt:
+            return {"action": action, "speech": "I could not find that appointment.", "requires_confirmation": False, "executed": False}
+        msg = f"Reminder: You have an appointment with Dr. {current_user.get('name','')} on {appt['appointment_date']} at {appt.get('start_time','')}."
+        await send_whatsapp_message(appt['client_phone'], msg)
+        result_data = {"appointment_id": appt['id'], "client_phone": appt['client_phone']}
+        return {"action": action, "speech": "Reminder sent.", "requires_confirmation": False, "executed": True, "result": result_data}
+    elif a_type == "update_bot_instructions":
+        # Always require confirmation; don't auto-apply
+        if not payload.confirm:
+            return {"action": action, "speech": "Here is a draft for your bot instructions. Confirm to apply.", "requires_confirmation": True, "executed": False}
+        draft = a_params.get("draft", "")
+        if not draft:
+            raise HTTPException(status_code=400, detail="No draft provided")
+        await db.users.update_one({"id": owner_id}, {"$set": {"bot_instructions": draft}})
+        return {"action": action, "speech": "Bot instructions updated.", "requires_confirmation": False, "executed": True}
+    else:
+        return {"action": action, "speech": speech or "I can help with appointments, reminders, and patient lookups.", "requires_confirmation": False, "executed": False}
+
+    return {"action": action, "speech": speech, "requires_confirmation": requires_conf, "executed": True, "result": result_data}
+
 
 app.include_router(api_router)
 

@@ -17,7 +17,12 @@ import {
   X,
   User,
   Phone,
+  Building2,
+  Mic,
+  Sparkles,
 } from 'lucide-react';
+import HexaAssistant from '@/components/HexaAssistant';
+import SealOfPrivacy from '@/components/SealOfPrivacy';
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -25,19 +30,28 @@ const DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
-    { name: 'Appointments', href: '/appointments', icon: Calendar },
-    { name: 'Clients', href: '/clients', icon: Users },
-    { name: 'WhatsApp Bot', href: '/whatsapp', icon: MessageSquare },
-    { name: 'Voice Bot', href: '/voice-bot', icon: Phone },
-    { name: 'Payments', href: '/payments', icon: CreditCard },
-    { name: 'Reminders', href: '/reminders', icon: Bell },
-    { name: 'Subscription', href: '/subscription', icon: CreditCard },
-    { name: 'Tools', href: '/tools', icon: FileText },
-    { name: 'Profile', href: '/profile', icon: User },
-    { name: 'Settings', href: '/settings', icon: Settings },
+  const isReceptionist = user?.role === 'receptionist';
+
+  const allNavigation = [
+    { name: 'Dashboard', href: '/dashboard', icon: BarChart3, roles: ['user', 'receptionist'] },
+    { name: 'Appointments', href: '/appointments', icon: Calendar, roles: ['user', 'receptionist'] },
+    { name: 'Clients', href: '/clients', icon: Users, roles: ['user', 'receptionist'] },
+    { name: 'Consultations', href: '/consultations', icon: Mic, roles: ['user'] },
+    { name: 'WhatsApp Bot', href: '/whatsapp', icon: MessageSquare, roles: ['user'] },
+    { name: 'Voice Bot', href: '/voice-bot', icon: Phone, roles: ['user'] },
+    { name: 'Clinics', href: '/clinics', icon: Building2, roles: ['user'] },
+    { name: 'Payments', href: '/payments', icon: CreditCard, roles: ['user'] },
+    { name: 'Reminders', href: '/reminders', icon: Bell, roles: ['user'] },
+    { name: 'Subscription', href: '/subscription', icon: CreditCard, roles: ['user'] },
+    { name: 'Tools', href: '/tools', icon: FileText, roles: ['user'] },
+    { name: 'Profile', href: '/profile', icon: User, roles: ['user', 'receptionist'] },
+    { name: 'Settings', href: '/settings', icon: Settings, roles: ['user'] },
   ];
+
+  const navigation = allNavigation.filter((item) => {
+    const role = isReceptionist ? 'receptionist' : 'user';
+    return item.roles.includes(role);
+  });
 
   const handleLogout = () => {
     logout();
@@ -173,7 +187,15 @@ const DashboardLayout = ({ children }) => {
 
         {/* Page Content */}
         <main className="px-4 sm:px-6 lg:px-8 py-8">{children}</main>
+
+        {/* Seal of Privacy floating footer */}
+        <div className="px-4 sm:px-6 lg:px-8 pb-6">
+          <SealOfPrivacy />
+        </div>
       </div>
+
+      {/* Hexa AI Assistant (doctors only) */}
+      {!isReceptionist && <HexaAssistant />}
     </div>
   );
 };
