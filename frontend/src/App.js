@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/sonner';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import '@/App.css';
 
 // Pages
@@ -76,8 +77,9 @@ const PublicRoute = ({ children }) => {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/policies" element={<Policies />} />
@@ -229,6 +231,7 @@ function App() {
         <Toaster position="top-right" richColors />
       </AuthProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
