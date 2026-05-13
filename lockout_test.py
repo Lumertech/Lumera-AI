@@ -9,7 +9,7 @@ import json
 import uuid
 import time
 
-BACKEND_URL = "https://medsync-app-6.preview.emergentagent.com/api"
+BACKEND_URL = "https://lumera-voice.preview.emergentagent.com/api"
 
 def test_account_lockout():
     """Test account lockout after 5 failed attempts"""

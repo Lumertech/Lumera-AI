@@ -11,7 +11,7 @@ import uuid
 import time
 
 # Configuration
-BACKEND_URL = "https://medsync-app-6.preview.emergentagent.com/api"
+BACKEND_URL = "https://lumera-voice.preview.emergentagent.com/api"
 TEST_EMAIL = "sarah@test.com"
 TEST_PASSWORD = "test123456"
 ADMIN_EMAIL = "admin@lumer.com"
