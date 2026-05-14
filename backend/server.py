@@ -88,6 +88,13 @@ if os.environ.get('RAZORPAY_KEY_ID') and os.environ.get('RAZORPAY_KEY_SECRET'):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Capture main FastAPI event loop so background-thread scheduler jobs can
+    # dispatch async coroutines back to it (avoids "Event loop is closed"
+    # errors with the shared Motor Mongo client).
+    import asyncio as _asyncio
+    main_loop = _asyncio.get_running_loop()
+    app.state.main_loop = main_loop
+
     # Startup
     # 24-hour reminders at 10 AM daily
     scheduler.add_job(
@@ -117,18 +124,22 @@ async def lifespan(app: FastAPI):
         id="process_expired_trials",
         name="Process expired trials"
     )
-    # Medication reminders - check every 5 minutes for due doses
+    # Medication reminders - check every 5 minutes for due doses.
+    # IMPORTANT: dispatch the coroutine to the main event loop via
+    # run_coroutine_threadsafe — do NOT create/close a new loop here.
     from medication_reminders import send_due_medication_reminders
-    import asyncio as _asyncio
-    def _sync_med_reminders_job():
+
+    def _med_reminders_job():
         try:
-            loop = _asyncio.new_event_loop()
-            loop.run_until_complete(send_due_medication_reminders())
-            loop.close()
+            if main_loop and not main_loop.is_closed():
+                _asyncio.run_coroutine_threadsafe(
+                    send_due_medication_reminders(), main_loop
+                )
         except Exception as e:
-            logging.error(f"Medication reminder job error: {e}")
+            logging.error(f"Medication reminder job dispatch error: {e}")
+
     scheduler.add_job(
-        _sync_med_reminders_job,
+        _med_reminders_job,
         CronTrigger(minute="*/5"),  # Every 5 minutes
         id="medication_reminders",
         name="Send due medication reminders"
