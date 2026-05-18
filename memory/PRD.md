@@ -105,6 +105,15 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - **Hexa outbox** (`db.hexa_outbox`) — every Hexa-triggered WhatsApp send tracked through queued→sent/skipped/failed lifecycle
 - Tests: 14/14 pytest pass (15 total, 1 skipped pre-cron-tick); 100% frontend smoke; 2 cosmetic items also fixed (startup-seed + React hydration warning)
 
+### Phase 8 — Patient Self-Service Portal (2026-05-18) ✅
+- **Doctor side:** `IssuePortalLinkCard` embedded in AppointmentDetails / Health Records tab — generate link, set TTL (1-180 days, default 30), copy URL
+- **Patient side:** public `/p/:token` page (no login) with sections for Active Medications · Upcoming Appointments · Prescriptions · Consultation Notes · Past Visits · Payment History
+- **Privacy:** `private_doctor_notes` and `private_notes` scrubbed from public responses (verified by tests)
+- **Revocation + expiry:** revoked tokens return 410; expired tokens return 410; bad/short tokens 404
+- **Backend:** `/api/patient-portal/issue-link`, `/links`, `/revoke/{token}` (doctor-only) + 6 public endpoints under `/api/patient-portal/{token}/*` (no auth)
+- **Branding:** Seal of Privacy badge present in portal header
+- Tests: 18/18 patient_portal pytest pass + 61/61 combined regression — zero defects
+
 ## P1 Backlog (next)
 
 ### Phase 2 — AI Documentation Engine
