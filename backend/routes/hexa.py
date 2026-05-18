@@ -132,13 +132,40 @@ async def hexa_command(
         if not appt:
             return {"action": action, "speech": "I could not find that appointment.", "requires_confirmation": False, "executed": False}
         msg = f"Reminder: You have an appointment with Dr. {current_user.get('name','')} on {appt['appointment_date']} at {appt.get('start_time','')}."
-        background_tasks.add_task(send_whatsapp_message, appt['client_phone'], msg)
+        # Outbox observability — log the queued task whether or not Twilio actually sends
+        outbox_entry = {
+            "id": str(uuid.uuid4()),
+            "professional_id": owner_id,
+            "type": "hexa_reminder",
+            "appointment_id": appt["id"],
+            "client_phone": appt["client_phone"],
+            "message_preview": msg[:160],
+            "status": "queued",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.hexa_outbox.insert_one(outbox_entry.copy())
+
+        async def _send_and_log(phone: str, body: str, outbox_id: str):
+            try:
+                result = await send_whatsapp_message(phone, body)
+                status = "sent" if result else "skipped"
+                await db.hexa_outbox.update_one(
+                    {"id": outbox_id},
+                    {"$set": {"status": status, "completed_at": datetime.now(timezone.utc).isoformat()}},
+                )
+            except Exception as e:
+                await db.hexa_outbox.update_one(
+                    {"id": outbox_id},
+                    {"$set": {"status": "failed", "error": str(e)[:240], "completed_at": datetime.now(timezone.utc).isoformat()}},
+                )
+
+        background_tasks.add_task(_send_and_log, appt['client_phone'], msg, outbox_entry["id"])
         return {
             "action": action,
             "speech": "Reminder scheduled.",
             "requires_confirmation": False,
             "executed": True,
-            "result": {"appointment_id": appt['id'], "client_phone": appt['client_phone']},
+            "result": {"appointment_id": appt['id'], "client_phone": appt['client_phone'], "outbox_id": outbox_entry["id"]},
         }
     elif a_type == "update_bot_instructions":
         if not payload.confirm:

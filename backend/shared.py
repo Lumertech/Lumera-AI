@@ -119,3 +119,28 @@ def strip_json_fences(text: str) -> str:
 def safe_regex(value: str) -> str:
     """Escape user input for safe use in a MongoDB $regex."""
     return re.escape(value or "")
+
+
+async def insert_doc(collection, doc: dict) -> dict:
+    """Insert a document while preventing MongoDB ObjectId leakage into the
+    response. Motor's `insert_one` mutates the input dict by adding `_id`;
+    callers that subsequently return the dict would otherwise serialize that
+    ObjectId, which is not JSON-safe. Inserts a shallow copy and strips `_id`
+    from the original."""
+    await collection.insert_one(doc.copy())
+    doc.pop("_id", None)
+    return doc
+
+
+# --- Scheduler health tracking ---
+_scheduler_last_run: dict[str, str] = {}
+
+
+def record_scheduler_run(job_id: str) -> None:
+    """Called by cron jobs to record their last successful run time."""
+    from datetime import datetime as _dt, timezone as _tz
+    _scheduler_last_run[job_id] = _dt.now(_tz.utc).isoformat()
+
+
+def get_scheduler_runs() -> dict:
+    return dict(_scheduler_last_run)

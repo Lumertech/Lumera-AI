@@ -176,4 +176,10 @@ async def send_due_medication_reminders() -> int:
                 break
     if count > 0:
         logging.info(f"Sent {count} medication reminders")
+    # Record successful run for /api/health/scheduler observability
+    try:
+        from shared import record_scheduler_run
+        record_scheduler_run("medication_reminders")
+    except Exception:
+        pass
     return count

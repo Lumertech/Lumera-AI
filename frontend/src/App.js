@@ -25,6 +25,7 @@ import Subscription from '@/pages/Subscription';
 import Profile from '@/pages/Profile';
 import ClinicSettings from '@/pages/ClinicSettings';
 import Consultations from '@/pages/Consultations';
+import ConsultationNotesWriter from '@/pages/ConsultationNotesWriter';
 
 // Admin Pages
 import AdminLogin from '@/pages/AdminLogin';
@@ -200,6 +201,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Consultations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/appointments/:id/notes"
+            element={
+              <ProtectedRoute>
+                <ConsultationNotesWriter />
               </ProtectedRoute>
             }
           />

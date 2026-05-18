@@ -13,12 +13,15 @@ import { toast } from 'sonner';
 import { formatDate, formatTime } from '@/lib/utils';
 import RequestPaymentModalV2 from '@/components/RequestPaymentModalV2';
 import HealthRecordsTab from '@/components/HealthRecordsTab';
+import { useAuth } from '@/contexts/AuthContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
 const AppointmentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isDoctor = user?.profession === 'doctor';
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [patientDetails, setPatientDetails] = useState({
@@ -101,7 +104,11 @@ const AppointmentDetails = () => {
   };
 
   const goToPrescription = () => {
-    navigate(`/appointments/${id}/prescription`);
+    if (isDoctor) {
+      navigate(`/appointments/${id}/prescription`);
+    } else {
+      navigate(`/appointments/${id}/notes`);
+    }
   };
 
   if (loading) {
@@ -159,7 +166,7 @@ const AppointmentDetails = () => {
                   data-testid="write-prescription-btn"
                 >
                   <FileText className="h-4 w-4 mr-2" />
-                  Write Prescription
+                  {isDoctor ? 'Write Prescription' : 'Write Consultation Notes'}
                 </Button>
               </div>
             </div>
