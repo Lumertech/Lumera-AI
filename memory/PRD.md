@@ -90,6 +90,21 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - **Consultations pagination** — `GET /api/consultations?limit=&offset=` → `{items, total, limit, offset}` (clamped 1..200 / >=0)
 - Tests: 14/14 medication reminder pytest pass after fixing expired-reminder auto-complete bug
 
+### Bug fix — Hexa & STT outage (2026-05-13) ✅
+- Medication-reminders cron was creating/closing a new asyncio loop, breaking the shared Motor MongoDB client → every Hexa & transcribe call started 500ing
+- Fix: capture main loop in lifespan startup, dispatch via `asyncio.run_coroutine_threadsafe()` — no new/closed loops
+
+### Phase 7 — Consultation Notes + Observability (2026-05-18) ✅
+- **Consultation Notes** for non-doctor professions (therapists, spa, wellness)
+  - `/api/consultation-notes` CRUD + by-appointment lookup
+  - `ConsultationNotesWriter.js` page with mic-driven dictation on Summary/Recommendations/Private Notes
+  - AppointmentDetails button auto-switches: doctors → "Write Prescription", others → "Write Consultation Notes"
+  - WhatsApp delivery via BackgroundTasks
+- **`shared.insert_doc()`** helper — prevents ObjectId leak regressions
+- **`/api/health/scheduler`** observability endpoint with per-job stale thresholds; seeded at startup
+- **Hexa outbox** (`db.hexa_outbox`) — every Hexa-triggered WhatsApp send tracked through queued→sent/skipped/failed lifecycle
+- Tests: 14/14 pytest pass (15 total, 1 skipped pre-cron-tick); 100% frontend smoke; 2 cosmetic items also fixed (startup-seed + React hydration warning)
+
 ## P1 Backlog (next)
 
 ### Phase 2 — AI Documentation Engine

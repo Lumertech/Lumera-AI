@@ -160,9 +160,10 @@ const ConsultationNotesWriter = () => {
                 <h1 className="font-manrope font-bold text-2xl text-slate-900 mb-1 flex items-center gap-2">
                   <FileText className="h-6 w-6 text-emerald-700" /> Consultation Notes
                 </h1>
-                <p className="text-sm text-slate-600 font-inter">
-                  Patient: <strong>{appointment?.client_name}</strong> · Mode: <Badge variant="outline" className="ml-1 capitalize">{professionLabel}</Badge>
-                </p>
+                <div className="text-sm text-slate-600 font-inter flex items-center gap-1">
+                  <span>Patient: <strong>{appointment?.client_name}</strong> · Mode:</span>
+                  <Badge variant="outline" className="capitalize">{professionLabel}</Badge>
+                </div>
               </div>
               <Button variant="outline" onClick={() => navigate(`/appointments/${id}`)} data-testid="back-btn">Back</Button>
             </div>

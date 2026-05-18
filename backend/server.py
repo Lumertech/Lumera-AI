@@ -145,6 +145,12 @@ async def lifespan(app: FastAPI):
         name="Send due medication reminders"
     )
     scheduler.start()
+    # Kick off one medication-reminders run on startup so the health endpoint
+    # has a fresh timestamp instead of waiting 5 minutes for the first cron tick.
+    try:
+        _med_reminders_job()
+    except Exception as e:
+        logging.warning(f"Initial medication reminders dispatch failed: {e}")
     yield
     # Shutdown
     scheduler.shutdown()
