@@ -3560,8 +3560,10 @@ app.include_router(_med_reminders_router_mod.router, prefix="/api")
 
 from routes import consultation_notes as _consultation_notes_router_mod
 from routes import scheduler_health as _scheduler_health_router_mod
+from routes import patient_portal as _patient_portal_router_mod
 app.include_router(_consultation_notes_router_mod.router, prefix="/api")
 app.include_router(_scheduler_health_router_mod.router, prefix="/api")
+app.include_router(_patient_portal_router_mod.router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

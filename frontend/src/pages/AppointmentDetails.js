@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { formatDate, formatTime } from '@/lib/utils';
 import RequestPaymentModalV2 from '@/components/RequestPaymentModalV2';
 import HealthRecordsTab from '@/components/HealthRecordsTab';
+import IssuePortalLinkCard from '@/components/IssuePortalLinkCard';
 import { useAuth } from '@/contexts/AuthContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
@@ -355,7 +356,10 @@ const AppointmentDetails = () => {
               {/* Health Records Tab */}
               <TabsContent value="records">
                 {appointment && (
-                  <HealthRecordsTab clientPhone={appointment.client_phone} />
+                  <div className="space-y-4">
+                    <HealthRecordsTab clientPhone={appointment.client_phone} />
+                    <IssuePortalLinkCard clientPhone={appointment.client_phone} clientName={appointment.client_name} />
+                  </div>
                 )}
               </TabsContent>
 

@@ -1,0 +1,42 @@
+{
+  "summary": "Patient Self-Service Portal end-to-end testing complete. Backend: 18/18 patient_portal pytest cases passed (issue/list/revoke + 6 public endpoints + privacy scrub + bad/short/expired/revoked token paths + receptionist 403 boundary). Frontend smoke: (a) /p/{freshly-issued-token} renders PatientPortal with data-testid=patient-portal-page, Seal of Privacy badge present (data-testid=seal-of-privacy-badge), section testids verified (portal-medications, portal-prescriptions, portal-notes, portal-past rendered; portal-upcoming/portal-payments empty as expected), zero console errors. (b) /appointments/:id Health Records tab renders IssuePortalLinkCard (data-testid=issue-portal-link-card); clicking issue-link-btn fires POST /api/patient-portal/issue-link, shows toast 'Portal link issued', renders full URL (data-testid=generated-link) and copy button (data-testid=copy-link-btn). Combined regression of patient_portal + consultation_notes_and_health + medication_reminders + prescription_phase1 = 61/61 passed (after fixing pymongo URI parsing in expired-token test).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_patient_portal.py",
+    "/app/test_reports/pytest/iter6_patient_portal.xml",
+    "/app/test_reports/pytest/iter6_combined.xml"
+  ],
+  "action_items": [
+    "(No action) Note for next testing agent: /auth/login is rate-limited to 5/minute. If running large multi-module suites that all log in fresh, add a sleep or share a session-scoped login fixture across files to avoid 429."
+  ],
+  "critical_code_review_comments": [
+    "routes/patient_portal.py — clean separation between owner endpoints (require_doctor_or_owner) and public endpoints (no Depends), correct 404/410 semantics in _resolve_token, PRIVATE_FIELDS={'private_doctor_notes','private_notes'} scrubbed in prescriptions and consultation-notes responses (verified in payload + raw text). TTL clamping max(1, min(180, ttl_days)) verified at both bounds.",
+    "Tokens generated via secrets.token_urlsafe(24) (32+ chars URL-safe) — good entropy; len<16 short-circuit on _resolve_token prevents trivial enumeration.",
+    "Revoke uses owner_id filter in update query so a doctor cannot revoke another doctor's token (returns 404 — verified by test_revoke_unknown_token_404).",
+    "All public endpoints exclude _id via {'_id':0} projection; payments endpoint also strips razorpay_signature and razorpay_key_secret — good defensive posture.",
+    "Frontend PatientPortal.js uses bare axios.get (no Authorization interceptor injected because axios default instance is used, and no global header was set since user isn't logged in). Verified by inspection + console-error free render.",
+    "Suggestion (non-blocking): list_links endpoint returns all tokens including revoked ones; consider a query flag ?active_only=true for the doctor UI. Currently no doctor-side list UI consumes this, so OK for now.",
+    "Suggestion (non-blocking): expires_at is stored as ISO string and parsed at read time. Acceptable, but storing a native datetime and using TTL index would let MongoDB auto-purge expired tokens."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_patient_portal.py (new — 18 tests covering issue/list/revoke + privacy scrub + ttl clamping + 410/404 semantics)"
+  ],
+  "success_rate": {
+    "backend": "100% (18/18 patient_portal; 61/61 combined regression with iter5+phase1+med_reminders)",
+    "frontend": "100% (patient portal public route, Seal of Privacy badge, IssuePortalLinkCard generate+display+copy)"
+  },
+  "test_credentials": "Doctor: sarah@test.com / test123456. Receptionist sub-user auto-created as recep_pp_<ts>@test.com / Recep@12345.",
+  "seed_data_creation": "Tests seed an appointment, a prescription (with private_doctor_notes='SECRET_DOCTOR_NOTE_xyz_123'), and a consultation note (with private_notes='SECRET_PRIVATE_NOTE_abc_789') for TEST_PP_Client (+919998887766). Multiple portal tokens issued; one DB-tweaked to expired, one revoked. No teardown.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Re-run with `REACT_APP_BACKEND_URL=$(grep ^REACT_APP_BACKEND_URL= /app/frontend/.env | cut -d= -f2-) pytest /app/backend/tests/test_patient_portal.py -v`. When running multiple test modules together, watch the 5/min /auth/login rate limit — module-scoped doctor_token fixtures across files will each consume one login. Either sleep 60s between modules or share a global session fixture. test_phase23.py and test_refactor_regression.py require REACT_APP_BACKEND_URL env var to be set explicitly (they don't fall back to frontend/.env like the iter5/iter6 tests do).",
+  "rca of the issue": "N/A — no bugs surfaced. Manual smoke noted by main agent (link issued, public 200, revoke 410, bad-token 404) fully reproduced + extended with privacy scrub, TTL clamping, receptionist boundary, and expired-token-via-DB-tweak paths."
+}
