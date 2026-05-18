@@ -20,6 +20,7 @@ import {
   Building2,
   Mic,
   Sparkles,
+  Receipt,
 } from 'lucide-react';
 import HexaAssistant from '@/components/HexaAssistant';
 import SealOfPrivacy from '@/components/SealOfPrivacy';
@@ -37,6 +38,7 @@ const DashboardLayout = ({ children }) => {
     { name: 'Appointments', href: '/appointments', icon: Calendar, roles: ['user', 'receptionist'] },
     { name: 'Clients', href: '/clients', icon: Users, roles: ['user', 'receptionist'] },
     { name: 'Consultations', href: '/consultations', icon: Mic, roles: ['user'] },
+    { name: 'Invoices', href: '/invoices', icon: Receipt, roles: ['user'] },
     { name: 'WhatsApp Bot', href: '/whatsapp', icon: MessageSquare, roles: ['user'] },
     { name: 'Voice Bot', href: '/voice-bot', icon: Phone, roles: ['user'] },
     { name: 'Clinics', href: '/clinics', icon: Building2, roles: ['user'] },

@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Mic, MicOff, Send, Lock, FileText } from 'lucide-react';
+import { Loader2, Mic, MicOff, Send, Lock, FileText, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractApiError } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
+import { printDocument, renderConsultationNotesHTML } from '@/lib/print';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -115,6 +116,21 @@ const ConsultationNotesWriter = () => {
           : active ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
       </Button>
     );
+  };
+
+  const handlePrint = () => {
+    if (!summary.trim()) {
+      toast.error('Add a session summary before printing');
+      return;
+    }
+    const html = renderConsultationNotesHTML({
+      practitioner: { name: user?.name || '', profession: user?.profession || '' },
+      patient: { name: appointment?.client_name || '', phone: appointment?.client_phone || '' },
+      summary,
+      recommendations,
+      date: new Date().toISOString(),
+    });
+    printDocument({ title: `Consultation Notes - ${appointment?.client_name || ''}`, html });
   };
 
   const submitNotes = async () => {
@@ -249,6 +265,9 @@ const ConsultationNotesWriter = () => {
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => navigate('/appointments')} data-testid="cancel-btn">Cancel</Button>
+          <Button variant="outline" onClick={handlePrint} data-testid="print-notes-btn">
+            <Printer className="mr-2 h-4 w-4" /> Print / PDF
+          </Button>
           <Button onClick={submitNotes} disabled={sending} className="bg-emerald-600 hover:bg-emerald-700" data-testid="submit-notes-btn">
             {sending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : <><Send className="mr-2 h-4 w-4" /> {sendToClient ? 'Save & Send to Client' : 'Save Notes'}</>}
           </Button>

@@ -1,0 +1,47 @@
+{
+  "summary": "Iteration 7 — Invoicing module + Print buttons. Backend 13/13 PASS (consultation-types CRUD + receptionist 403 boundary; invoice math with 2 numeric sets; auto-numbering format + concurrency uniqueness; PUT recompute; mark-paid + overpay 400 + invalid-status 400; status & client_phone filters; receptionist create allowed/delete 403/list scoped to parent; empty-items 400; invalid-status-on-create 400). Frontend Invoices smoke PASS (sidebar Invoices nav between Consultations & WhatsApp Bot, /invoices renders summary cards Total Billed/Collected/Outstanding, filter pills All/Pending/Partial/Paid, search, New Invoice modal opens, live totals subtotal=800 tax=75 total=825 visible, Save creates INV-2026-0021, Print button click no JS error, Mark Paid toast 'Marked paid'). ConsultationNotesWriter Print/PDF button PASS (toast 'Add a session summary before printing' for empty summary). PrescriptionWriter Print/PDF button FAIL — ReferenceError 'primaryClinic is not defined' when clicking with a medication filled in (regression vs requirement).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "PrescriptionWriter.js",
+        "issue": "Clicking Print/PDF with at least one medication filled throws 'ReferenceError: primaryClinic is not defined'. Identifier is used at line 303 but never declared/fetched — the /api/clinics fetch + state setter are missing.",
+        "selector": "[data-testid=\"print-prescription-btn\"]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_invoices.py",
+    "/app/test_reports/pytest/iter7_invoices.xml"
+  ],
+  "action_items": [
+    "Fix PrescriptionWriter.js: declare `primaryClinic` state and fetch from GET /api/clinics (mirror the pattern likely used in Invoices.js). Example: const [primaryClinic, setPrimaryClinic] = useState(null); useEffect(() => { axios.get(`${BACKEND}/api/clinics`).then(r => setPrimaryClinic((r.data || []).find(c => c.is_primary) || r.data?.[0] || null)); }, []); — then handlePrint will pass a real clinic letterhead instead of crashing."
+  ],
+  "critical_code_review_comments": [
+    "routes/invoices.py L180-L181 — leftover placeholder `if current_user.get('role') == 'receptionist' and any(False for _ in []): pass` is dead code; remove for clarity.",
+    "routes/invoices.py L141-L146 — find_one_and_update with `return_document=True` works in Motor (maps True→ReturnDocument.AFTER) but is fragile across driver versions; prefer `from pymongo import ReturnDocument; return_document=ReturnDocument.AFTER` for explicit correctness. Currently functioning — concurrency test confirmed two parallel POSTs produced INV-N and INV-N+1.",
+    "routes/invoices.py L189 — POST validates `amount_paid <= total + 0.01`, but creating with payment_status='paid' is permitted even when amount_paid=0 (no consistency check). Consider rejecting/normalizing: if payment_status='paid' require amount_paid==total (PUT path has same gap).",
+    "routes/invoices.py — receptionist-owned scoping uses `resolve_owner_id` on GET/POST/PUT and `current_user['id']` (must be doctor) on DELETE via require_doctor_or_owner. Verified end-to-end: receptionist-created invoice was visible to parent doctor and deletable only by doctor.",
+    "routes/invoices.py — list_invoices applies `client_phone` as exact-match; UI search-by-phone may want a $regex or normalization. Out-of-scope minor.",
+    "Frontend PrescriptionWriter.js — primaryClinic referenced but never declared (HIGH, listed above)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_invoices.py (new — 13 tests)"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13)",
+    "frontend": "~85% — Invoices module + Notes Print fully working; Prescription Print throws ReferenceError"
+  },
+  "test_credentials": "Doctor sarah@test.com / test123456. Receptionist auto-created recep_inv_<ts>@test.com / Recep@12345 with phone_number required.",
+  "seed_data_creation": "Tests created TEST_-prefixed consultation types (cleaned), 12+ invoices (TEST_Client_Math1/2, TEST_AutoNum, TEST_Concurrency x2, TEST_Update, TEST_Pay, TEST_Filter_Paid/Pending, TEST_NoItems/BadStatus rejected, TEST_RecepCreated cleaned). Counter advanced to INV-2026-0021 by end of frontend smoke. No teardown.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Login endpoint returns {token: ...}, NOT {access_token: ...}. Sub-user creation requires phone_number field. URL-encode '+' in client_phone query params. Counter `invoice:<owner_id>:<year>` is per-doctor-per-year — if you log in as the same doctor, expect sequence to continue from existing counter value. Tests don't depend on a specific starting number.",
+  "rca of the issue": "PrescriptionWriter Print bug RCA: handlePrint() at line 296 calls renderPrescriptionHTML({ clinic: primaryClinic, ... }) but `primaryClinic` is never declared as state nor fetched. Likely the dev intended to mirror Invoices.js (which does fetch /api/clinics) but forgot to add the useState + useEffect. Repro: login as sarah → /appointments/<id>/prescription → click Add Medication → fill medicine_name → click [data-testid=print-prescription-btn] → console: 'ReferenceError: primaryClinic is not defined'. Fix: add `const [primaryClinic, setPrimaryClinic] = useState(null);` and a useEffect to GET /api/clinics and select is_primary || [0]."
+}

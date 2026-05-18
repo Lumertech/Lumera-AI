@@ -27,6 +27,7 @@ import ClinicSettings from '@/pages/ClinicSettings';
 import Consultations from '@/pages/Consultations';
 import ConsultationNotesWriter from '@/pages/ConsultationNotesWriter';
 import PatientPortal from '@/pages/PatientPortal';
+import Invoices from '@/pages/Invoices';
 
 // Admin Pages
 import AdminLogin from '@/pages/AdminLogin';
@@ -216,6 +217,15 @@ function App() {
 
           {/* Public patient self-service portal — no auth needed, token in URL */}
           <Route path="/p/:token" element={<PatientPortal />} />
+
+          <Route
+            path="/invoices"
+            element={
+              <ProtectedRoute>
+                <Invoices />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/appointments/:id"
             element={

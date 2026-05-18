@@ -11,10 +11,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import {
   Loader2, Plus, Trash2, Sparkles, Send, CreditCard, Mic, MicOff,
-  ShieldAlert, Link2, Lock, ChevronDown, ChevronUp, History, AlertTriangle
+  ShieldAlert, Link2, Lock, ChevronDown, ChevronUp, History, AlertTriangle, Printer
 } from 'lucide-react';
 import { toast } from 'sonner';
 import RequestPaymentModalV2 from '@/components/RequestPaymentModalV2';
+import { useAuth } from '@/contexts/AuthContext';
+import { printDocument, renderPrescriptionHTML } from '@/lib/print';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -66,6 +68,13 @@ const PrescriptionWriter = () => {
 
   useEffect(() => {
     fetchAppointment();
+    // Load primary clinic for letterhead
+    axios.get(`${API_URL}/clinics`)
+      .then((r) => {
+        const list = r.data || [];
+        setPrimaryClinic(list.find((c) => c.is_primary) || list[0] || null);
+      })
+      .catch(() => {});
   }, [id]);
 
   useEffect(() => {
@@ -282,6 +291,28 @@ const PrescriptionWriter = () => {
         {transcribing && !active ? <Loader2 className="h-4 w-4 animate-spin" /> : active ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
       </Button>
     );
+  };
+
+  const handlePrint = () => {
+    const validMeds = medications.filter((m) => m.medicine_name.trim());
+    if (validMeds.length === 0) {
+      toast.error('Add at least one medication before printing');
+      return;
+    }
+    const html = renderPrescriptionHTML({
+      clinic: primaryClinic,
+      doctor: { name: user?.name, profession: user?.profession },
+      patient: {
+        name: appointment?.client_name,
+        phone: appointment?.client_phone,
+        age: appointment?.patient_details?.age,
+        sex: appointment?.patient_details?.sex,
+      },
+      medications: validMeds,
+      instructions: generalInstructions,
+      date: new Date().toISOString(),
+    });
+    printDocument({ title: `Prescription - ${appointment?.client_name || ''}`, html });
   };
 
   const submitPrescription = async () => {
@@ -608,6 +639,9 @@ const PrescriptionWriter = () => {
           </Button>
           <div className="flex space-x-3">
             <Button variant="outline" onClick={() => navigate('/appointments')} data-testid="cancel-btn">Cancel</Button>
+            <Button variant="outline" onClick={handlePrint} data-testid="print-prescription-btn">
+              <Printer className="mr-2 h-4 w-4" /> Print / PDF
+            </Button>
             <Button onClick={submitPrescription} disabled={sending} className="bg-green-600 hover:bg-green-700" data-testid="submit-prescription-btn">
               {sending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending via WhatsApp…</> : <><Send className="mr-2 h-4 w-4" /> Send Prescription to Patient</>}
             </Button>
