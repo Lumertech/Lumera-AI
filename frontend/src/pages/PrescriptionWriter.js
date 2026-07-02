@@ -40,7 +40,9 @@ const SEVERITY_COLORS = {
 const PrescriptionWriter = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [appointment, setAppointment] = useState(null);
+  const [primaryClinic, setPrimaryClinic] = useState(null);
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [sending, setSending] = useState(false);

@@ -16,6 +16,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from pymongo import ReturnDocument
 
 from shared import (
     db,
@@ -142,7 +143,7 @@ async def _next_invoice_number(owner_id: str) -> str:
         {"id": counter_id},
         {"$inc": {"value": 1}, "$setOnInsert": {"id": counter_id}},
         upsert=True,
-        return_document=True,  # ReturnDocument.AFTER not imported — keep simple
+        return_document=ReturnDocument.AFTER,
     )
     seq = (doc or {}).get("value", 1)
     return f"INV-{year}-{int(seq):04d}"
@@ -177,8 +178,6 @@ async def get_invoice(invoice_id: str, current_user: dict = Depends(get_current_
 
 @router.post("/invoices")
 async def create_invoice(payload: InvoiceCreate, current_user: dict = Depends(get_current_user)):
-    if current_user.get('role') == 'receptionist' and any(False for _ in []):
-        pass  # placeholder
     owner_id = resolve_owner_id(current_user)
     items = [it.dict() for it in payload.items]
     if not items:
@@ -188,6 +187,12 @@ async def create_invoice(payload: InvoiceCreate, current_user: dict = Depends(ge
     subtotal, tax_amount, total = _compute_totals(items, payload.discount or 0, payload.tax_rate or 0)
     if (payload.amount_paid or 0) < 0 or (payload.amount_paid or 0) > total + 0.01:
         raise HTTPException(status_code=400, detail="amount_paid out of range")
+    # Normalize: paid status → amount_paid must equal total
+    amount_paid = float(payload.amount_paid or 0)
+    if payload.payment_status == "paid":
+        amount_paid = total
+    elif payload.payment_status == "pending" and amount_paid > 0:
+        raise HTTPException(status_code=400, detail="Pending status cannot have amount_paid; use 'partial' or 'paid'")
 
     invoice_number = await _next_invoice_number(owner_id)
     doc = {
@@ -205,7 +210,7 @@ async def create_invoice(payload: InvoiceCreate, current_user: dict = Depends(ge
         "tax_rate": float(payload.tax_rate or 0),
         "tax_amount": tax_amount,
         "total": total,
-        "amount_paid": float(payload.amount_paid or 0),
+        "amount_paid": amount_paid,
         "payment_status": payload.payment_status,
         "notes": payload.notes or "",
         "issue_date": datetime.now(timezone.utc).isoformat(),

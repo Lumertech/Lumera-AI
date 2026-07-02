@@ -114,6 +114,20 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - **Branding:** Seal of Privacy badge present in portal header
 - Tests: 18/18 patient_portal pytest pass + 61/61 combined regression — zero defects
 
+### Phase 9 — Print Buttons + Invoicing Module (2026-07-02) ✅
+- **Print / PDF buttons** on PrescriptionWriter, ConsultationNotesWriter, and each invoice
+  - Pure client-side (`lib/print.js`) — opens print-friendly HTML in a new window and auto-fires `window.print()`
+  - Clinic letterhead from primary clinic; tapering schedule renders inline in Rx
+- **Invoicing module** modelled on Eka.Care / Practo / Healthplix
+  - Auto-numbered `INV-YYYY-NNNN` per doctor per year (concurrency-safe via `db.counters.find_one_and_update` + `ReturnDocument.AFTER`)
+  - Line items (description, consultation type, qty, rate), subtotal → discount → GST → total math
+  - Payment status pending|partial|paid with normalization: `paid` auto-sets amount_paid=total
+  - Reusable **Consultation Type** fee templates (name, fee, description)
+  - Frontend: Invoices page with summary cards, filter pills, search, modal editor with live totals
+  - Receptionist boundary: GET/POST allowed (scoped to parent), DELETE + consultation-type management blocked (403)
+- Sidebar: new **Invoices** nav item
+- Tests: 13/13 invoice pytest pass; PrescriptionWriter print regression fixed after test-agent flagged missing `primaryClinic` state declaration
+
 ## P1 Backlog (next)
 
 ### Phase 2 — AI Documentation Engine
