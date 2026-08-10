@@ -4,6 +4,13 @@
 - Email: sarah@test.com
 - Password: test123456
 
+## Meta App Review Reviewer (seeded via `backend/seed_reviewer.py`)
+- Email: reviewer@lumer.me
+- Password: MetaReview@2026
+- Role: doctor
+- Pre-seeded: 3 demo patients (+919000000001, +919000000002, +919000000003) and 1 appointment "Reviewer Demo" on tomorrow @ 10:00
+- Re-run `python /app/backend/seed_reviewer.py` any time to reset password / refresh seeds
+
 ## Admin
 - Email: admin@lumer.com
 - Password: admin123

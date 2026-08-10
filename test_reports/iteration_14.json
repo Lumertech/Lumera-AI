@@ -1,0 +1,46 @@
+{
+  "summary": "Backend-only router-refactor retest against the public URL completed: 43/43 tests passed (15 targeted iteration-14 tests plus the 28-test Phase 14 regression suite). All requested P0 fixes passed: /auth/me and existing-user OTP responses omit password hashes, IP and account limits return JSON 429 responses at the required attempts, appointment immutable fields are stripped while notes persist, and the reviewer seed is schema-correct and idempotent. Requested auth, appointment/client/vitals, health, safety, and data-deletion regressions also passed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/auth/login",
+        "issue": "The public endpoint accepts the caller-supplied leftmost X-Forwarded-For value as the rate-limit identity. Tests confirmed rotating this header bypasses the IP bucket; login_ip_hits also has no TTL cleanup/index in the reviewed implementation, allowing unbounded collection growth. This did not fail the requested account-lock or IP-limit acceptance tests.",
+        "priority": "MEDIUM"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration14_router_retest.py",
+    "/app/backend/tests/test_router_phase14.py",
+    "/app/test_reports/pytest/iteration_14_router_retest.xml",
+    "/app/test_reports/pytest/iteration_14_phase14_regression.xml"
+  ],
+  "action_items": [
+    "Harden login IP limiting by trusting X-Forwarded-For only from configured ingress proxies and add a TTL/index retention strategy for login_ip_hits."
+  ],
+  "critical_code_review_comments": [
+    "auth.login directly trusts the first X-Forwarded-For value. The public ingress preserved test-supplied values, so credential spraying across different emails can evade the five-per-minute IP limit by rotating the header.",
+    "auth.complete_registration still treats any otp_codes row as proof of verification; send-otp itself creates that row, so a caller can skip verify-otp and complete registration. Track an explicit verified state or one-time verification grant.",
+    "auth.google_callback performs synchronous requests.post inside an async route and sets no timeout, which can block the event loop indefinitely during provider latency."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration14_router_retest.py",
+    "/app/test_reports/iteration_14.json"
+  ],
+  "success_rate": {
+    "backend": "100% (43/43)",
+    "frontend": "Not tested (backend-only request)"
+  },
+  "seed_data_creation": "Ran /app/backend/seed_reviewer.py twice and verified exactly one reviewer user, one deterministic reviewer appointment, and three reviewer clients after each run. Tests also created isolated OTP, login-attempt/IP-hit, appointment/client/vitals, and deletion-ticket records. Teardown verification found zero iteration-14/router test users, appointments, clients, login attempts, or IP hits.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Used Doctor / Test Professional and Meta App Review Reviewer credentials from /app/memory/test_credentials.md.",
+  "context_for_next_testing_agent": "The targeted iteration-14 suite and prior Phase 14 suite both pass against the public URL. Reviewer Demo appointment_date is 2026-08-11. Dedicated rate-limit tests set explicit X-Forwarded-For values and clean login_attempts/login_ip_hits in finally/teardown. One initial test run used reserved example.test addresses and received expected EmailStr 422 validation; the test data was corrected to test.com before the final passing run.",
+  "rca_of_the_issue": "The six iteration-13 regressions are resolved by safe user serialization, direct JSONResponse 429 handling, fifth-failure lock response ordering, immutable appointment field stripping, and a schema-aligned deterministic reviewer seed. The remaining rate-limit hardening concern is caused by treating an untrusted request header as authoritative and retaining every hit without database expiry."
+}

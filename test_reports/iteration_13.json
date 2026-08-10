@@ -1,0 +1,78 @@
+{
+  "summary": "Backend-only router-refactor verification against the public URL: 22/28 tests passed. Core doctor/reviewer bcrypt login, registration, bad-password handling, OTP persistence/new-phone registration, appointment CRUD/client integration/ownership, assistant status-only RBAC, patient details, reviewer clients/detail, vitals, health, safety, and data-deletion regressions passed. Six defects remain in auth security/rate limiting, reviewer seed schema, and appointment update validation.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/auth/me; POST /api/auth/verify-otp",
+        "issue": "Both authenticated profile responses expose the user's hashed_password field. /auth/me returns current_user unchanged; verify-otp excludes 'password' but not 'hashed_password'.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "POST /api/auth/login",
+        "issue": "The manual IP limiter reaches its threshold but returns HTTP 500 instead of 429. The globally registered SlowAPI 429 handler expects request.state.view_rate_limit, which manual HTTPException(429) requests do not have.",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "POST /api/auth/login",
+        "issue": "The fifth failed login records locked_until but still returns 401 Invalid credentials rather than the required 429 temporarily locked response. On the next request, the IP-limit check runs first, preventing the account-lock message and currently triggering the separate 500 defect.",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "PUT /api/appointments/{id}",
+        "issue": "Accepts an unvalidated dict and returns 200 when id and professional_id are overwritten. An authenticated owner can move an appointment to an attacker-controlled tenant/id; immutable ownership fields are mass-assignable.",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "GET /api/appointments (reviewer seed)",
+        "issue": "The seeded Reviewer Demo row stores date='2026-08-11' instead of the appointment_date field used by AppointmentCreate and list sorting. The required appointment_date is absent, so consumers using the normal appointment schema cannot identify/sort its date.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/auth/login",
+        "issue": "request.client.host resolves to alternating internal ingress addresses (10.211.2.196/10.211.2.198), not the originating public client. One user's attempts are split across proxies while unrelated users behind a proxy share a bucket; login_ip_hits also has no TTL cleanup/index in this implementation."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_router_phase14.py",
+    "/app/test_reports/pytest/iteration_13_router_phase14.xml"
+  ],
+  "action_items": [
+    "Never return Mongo user documents directly: project/exclude hashed_password in get_current_user/get_me and OTP login responses, and add a safe public-user serializer.",
+    "Use a dedicated response/exception path for manual login 429s instead of SlowAPI's handler, and derive the real client IP from a trusted-proxy configuration.",
+    "Return the account-lock 429 on the fifth failed attempt and check active account lock before the IP limiter so the required temporarily locked response is reachable.",
+    "Replace updates: dict with a Pydantic appointment-update model and whitelist mutable fields; reject id, professional_id, created_by, and created_at.",
+    "Seed Reviewer Demo with appointment_date='2026-08-11' and the same required fields as AppointmentCreate; avoid a moving 'tomorrow' value if the review fixture must stay deterministic.",
+    "Re-run the dedicated Phase 14 suite after fixes."
+  ],
+  "critical_code_review_comments": [
+    "auth.verify_otp filters 'password' rather than the actual 'hashed_password' key; auth.get_me returns the dependency document verbatim.",
+    "The app registers SlowAPI's _rate_limit_exceeded_handler for every status 429, but manual HTTPException(429) does not populate request.state.view_rate_limit, producing AttributeError and HTTP 500.",
+    "New-phone verification is not persisted as a verified state: complete-registration only checks whether any otp_codes row exists. A caller can request an OTP and complete registration without ever proving possession of the OTP.",
+    "appointments.update_appointment writes the entire caller-provided dict through MongoDB $set, allowing immutable identity/tenant fields and arbitrary document fields to be changed.",
+    "seed_reviewer.py uses a moving tomorrow date and the legacy key 'date'; extracted appointment APIs use 'appointment_date'.",
+    "server.py remains 3,310 lines after this partial extraction, above the 700-line maintainability threshold; continue splitting focused routers/services.",
+    "auth.google_callback performs synchronous requests.post inside an async route without a timeout, which can block the event loop indefinitely."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_router_phase14.py",
+    "/app/test_reports/iteration_13.json"
+  ],
+  "success_rate": {
+    "backend": "78.6% (22/28)",
+    "frontend": "Not tested (backend-only request)"
+  },
+  "seed_data_creation": "Created isolated TEST auth users, OTP rows, appointments/clients, and one deletion ticket. All QA records, login attempts/IP hits, and temporary reviewer vitals changes were removed/restored; cleanup verification found zero leftovers.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Used Doctor / Test Professional and Meta App Review Reviewer credentials from /app/memory/test_credentials.md; generated isolated credentials for temporary QA users.",
+  "context_for_next_testing_agent": "Run /app/backend/tests/test_router_phase14.py against the public URL. Current deterministic failures are hashed_password leakage from /auth/me and /auth/verify-otp, fifth same-email failure returning 401, manual limiter raising 500, missing reviewer appointment_date, and unrestricted appointment mass assignment. Backend logs show AttributeError: State has no attribute view_rate_limit. The public ingress alternates two internal request.client.host values, so the limiter test sends enough requests for one backend-observed proxy IP to hit its sixth request.",
+  "rca_of_the_issue": "Auth leakage comes from returning current_user unchanged and filtering the wrong password key in verify_otp. Rate-limit 500 comes from routing manual HTTPException(429) through SlowAPI's handler without SlowAPI request state; account lock is set after the fifth request but the function unconditionally raises 401, while the next request checks IP first. Reviewer seed schema diverges from AppointmentCreate by writing date instead of appointment_date. Appointment ownership tampering is caused by accepting a raw dict and passing it directly to MongoDB $set."
+}

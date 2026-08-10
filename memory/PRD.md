@@ -304,6 +304,23 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - `prescriptions.medications[].is_tapering: bool`, `prescriptions.medications[].taper_schedule: [{dosage, frequency, duration, notes}]`
 
 
+## Phase 14 — Reviewer Seed + Router Split (2026-02-10) ✅
+- **Reviewer seed script** `backend/seed_reviewer.py`: idempotent seeder that upserts `reviewer@lumer.me / MetaReview@2026` as a doctor with 3 demo patients (`+919000000001..03`) and 1 appointment `appt-reviewer-demo-2026` named "Reviewer Demo" scheduled tomorrow @ 10:00. Safe to re-run any time to reset password.
+- `test_credentials.md` updated with reviewer credentials.
+- **Router split** — `server.py` went from **3730 → 3309 lines** (–421):
+  - `routes/auth.py` (228 lines): 8 endpoints — register, login, /me, send-otp, verify-otp, complete-registration, google/login, google/callback.
+  - `routes/appointments.py` (263 lines): 10 endpoints — appointments CRUD + clients list/detail + patient-details + vitals GET/PUT (moved inline VitalsPayload model too).
+- Late-import pattern (`from routes import auth as _auth_router_mod; app.include_router(...)` at the bottom of `server.py`) avoids circular imports.
+- **Security fixes shipped alongside the refactor** (found by testing agent iteration 13, fixed and verified in iteration 14):
+  - `/auth/me` and `/verify-otp` no longer leak `hashed_password`.
+  - Login IP rate limit uses `JSONResponse(429)` (SlowAPI-handler-safe) and reads `X-Forwarded-For` for real client IP.
+  - 5th failed login on same email returns `429 Account temporarily locked` (was `401`).
+  - `PUT /appointments/{id}` strips immutable fields `{id, professional_id, created_at, created_by}` (mass-assignment fix).
+  - Reviewer seed uses correct `appointment_date` field + `consultation_mode` + `payment_status`.
+- Testing agent iteration_14: **43/43 backend tests passed**.
+
+
+
 ## Phase 13 — Legal Rebrand + Meta Submission Packet (2026-02-10) ✅
 - Legal entity name globally updated to **Lumera Solutions LLP** across Policies (Privacy, Terms, WhatsApp Disclaimer, Limitation of Liability), Register page terms consent, RequestPaymentModal consent, and Landing footer. Contact email set to **ravee@lumer.me**. Logo unchanged.
 - Privacy Policy expanded with Meta-required language (WhatsApp Business Platform naming, 90-day retention, `/data-deletion` pointer).
