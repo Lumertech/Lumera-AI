@@ -3667,6 +3667,9 @@ app.include_router(_queue_router_mod.router, prefix="/api")
 from routes import letterhead as _letterhead_router_mod
 app.include_router(_letterhead_router_mod.router, prefix="/api")
 
+from routes import ambient_ai as _ambient_ai_router_mod
+app.include_router(_ambient_ai_router_mod.router, prefix="/api")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

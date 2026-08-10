@@ -128,6 +128,14 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - Sidebar: new **Invoices** nav item
 - Tests: 13/13 invoice pytest pass; PrescriptionWriter print regression fixed after test-agent flagged missing `primaryClinic` state declaration
 
+### Phase 17 — Ambient AI EMR (2026-08-10) ✅
+- New backend `routes/ambient_ai.py` → `POST /api/ambient/extract` — sends a raw transcript to GPT-4o-mini via Emergent LLM Key and returns STRICT JSON with: `symptoms`, `provisional_diagnosis`, `vitals` (BP/pulse/spo2/temp/weight), `medications[]` (name + dose + freq + duration + instructions), `lab_tests[]`, `general_instructions`
+- Prompt tuned for **Hinglish + Indian brand names** (Pan 40, Crocin, Amlodac, etc.) — converts "din me do baar khaana ke baad" → "1-0-1 after food"; verified end-to-end with a realistic gastritis transcript → correctly extracted BP 120/80, Pulse 72, "acute gastritis", Pan 40 + Digene, CBC + stool routine, follow-up in 5 days
+- New `AmbientAIToggle` React component — browser `SpeechRecognition` for continuous live transcription (Indian English locale), pulsing mic indicator when active, **Pause/Resume**, live transcript preview with **Clear**, and a **Stop & Extract** button that calls the LLM and opens a Review modal
+- **Review modal** shows all extracted fields editable; on Apply, the parent form is auto-populated (symptoms + vitals + medications + lab tests + general instructions merged intelligently — never overwrites empty existing values)
+- Integrated into both **PrescriptionWriter** and **ConsultationNotesWriter** pages
+- Auto-restart guard on `SpeechRecognition.onend` prevents Chrome's default 60s auto-stop, so the mic stays on until the doctor explicitly toggles it off
+
 ### Phase 16 — OPD Queue Engine + Letterhead + Rx Preset Sharing (2026-08-10) ✅
 
 **Dynamic OPD Queue Engine:**

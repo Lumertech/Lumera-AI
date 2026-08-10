@@ -18,6 +18,7 @@ import RequestPaymentModalV2 from '@/components/RequestPaymentModalV2';
 import { useAuth } from '@/contexts/AuthContext';
 import { printDocument, renderPrescriptionHTML } from '@/lib/print';
 import { VitalsHeader, DrugAutocomplete, LabTestPicker, RxPresets } from '@/components/PrescriptionExtras';
+import AmbientAIToggle from '@/components/AmbientAIToggle';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -405,6 +406,36 @@ const PrescriptionWriter = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Ambient AI Mode — voice-driven EMR auto-fill */}
+        <AmbientAIToggle
+          context={appointment ? `Patient: ${appointment.client_name}` : ''}
+          onApply={(e) => {
+            if (e.symptoms) setSymptoms((prev) => prev ? `${prev}\n${e.symptoms}` : e.symptoms);
+            if (e.general_instructions) setGeneralInstructions((prev) => prev ? `${prev}\n${e.general_instructions}` : e.general_instructions);
+            if (e.vitals) setVitals((v) => ({ ...v, ...Object.fromEntries(Object.entries(e.vitals).filter(([, val]) => val)) }));
+            if (e.medications && e.medications.length > 0) {
+              const cleaned = e.medications.map((m) => ({
+                medicine_name: m.medicine_name || '',
+                dosage: m.dosage || '',
+                frequency: m.frequency || '',
+                duration: m.duration || '',
+                instructions: m.instructions || '',
+                is_tapering: false, taper_schedule: [],
+              }));
+              setMedications((prev) => {
+                const hasEmpty = prev.length === 1 && !prev[0].medicine_name?.trim();
+                return hasEmpty ? cleaned : [...prev, ...cleaned];
+              });
+            }
+            if (e.lab_tests && e.lab_tests.length > 0) {
+              setLabTests((prev) => [
+                ...prev,
+                ...e.lab_tests.map((t) => ({ name: t.name, code: '', category: '', sample: '', notes: t.notes || '' })),
+              ]);
+            }
+          }}
+        />
 
         {/* Vitals header */}
         {vitalsCapturedBy && (

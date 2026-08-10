@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { extractApiError } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
 import { printDocument, renderConsultationNotesHTML } from '@/lib/print';
+import AmbientAIToggle from '@/components/AmbientAIToggle';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -185,6 +186,19 @@ const ConsultationNotesWriter = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Ambient AI Mode */}
+        <AmbientAIToggle
+          context={appointment ? `Patient: ${appointment.client_name}` : ''}
+          onApply={(e) => {
+            const parts = [];
+            if (e.symptoms) parts.push(`Symptoms: ${e.symptoms}`);
+            if (e.provisional_diagnosis) parts.push(`Provisional diagnosis: ${e.provisional_diagnosis}`);
+            const merged = parts.join('\n');
+            if (merged) setSummary((prev) => prev ? `${prev}\n${merged}` : merged);
+            if (e.general_instructions) setRecommendations((prev) => prev ? `${prev}\n${e.general_instructions}` : e.general_instructions);
+          }}
+        />
 
         {/* Session Summary */}
         <Card className="border-slate-200">
