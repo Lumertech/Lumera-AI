@@ -304,6 +304,16 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - `prescriptions.medications[].is_tapering: bool`, `prescriptions.medications[].taper_schedule: [{dosage, frequency, duration, notes}]`
 
 
+## Phase 13 — Legal Rebrand + Meta Submission Packet (2026-02-10) ✅
+- Legal entity name globally updated to **Lumera Solutions LLP** across Policies (Privacy, Terms, WhatsApp Disclaimer, Limitation of Liability), Register page terms consent, RequestPaymentModal consent, and Landing footer. Contact email set to **ravee@lumer.me**. Logo unchanged.
+- Privacy Policy expanded with Meta-required language (WhatsApp Business Platform naming, 90-day retention, `/data-deletion` pointer).
+- Terms of Service now links to Meta's WhatsApp Business Messaging Policy + Business Terms and declares Lumera as a Service Provider (not a reseller).
+- **New `/data-deletion` page + `POST /api/data-deletion/request` endpoint** returning a ticket id (`DEL-*`), stored in `data_deletion_requests` collection with 30-day SLA copy per Meta policy.
+- **New `/privacy` and `/terms` shortcut routes** (redirect to Policies with anchor) — these are the URLs to paste into Meta App Dashboard.
+- Meta submission packet drafted at `/app/memory/META_TECH_PARTNER_PREP.md` (permissions, verbatim paste-blocks, reviewer credentials, 6-minute video script scene-by-scene, template copy, screenshot bundle list, reject-recovery table).
+
+
+
 ## Phase 12 — Clinical Timeline, Allergy Alerts & Voice-to-Vitals (2026-02-10) ✅
 - **Backend regex crash fix** in `/api/safety/timeline/{client_phone}` — phone numbers with `+` now `re.escape`-ed (was crashing with MongoDB `Regular expression is invalid`).
 - **Patient Consult History Timeline**: new reusable `<PatientTimeline />` component. Wired into Patients list ("View Consult History" per client card) and PrescriptionWriter header ("Consult History" button). Aggregates appointments + prescriptions + invoices + ambient AI sessions, newest first.

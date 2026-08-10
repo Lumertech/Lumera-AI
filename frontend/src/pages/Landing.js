@@ -451,7 +451,7 @@ const Landing = () => {
 
             <div className="text-center pt-8 border-t border-slate-800">
               <p className="font-inter text-slate-500 text-sm">
-                © 2025 Lumera AI. All rights reserved. <br className="md:hidden" />
+                © 2026 Lumera Solutions LLP. All rights reserved. <br className="md:hidden" />
                 Made with ❤️ for healthcare professionals.
               </p>
             </div>

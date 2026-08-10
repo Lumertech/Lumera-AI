@@ -3676,6 +3676,9 @@ app.include_router(_meta_wa_router_mod.router, prefix="/api")
 from routes import safety as _safety_router_mod
 app.include_router(_safety_router_mod.router, prefix="/api")
 
+from routes import data_deletion as _data_deletion_router_mod
+app.include_router(_data_deletion_router_mod.router, prefix="/api")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

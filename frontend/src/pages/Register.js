@@ -174,7 +174,7 @@ const Register = () => {
                 htmlFor="terms"
                 className="text-sm font-inter text-slate-700 leading-relaxed cursor-pointer"
               >
-                I agree to Lumera Tech LLC&apos;s{' '}
+                I agree to Lumera Solutions LLP&apos;s{' '}
                 <Link to="/policies#terms-of-service" target="_blank" className="text-indigo-600 hover:underline font-semibold">
                   Terms of Service
                 </Link>

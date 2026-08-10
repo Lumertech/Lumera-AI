@@ -1,253 +1,244 @@
-# Meta Tech Provider / WhatsApp Business Solution Provider — Submission Prep for Lumera
+# Lumera — Meta App Review Submission Packet
+**Company:** Lumera Solutions LLP  
+**Contact:** ravee@lumer.me  
+**Product URL:** https://<your-production-domain>  
+**Privacy:** https://<your-production-domain>/privacy  
+**Terms:** https://<your-production-domain>/terms  
+**Data Deletion:** https://<your-production-domain>/data-deletion
 
-**Purpose:** Everything you need to submit Lumera's Meta app for App Review + Tech Provider verification and pass on the first attempt.
-
-**Product framing (put this in the submission form):**
-> Lumera is an AI-powered clinical practice management platform for Indian doctors. On behalf of doctor tenants who own their own WhatsApp Business phone numbers, Lumera sends appointment confirmations, prescription PDFs, payment links, and post-consult feedback requests, and receives patient replies (booking requests, WhatsApp-bot conversations, feedback). Each doctor connects their own WABA via Embedded Signup; Lumera does not resell WhatsApp messaging.
+> All policy pages, footers, and terms consent lines have been rebranded to **Lumera Solutions LLP** with **ravee@lumer.me** as the contact address. Logo continues to render "Lumera".
 
 ---
 
-## 1. Exact Permissions to Request
+# Part 1 — What to Submit to Meta
 
-Request these **and only these** in Meta App Dashboard → App Review → Permissions and Features. Requesting extra scopes is the #1 reason submissions get delayed.
+## 1.1 Permissions (only these three)
 
-### A. WhatsApp Business Platform (Cloud API path — recommended)
-
-| Permission | Why Lumera needs it | Review evidence you must show |
+| Permission | Access | Where reviewer sees it in the video |
 |---|---|---|
-| `whatsapp_business_messaging` | Send & receive messages on behalf of each connected doctor's WABA phone number (confirmations, reminders, Rx PDFs, feedback, bot replies). | Screencast: doctor logs in → sends a session message → replies to an inbound message. |
-| `whatsapp_business_management` | Register phone numbers, create/manage message templates, read WABA metadata, subscribe webhooks per WABA. | Screencast: Templates page listing an already-approved `appointment_confirmation_v1` template + phone-number registration success toast. |
+| `whatsapp_business_messaging` | Advanced | Scenes 3 & 4 (outbound + inbound message) |
+| `whatsapp_business_management` | Advanced | Scene 2 (templates + phone-number registration) |
+| `business_management` | Advanced | Scene 1 (Embedded Signup) |
 
-### B. Embedded Signup (for onboarding doctors without leaving Lumera)
+Do **not** request `pages_*`, `instagram_*`, `catalog_management`, `ads_management`.
 
-| Permission | Why | Evidence |
-|---|---|---|
-| `business_management` | Required by Meta's Embedded Signup flow so the doctor can create/link a WABA under their own Meta Business Manager. | Screencast: doctor clicks "Connect WhatsApp" → Meta Embedded Signup popup → returns with `waba_id` + `phone_number_id` prefilled. |
+## 1.2 App-review paste-blocks (verbatim into each permission form)
 
-### C. Advanced Access (must be toggled)
+**`whatsapp_business_messaging`**
+> Lumera Solutions LLP is a clinical practice management platform for Indian doctors. Using this permission, Lumera sends session and utility-template messages (appointment confirmations, reminders, prescription PDFs, payment links, feedback prompts) from the connected doctor's own WhatsApp Business number to consenting patients, and receives inbound patient replies. All messages are tenant-isolated per doctor. Consent to WhatsApp communication is captured at appointment-booking time (shown in Scene 3 of the demo video).
 
-For every permission above, on the App Review page, request **Advanced Access**, not Standard. Standard Access will only let the app owner (you) test; doctors won't be able to use it.
+**`whatsapp_business_management`**
+> Lumera lists, creates, and updates message templates and registers phone numbers for the connected doctor's WABA using the Graph API endpoints under `/{waba-id}/message_templates` and `/{phone-number-id}/register`. Doctors manage templates directly inside Lumera (Scene 2 of the demo video) so they never have to open Business Manager.
 
-### D. What NOT to request
-- ❌ `pages_*` — not needed, will trigger extra review.
-- ❌ `instagram_*` — not needed.
-- ❌ `catalog_management` — Lumera doesn't sell products via WhatsApp Commerce (skip unless you plan a shop).
-- ❌ `ads_management` — not needed.
+**`business_management`**
+> Required by WhatsApp Business Embedded Signup so the doctor can select or create a WhatsApp Business Account under their own Meta Business Manager without leaving Lumera (Scene 1 of the demo video). Lumera does not read or modify assets other than the specific WABA and phone number the doctor selects.
 
----
+## 1.3 Reviewer test credentials block (paste into "Notes for App Reviewer")
 
-## 2. Business Verification Prerequisites
-
-Meta will not grant Advanced Access until Business Verification is complete.
-
-1. Meta Business Manager account created for **Lumera** (the company, not a doctor).
-2. Legal business name, address, phone, website (must match filings).
-3. Upload one of: Certificate of Incorporation / GST registration / Utility bill in company name.
-4. Domain verification: add the DNS TXT / meta-tag on `lumera.<your-domain>`.
-5. Two-factor auth ON for every admin of the Business Manager.
-6. Assign the Lumera Meta app to the Business Manager (App Dashboard → Settings → Basic → Business Account).
-
----
-
-## 3. Tech Provider Application (only if you resell messaging capacity)
-
-Skip this **unless** you plan to bill patients or doctors for the WhatsApp messages themselves. Since Lumera's current model has each doctor pay Meta directly via their own WABA, you can submit as a **regular app** with the permissions above and mark Lumera as a "Service Provider" in the WABA sharing settings — no Tech Provider application required initially.
-
-If you later do resell messaging:
-- Apply at: Business Manager → Business Settings → Requests → Solution Partner.
-- Prerequisites: 10 active client WABAs, PSTN business number, dedicated support email, publicly listed pricing page, and a signed Meta Solution Partner Agreement.
-
----
-
-## 4. App Review Submission Checklist
-
-Complete every row before hitting "Submit for Review":
-
-- [ ] App icon 1024×1024 PNG (Lumera "L" logo, transparent bg).
-- [ ] App Category = **Business and Pages**.
-- [ ] Privacy Policy URL = `https://<your-domain>/privacy` (must be live, mention WhatsApp data handling explicitly).
-- [ ] Terms of Service URL = `https://<your-domain>/terms`.
-- [ ] Data Deletion URL = `https://<your-domain>/data-deletion` (must accept a phone number and confirm deletion within 30 days).
-- [ ] User-facing app name = **Lumera**.
-- [ ] App domain(s) added, includes your production domain + any preview domains you demo from.
-- [ ] Webhook URL: `https://<your-domain>/api/meta-whatsapp/webhook` — verified with hub.challenge round-trip.
-- [ ] Webhook subscribed to `messages`, `message_status`, `message_template_status_update`.
-- [ ] HMAC signature verification enabled (Lumera does this — see `meta_whatsapp.py`).
-- [ ] At least one approved WhatsApp template (Utility category recommended for first template).
-- [ ] Screencast video (see Section 6) uploaded per permission.
-- [ ] Reviewer test credentials provided in "Notes for App Reviewer".
-
-### Reviewer test credentials block (paste verbatim into the review notes)
 ```
-Login URL: https://<your-domain>/login
-Reviewer Doctor: reviewer@lumera.demo / MetaReview@2026
-Reviewer Patient WhatsApp: +1-555-META-DEMO (this is the number that will receive test messages)
-Notes: The reviewer account is pre-seeded with 3 dummy patients and 1 pre-approved
-template (utility_appointment_confirmation_v1). All flows are visible without ANY
-paid subscription. Please contact support@lumera.<your-domain> if you need us to
-reset the environment.
+Product: Lumera (by Lumera Solutions LLP)
+Login URL: https://<your-production-domain>/login
+
+Reviewer Doctor account:
+  email:    reviewer@lumer.me
+  password: MetaReview@2026
+
+Reviewer test WhatsApp number (receives all demo messages):
+  +91 <your reviewer phone with WA installed>
+
+Notes:
+- The account is pre-seeded with 3 dummy patients and 4 pre-approved utility
+  templates.
+- All WhatsApp flows are visible without any paid subscription.
+- Data deletion self-service: https://<your-production-domain>/data-deletion
+- For environment resets or a live walkthrough, email ravee@lumer.me.
 ```
-> **Action item:** create this reviewer account in production before submitting and add its creds to `/app/memory/test_credentials.md`.
+
+## 1.4 App Dashboard field values
+
+| Field | Value |
+|---|---|
+| App display name | Lumera |
+| Business Verification legal name | Lumera Solutions LLP |
+| Contact email | ravee@lumer.me |
+| App category | Business and Pages |
+| Privacy Policy URL | https://<your-production-domain>/privacy |
+| Terms of Service URL | https://<your-production-domain>/terms |
+| Data Deletion URL | https://<your-production-domain>/data-deletion |
+| Webhook URL | https://<your-production-domain>/api/meta-whatsapp/webhook |
+| Webhook fields subscribed | `messages`, `message_status`, `message_template_status_update` |
+| Verify token | (paste value shown in Lumera → Settings → WhatsApp Setup) |
 
 ---
 
-## 5. Message Templates — Submit these BEFORE requesting permissions
+# Part 2 — The Demo Video
 
-Templates take 1–24 hrs to approve and must exist before the reviewer can see a real send. Submit these 4 utility templates (all category = **UTILITY**, language = **en / en_IN**):
+**Format:** MP4, ≥ 720p, ≤ 6 minutes, English voice-over, browser + phone screen-record combined.
 
-**5.1 `appointment_confirmation_v1`**
+**Recording tools:** OBS (free) or Loom or QuickTime. Merge with any free editor (DaVinci Resolve, iMovie).
+
+**Two-screen setup:**
+- Left: Laptop showing Lumera (Chrome, fresh profile, URL bar visible).
+- Right: Phone showing WhatsApp (the reviewer phone `+91 <reviewer number>`).
+
+## 2.1 Pre-recording checklist
+
+- [ ] Business Verification for Lumera Solutions LLP is **complete** in Meta Business Manager.
+- [ ] 4 utility templates (see Part 3) are **Approved** by Meta.
+- [ ] `reviewer@lumer.me` account created in production with password `MetaReview@2026` and pre-seeded with 3 dummy patients.
+- [ ] The reviewer WhatsApp phone is added as a **test recipient** in Meta Cloud API for the app.
+- [ ] Privacy, Terms, and Data Deletion pages are live at their public URLs.
+- [ ] Webhook `hub.challenge` handshake confirmed green in App Dashboard → Webhooks.
+
+## 2.2 Full narrated script (read this out loud during the recording)
+
+**[0:00 – 0:15] Title card (static frame)**
+> "Hi Meta Review team, this is Ravee from Lumera Solutions LLP. Lumera is a clinical practice management platform for Indian doctors. This video demonstrates our use of `whatsapp_business_messaging`, `whatsapp_business_management`, and `business_management` in production. Reviewer credentials are in the submission notes."
+
+**[0:15 – 1:15] Scene 1 — `business_management` via Embedded Signup**
+> On the laptop, log in with reviewer@lumer.me. Open Settings → WhatsApp Setup (Meta). Point at the empty state on screen.
+>
+> Voice-over: "Each doctor connects their own WhatsApp Business Account through Embedded Signup — Lumera never resells messaging capacity."
+>
+> Click **Connect WhatsApp**. Meta's Embedded Signup popup appears. Pick your Meta Business Manager → pick or create a WABA → pick the phone number. On return, show the auto-filled `waba_id` and `phone_number_id` plus the green "Connected" badge.
+>
+> Overlay text on screen: `Permission demonstrated: business_management`.
+
+**[1:15 – 2:15] Scene 2 — `whatsapp_business_management`**
+> Click into the **Templates** tab. Show the list containing all four templates in status **APPROVED**.
+>
+> Voice-over: "Doctors create and manage their own message templates from Lumera. We call the Graph API `message_templates` endpoints scoped to their WABA."
+>
+> Click **Create Template**, fill a small demo utility template, and hit **Submit for approval**. Show the pending status.
+>
+> Overlay text: `Permission demonstrated: whatsapp_business_management`.
+
+**[2:15 – 3:45] Scene 3 — Outbound `whatsapp_business_messaging` + consent**
+> Navigate to **Appointments** → open the seeded "Reviewer Demo" appointment.
+>
+> Point at the WhatsApp Consent checkbox in the appointment card.
+>
+> Voice-over: "Every appointment records explicit patient consent to receive WhatsApp messages. Without it, the WhatsApp buttons are disabled."
+>
+> Click **Send Confirmation on WhatsApp**. A toast reads "Sent via WhatsApp."
+>
+> Cut to phone recording: WhatsApp message arrives on the reviewer phone with the templated text `Hi Reviewer Demo, your appointment with Dr. Sarah is confirmed for…`.
+>
+> Overlay text: `Permission demonstrated: whatsapp_business_messaging (outbound)`.
+
+**[3:45 – 5:00] Scene 4 — Inbound `whatsapp_business_messaging` via webhook**
+> On the phone, reply "CONFIRM" to that WhatsApp message.
+>
+> Cut to laptop: within ~3 seconds the reply appears in Lumera's WhatsApp Inbox, and the appointment status flips to **Confirmed**.
+>
+> Voice-over: "Inbound messages hit `/api/meta-whatsapp/webhook`. We verify the X-Hub-Signature-256 HMAC against the doctor's app_secret before writing the message into that doctor's tenant. Replies then drive booking, confirmations, and post-consult feedback flows."
+>
+> Overlay text: `Permission demonstrated: whatsapp_business_messaging (inbound + webhook HMAC)`.
+
+**[5:00 – 5:45] Scene 5 — Data control + deletion (compliance)**
+> Back on the laptop → Settings → WhatsApp Setup → click **Disconnect**. Show the config wiped and outbound buttons disabled.
+>
+> Open a new tab: navigate to `https://<your-production-domain>/data-deletion`. Show the form, type a demo phone number, submit, and show the returned ticket ID.
+>
+> Voice-over: "Doctors can disconnect at any time. Patients can request end-to-end deletion of their WhatsApp history with any Lumera-onboarded doctor from a public self-service page. Deletion is completed within 30 days as documented in our Privacy Policy."
+
+**[5:45 – 6:00] Close**
+> "Thank you for reviewing Lumera. Please reach me at ravee@lumer.me for environment resets or a live walkthrough."
+
+**Editing tips**
+- Add on-screen text overlays every time the scene changes ("Permission demonstrated: …").
+- Never show `localhost`, staging banners, or developer mode notices.
+- Show the browser URL bar clearly whenever you land on a new page.
+
+---
+
+# Part 3 — Utility Message Templates (submit before video)
+
+All: **category = UTILITY**, **language = en / en_IN**. Do not include marketing or promotional language.
+
+### 3.1 `appointment_confirmation_v1`
 ```
 Hi {{1}}, your appointment with Dr. {{2}} is confirmed for {{3}} at {{4}}.
 Clinic: {{5}}. Reply CANCEL to cancel or RESCHEDULE to change.
 - Lumera
 ```
-Variables: patient name, doctor name, date, time, clinic name.
+Vars: patient name · doctor name · date · time · clinic name.
 
-**5.2 `appointment_reminder_v1`**
+### 3.2 `appointment_reminder_v1`
 ```
 Reminder: Hi {{1}}, you have an appointment tomorrow at {{2}} with Dr. {{3}}.
 Please reach 10 minutes early. Reply CONFIRM to confirm.
 ```
 
-**5.3 `prescription_ready_v1`** (with document header)
+### 3.3 `prescription_ready_v1` (header: DOCUMENT)
 ```
 Hi {{1}}, Dr. {{2}} has issued your prescription from today's visit.
 Please find it attached. Next follow-up: {{3}}.
 - Lumera
 ```
-Header: DOCUMENT. Body vars: patient name, doctor name, follow-up date.
 
-**5.4 `payment_link_v1`** (with URL button)
+### 3.4 `payment_link_v1` (button: URL "Pay Now" → `https://pay.<your-domain>/{{5}}`)
 ```
 Hi {{1}}, please complete your payment of ₹{{2}} for the consultation with
 Dr. {{3}} on {{4}} using the secure link below. This link expires in 24 hours.
 ```
-Button: URL, text "Pay Now", URL = `https://pay.lumera.<your-domain>/{{5}}`.
-
-> **Do not** add marketing/promotional lines — Meta rejects utility templates that read like ads.
 
 ---
 
-## 6. Demo Video Script (record with OBS or Loom, 4–6 min total)
+# Part 4 — Documentation Bundle to Attach
 
-Meta requires ONE video per permission or a single video covering all. A single video is safer. Keep it **under 6 minutes**, resolution **1280×720+**, format **mp4**.
+Zip and upload (Meta lets you attach PDFs/PNGs to each permission request):
 
-### Pre-recording setup
-- Log out of every browser session; use a fresh Chrome profile.
-- Zoom OS/browser to 110% so text is readable.
-- Have two devices ready: laptop (Lumera app) + phone (WhatsApp receiving end).
-- Pre-approve at least `appointment_confirmation_v1`.
-- Pre-seed one patient named "Reviewer Demo" with WhatsApp number = the reviewer test number.
-
-### Script
-
-**[0:00 – 0:15] Cover slide (static frame)**
-> "Hi Meta Review Team, I'm <name>, founder of Lumera. Lumera is a clinical practice management platform for Indian doctors. This video walks through why we need `whatsapp_business_messaging`, `whatsapp_business_management`, and `business_management`, showing each in production."
-
-**[0:15 – 1:15] Scene 1 — Doctor connects their own WhatsApp (proves `business_management` + Embedded Signup)**
-- On laptop, log in as `sarah@test.com`.
-- Navigate: Settings → **WhatsApp Setup** (Meta) — show current empty state.
-- Click **Connect WhatsApp** → Meta Embedded Signup popup appears.
-- Complete popup: pick Business Manager → pick/create WABA → pick phone number.
-- Return to Lumera; show `waba_id` and `phone_number_id` auto-filled + green "Connected" badge.
-- Voice-over: *"Each doctor connects their own WhatsApp Business Account. Lumera stores `waba_id` and `phone_number_id` scoped to that doctor tenant — we never share numbers across tenants."*
-
-**[1:15 – 2:15] Scene 2 — Template management (proves `whatsapp_business_management`)**
-- Navigate to **Templates** tab.
-- Show the list including `appointment_confirmation_v1` marked **Approved**.
-- Click **Create Template** → fill sample utility template → submit for approval.
-- Voice-over: *"Doctors create and manage their own message templates from inside Lumera. We call the Graph API `message_templates` endpoints under the doctor's WABA."*
-
-**[2:15 – 3:45] Scene 3 — Send a session message (proves `whatsapp_business_messaging` outbound)**
-- Navigate to **Appointments** → open the seeded Reviewer Demo appointment → click **Send Confirmation on WhatsApp**.
-- Show Lumera toast: "Sent via WhatsApp".
-- Cut to phone recording: WhatsApp message arriving on reviewer test number, showing the templated text.
-- Voice-over: *"Lumera sends the approved utility template using the doctor's WABA. All messages are consented to at appointment-booking time — we show that consent checkbox next."*
-- Briefly show the consent checkbox in the appointment-booking form.
-
-**[3:45 – 5:00] Scene 4 — Receive a reply (proves `whatsapp_business_messaging` inbound + webhook)**
-- On the phone, reply "CONFIRM" to the message.
-- Cut to laptop: show the reply appearing in Lumera's **WhatsApp Inbox** in under 5 seconds.
-- Then show the **Appointments** row status flipping to "Confirmed".
-- Voice-over: *"Inbound messages hit `/api/meta-whatsapp/webhook`, which verifies the `X-Hub-Signature-256` HMAC before writing to the doctor's tenant. Patient replies drive Lumera's booking bot, appointment confirmation, and post-consult feedback flows."*
-
-**[5:00 – 5:45] Scene 5 — Data control & deletion**
-- Navigate to Settings → **WhatsApp Setup** → **Disconnect** button.
-- Click Disconnect → show confirmation → show config wiped and no more messages can be sent.
-- Also show the Data Deletion URL page (`/data-deletion`).
-- Voice-over: *"Doctors can disconnect at any time. We also expose a self-service data deletion endpoint per Meta policy."*
-
-**[5:45 – 6:00] Close**
-> "Thank you for reviewing Lumera. Please reach us at support@lumera.<your-domain> if you need environment resets or a live walkthrough."
-
-### Recording tips that pass review
-- Show the URL bar clearly — reviewers want to see your real domain, not `localhost`.
-- Never show test-mode "app is in development" banners in the video.
-- Speak the permission names out loud as you demo them.
-- If any UI is in an unusual state (e.g., empty), narrate why — silence gets flagged.
+1. **Company_Registration.pdf** — LLP incorporation certificate of Lumera Solutions LLP.
+2. **GST_Certificate.pdf** — GST registration in the LLP's legal name.
+3. **Address_Proof.pdf** — utility bill / bank letter in the LLP's registered address.
+4. **Domain_Ownership.png** — screenshot of your DNS panel showing the Meta verification TXT record for `<your-domain>`.
+5. **Screenshot_PrivacyPolicy.png** — full-page capture of `/privacy` clearly showing the WhatsApp/Meta paragraph and "Lumera Solutions LLP" name.
+6. **Screenshot_Terms.png** — full-page capture of `/terms` including the Meta Business Terms link.
+7. **Screenshot_DataDeletion.png** — full-page capture of `/data-deletion` form.
+8. **Screenshot_MetaSetup.png** — Lumera Settings → WhatsApp Setup showing per-tenant credential fields.
+9. **Screenshot_Templates.png** — templates list with the 4 approved utility templates.
+10. **Screenshot_Consent.png** — appointment-booking form with the WhatsApp consent checkbox circled.
+11. **Screenshot_Inbox.png** — Lumera WhatsApp Inbox with an inbound message from a test patient.
+12. **Screenshot_Webhook_Health.png** — Meta App Dashboard showing webhook verified (green) and subscribed fields.
+13. **Lumera_Demo.mp4** — the 4–6 minute recording from Part 2.
 
 ---
 
-## 7. Compliance Copy You Must Have on the Site
+# Part 5 — Do This Exact Sequence
 
-Meta reviewers open these URLs. Missing text = instant reject.
-
-**Privacy Policy — required paragraphs:**
-> Lumera uses the WhatsApp Business Platform to send appointment confirmations, reminders, prescription documents, payment links, and to receive patient replies on behalf of the doctor you visit. Message content is stored encrypted for up to 90 days for audit purposes and can be deleted at any time by writing to privacy@lumera.<your-domain> or via our data deletion tool at https://<your-domain>/data-deletion. Lumera does not sell WhatsApp data to third parties. WhatsApp is a trademark of Meta Platforms, Inc.
-
-**Terms of Service — required paragraphs:**
-> Doctors connecting a WhatsApp Business Account via Lumera agree to Meta's WhatsApp Business Messaging Policy (https://www.whatsapp.com/legal/business-policy) and Business Terms of Service (https://www.whatsapp.com/legal/business-terms). Lumera acts as a Service Provider under the doctor's Business Account.
-
-**Data Deletion page:**
-- Input: WhatsApp phone number.
-- Server behavior: enqueue a job to purge messages / patient records tied to that number across all doctor tenants within 30 days; email a confirmation.
-
----
-
-## 8. Submission Order (do these in this exact order)
-
-1. Complete Business Verification (may take 3–5 business days).
-2. Pre-approve 4 utility templates (Section 5).
-3. Create reviewer account in production + add to `/app/memory/test_credentials.md`.
-4. Publish Privacy + Terms + Data Deletion pages.
-5. Verify webhook URL + HMAC signature works end-to-end with a real Meta test event.
-6. Record demo video (Section 6).
-7. In App Review → **Add Permissions** → tick `whatsapp_business_messaging`, `whatsapp_business_management`, `business_management` (Advanced Access on each).
-8. For each permission: paste the "How will you use this?" text (see Section 9), upload the same video, add screenshots.
-9. Submit.
-
-Expected timeline: **3–7 business days** for App Review after Business Verification is done.
+1. Complete **Business Verification** for **Lumera Solutions LLP** in Meta Business Manager. (3–5 biz days.)
+2. Submit the 4 utility templates in Part 3. (1–24 hrs.)
+3. Create the `reviewer@lumer.me / MetaReview@2026` production account and seed 3 demo patients + 1 demo appointment named "Reviewer Demo".
+4. Confirm `/privacy`, `/terms`, `/data-deletion` are publicly reachable on your production domain.
+5. Test-fire the webhook: hit **Test** in Meta App Dashboard → Webhooks → Messages, confirm a 200 with HMAC verified.
+6. Record the demo video following Part 2 exactly.
+7. Collect all files listed in Part 4 into a folder named `Lumera_MetaReview_<yyyy-mm-dd>`.
+8. In App Dashboard → **App Review** → **Add Permissions**: tick the 3 permissions from 1.1, paste the paragraphs from 1.2, upload the video, upload the screenshots.
+9. Paste the reviewer credential block from 1.3 into "Notes for App Reviewer".
+10. Submit. Expect a decision in **3–7 business days**.
 
 ---
 
-## 9. "How will you use this permission?" — copy/paste answers
+# Part 6 — Compliance Copy Already Live in the App
 
-**`whatsapp_business_messaging`:**
-> Lumera sends session and utility-template messages (appointment confirmations, reminders, prescription PDFs, payment links, feedback prompts) from the connected doctor's WhatsApp Business number to their consenting patients, and receives inbound patient replies which drive the doctor's booking, confirmation, and feedback flows inside Lumera. All messages are tenant-isolated: a doctor only accesses their own patients' WhatsApp conversations. Consent to WhatsApp communication is captured at appointment-booking time and shown in Section 3 of the demo video.
+The following texts are already rendered on the site (do not remove — reviewers will read them):
 
-**`whatsapp_business_management`:**
-> Lumera lists, creates, and updates message templates and registers phone numbers for the connected doctor's WABA using the Graph API endpoints under `/{waba-id}/message_templates` and `/{phone-number-id}/register`. Doctors manage templates directly in Lumera (Section 2 of the demo video) rather than having to open Business Manager.
-
-**`business_management`:**
-> Required by WhatsApp Business Embedded Signup so the doctor can select or create a WhatsApp Business Account under their own Meta Business Manager from inside Lumera (Section 1 of the demo video). Lumera does not read or modify assets other than the specific WABA and phone number the doctor selects.
+- **`/privacy`** — explicit paragraph naming Meta Platforms, Inc., WhatsApp Business Platform usage, 90-day retention, and pointer to `/data-deletion`.
+- **`/terms`** — links to WhatsApp Business Messaging Policy and Business Terms of Service; states Lumera Solutions LLP acts as a Service Provider and does not resell messaging capacity.
+- **`/data-deletion`** — public form accepting phone number, issues a ticket ID, and states 30-day fulfilment SLA.
+- **Landing footer** — `© 2026 Lumera Solutions LLP. All rights reserved.`
+- **Registration + payment consent lines** — updated to Lumera Solutions LLP.
 
 ---
 
-## 10. If Meta rejects — the 3 most common reasons and fixes
+# Part 7 — If Meta Rejects
 
-| Reject reason | What to change |
+| Reject reason | Fix |
 |---|---|
-| "We were unable to log in with the credentials provided." | The reviewer account expired or password changed. Re-verify creds in `test_credentials.md` and reset. |
-| "Video did not clearly show how this permission is used." | Add a text overlay in your video (e.g., "Now demonstrating whatsapp_business_messaging") each time you switch scenes. |
-| "Privacy Policy does not mention WhatsApp usage." | Add the exact paragraph from Section 7 verbatim. |
+| Cannot log in with credentials provided | Reset `reviewer@lumer.me` and re-add to submission notes. |
+| Video doesn't clearly show permission usage | Add on-screen text overlay ("Permission demonstrated: X") each scene change. Re-record only the scene concerned. |
+| Privacy Policy doesn't mention WhatsApp / Meta | Confirm `/privacy` renders the paragraph from Part 6 exactly. |
+| Business Verification pending | Complete verification before re-submitting. |
 
-Iterate on the same review ticket — Meta lets you re-submit for the same permission within 60 days without paying/re-verifying.
-
----
-
-## Appendix A — Lumera's technical readiness (already done, cite in submission notes)
-
-- Webhook: `POST /api/meta-whatsapp/webhook` with HMAC-SHA256 signature verification against `app_secret` (see `/app/backend/routes/meta_whatsapp.py`).
-- Verification handshake: `GET /api/meta-whatsapp/webhook?hub.mode=subscribe&hub.verify_token=…&hub.challenge=…` returns challenge iff token matches a stored doctor config.
-- Per-tenant credential storage: `meta_whatsapp_configs` collection, keyed by `owner_id`, stores `app_id`, `app_secret`, `waba_id`, `phone_number_id`, `system_user_token`, `webhook_verify_token`.
-- Setup UI: `/settings/whatsapp` (`MetaWhatsAppSetup.js`) exposes copy-webhook, save creds, and disconnect actions.
+You can iterate on the same review ticket free of cost within 60 days.

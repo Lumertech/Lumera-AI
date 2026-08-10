@@ -8,6 +8,7 @@ import '@/App.css';
 // Pages
 import Landing from '@/pages/Landing';
 import Policies from '@/pages/Policies';
+import DataDeletion from '@/pages/DataDeletion';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import WhatsAppLogin from '@/pages/WhatsAppLogin';
@@ -122,6 +123,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/policies" element={<Policies />} />
+          <Route path="/privacy" element={<Navigate to="/policies#privacy-policy" replace />} />
+          <Route path="/terms" element={<Navigate to="/policies#terms-of-service" replace />} />
+          <Route path="/data-deletion" element={<DataDeletion />} />
           <Route
             path="/whatsapp-login"
             element={

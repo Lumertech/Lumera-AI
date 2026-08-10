@@ -60,7 +60,7 @@ const Policies = () => {
               📜 Policies & Disclaimers
             </h1>
             <p className="text-lg text-slate-600 font-inter">
-              Lumera Tech LLC
+              Lumera Solutions LLP
             </p>
           </div>
 
@@ -95,12 +95,14 @@ const Policies = () => {
                   <h2 className="font-manrope font-bold text-2xl text-slate-900">Privacy Policy</h2>
                 </div>
                 <div className="space-y-4 text-slate-700 font-inter">
-                  <p>Lumera Tech LLC ("Lumera") values your privacy.</p>
-                  <p>We collect personal information such as name, contact details, appointment history, and payment records to provide scheduling, reminders, and communication services.</p>
+                  <p>Lumera Solutions LLP ("Lumera") values your privacy.</p>
+                  <p>Lumera provides a clinical practice management platform used by registered doctors and allied health professionals in India. On behalf of each doctor (our "Customer"), we send appointment confirmations, reminders, prescription documents, payment links and post-consult feedback prompts, and receive patient replies over the WhatsApp Business Platform operated by Meta Platforms, Inc.</p>
+                  <p>We collect personal information such as name, contact details, appointment history, and payment records to provide scheduling, reminders, and communication services. Message content sent or received via WhatsApp is stored encrypted for up to 90 days for audit purposes and can be deleted earlier on request.</p>
                   <ul className="list-disc pl-6 space-y-2">
                     <li>Data is stored securely and used only for service delivery.</li>
                     <li>We do not sell or share personal data with third parties except for trusted integrations (WhatsApp Business API, Razorpay, Google Calendar).</li>
-                    <li>You may contact us at <a href="mailto:ravee@lumer.me" className="text-indigo-600 hover:underline">ravee@lumer.me</a> for privacy queries or to request deletion of your data.</li>
+                    <li>Lumera does not sell WhatsApp message content or contact data to any third party. WhatsApp is a trademark of Meta Platforms, Inc.</li>
+                    <li>You may contact us at <a href="mailto:ravee@lumer.me" className="text-indigo-600 hover:underline">ravee@lumer.me</a> for privacy queries, or request deletion of your data via our self-service page at <a href="/data-deletion" className="text-indigo-600 hover:underline">/data-deletion</a>. Deletion requests are honoured within 30 days.</li>
                     <li>This policy is governed by <strong>Indian law, Pune jurisdiction</strong>.</li>
                   </ul>
                 </div>
@@ -124,6 +126,7 @@ const Policies = () => {
                     <li>Accept that Lumera is a facilitator of communication and scheduling, not a medical or professional service provider.</li>
                     <li>Acknowledge that liability for advice, prescriptions, or services rests solely with the registered professional.</li>
                   </ul>
+                  <p>Doctors connecting a WhatsApp Business Account via Lumera additionally agree to Meta's <a href="https://www.whatsapp.com/legal/business-policy" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">WhatsApp Business Messaging Policy</a> and <a href="https://www.whatsapp.com/legal/business-terms" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">WhatsApp Business Terms of Service</a>. Lumera Solutions LLP acts as a Service Provider under the doctor's WhatsApp Business Account and does not resell WhatsApp messaging capacity.</p>
                   <p>Refunds and cancellations are subject to the Payment Disclaimer below.</p>
                   <p>These Terms are governed by <strong>Indian law, Pune jurisdiction</strong>.</p>
                 </div>
@@ -177,9 +180,10 @@ const Policies = () => {
                   <h2 className="font-manrope font-bold text-2xl text-slate-900">WhatsApp Communication Disclaimer</h2>
                 </div>
                 <div className="space-y-4 text-slate-700 font-inter">
-                  <p>Communication occurs via the <strong>WhatsApp Business API</strong>.</p>
-                  <p>Patients will see the professional's verified WhatsApp number.</p>
-                  <p>Lumera is not responsible for delivery issues or delays caused by WhatsApp.</p>
+                  <p>Communication occurs via the <strong>WhatsApp Business Platform</strong> operated by Meta Platforms, Inc.</p>
+                  <p>Patients will see the professional's verified WhatsApp Business number when Lumera delivers appointment confirmations, reminders, prescription PDFs, payment links, and feedback requests on the doctor's behalf. Patient consent for WhatsApp communication is captured at appointment-booking time and can be withdrawn at any time by replying <strong>STOP</strong>.</p>
+                  <p>Lumera Solutions LLP is not responsible for delivery issues, message-template rejections, rate limits, or delays caused by WhatsApp / Meta. WhatsApp is a trademark of Meta Platforms, Inc.</p>
+                  <p>To request deletion of your WhatsApp message history with a Lumera-onboarded doctor, visit <a href="/data-deletion" className="text-indigo-600 hover:underline">/data-deletion</a> or email <a href="mailto:ravee@lumer.me" className="text-indigo-600 hover:underline">ravee@lumer.me</a>.</p>
                 </div>
               </CardContent>
             </Card>
@@ -228,7 +232,7 @@ const Policies = () => {
                   <h2 className="font-manrope font-bold text-2xl text-slate-900">Limitation of Liability</h2>
                 </div>
                 <div className="space-y-4 text-slate-700 font-inter">
-                  <p>Lumera Tech LLC is a medium for communication and scheduling.</p>
+                  <p>Lumera Solutions LLP is a medium for communication and scheduling.</p>
                   <p>We are not liable for missed appointments, miscommunication, or errors in medical or service delivery.</p>
                   <p>Responsibility lies solely with the professional.</p>
                 </div>
