@@ -304,6 +304,20 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - `prescriptions.medications[].is_tapering: bool`, `prescriptions.medications[].taper_schedule: [{dosage, frequency, duration, notes}]`
 
 
+## Phase 16 — Expanded Drug & Lab Dictionaries with Fuzzy Search (2026-02-10) ✅
+- **New builder** `backend/build_clinical_data.py`: expands ~180 curated Indian brand+generic seeds across common Indian dose forms (Tablet / DS / SR / Kid / Syrup / Suspension / Injection) → writes `data/indian_drugs.json`.
+- **Drug catalogue grew 104 → 2,370** (23× larger). 59 categories: Analgesic, NSAID, Antibiotic, PPI, H2 Blocker, Antihistamine, Cough, Antidiabetic, Insulin, Statin, Beta Blocker, ACE Inhibitor, ARB, CCB, Diuretic, Anxiolytic, SSRI/SNRI, Bronchodilator, Steroid Inhaler, Corticosteroid, Antiemetic, Laxative, Supplement, Thyroid, Antifungal, Antiviral, Antimalarial, Antihelminthic, Muscle Relaxant, Ophthalmic, Topical, Anticonvulsant, OCP, Progestogen, Anticoagulant, Immunosuppressant, Alpha Blocker, PDE5 Inhibitor and more.
+- **Lab catalogue grew 81 → 271** with LOINC codes. 19 categories: Hematology, Coagulation, Biochemistry, Lipid, Endocrine, Urine, Serology, Microbiology, Cytology, Histopathology, Immunohematology, Andrology, Genetics, Tumor Markers, Radiology (X-ray / USG / CT / MRI / DEXA / PET-CT / Nuclear / Mammography), Cardiology (ECG / 2D Echo / TMT / Holter), Neurology (EEG / EMG / NCV), Pulmonology (PFT / Spirometry).
+- **Fuzzy search upgrade** in `routes/clinical_data.py`: 3-tier ranking using stdlib `difflib.SequenceMatcher`:
+  - Rank 0: direct substring hit (`panto` → Pantop*)
+  - Rank 1: per-token prefix hit (`cbc` → CBC panel)
+  - Rank 2: fuzzy ratio ≥ 0.55 (handles typos like `diabtes`)
+  Haystacks pre-computed at import — search stays sub-millisecond even on 2,370 rows.
+- **Endpoints unchanged** — frontend `DrugAutocomplete` / `LabTestPicker` in `components/PrescriptionExtras.js` continue to work without any changes.
+- Live-verified in the UI: `panto` in Medication field shows 6+ Pantoprazole variants; `cbc` in Lab search returns Complete Blood Count.
+
+
+
 ## Phase 15 — WhatsApp Templates Seeder (2026-02-10) ✅
 - **Single source of truth** `backend/whatsapp_templates.py` — 4 utility templates (`appointment_confirmation_v1`, `appointment_reminder_v1`, `prescription_ready_v1`, `payment_link_v1`) with body text, variable examples, footer "Lumera Solutions LLP", DOCUMENT header on prescription, URL button on payment link.
 - **CLI publisher** `backend/seed_whatsapp_templates.py`: one-shot Graph API publisher. Resolves creds from CLI args → env vars → Mongo `meta_whatsapp_configs`. Supports `--dry-run`. Idempotent (Meta error codes 2388023/100 treated as `already_exists`).

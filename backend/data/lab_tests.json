@@ -1,99 +1,1630 @@
 {
   "lab_tests": [
-    {"name": "Complete Blood Count (CBC)", "category": "Hematology", "code": "CBC", "sample": "Blood"},
-    {"name": "Hemoglobin (Hb)", "category": "Hematology", "code": "HB", "sample": "Blood"},
-    {"name": "Peripheral Smear", "category": "Hematology", "code": "PS", "sample": "Blood"},
-    {"name": "ESR", "category": "Hematology", "code": "ESR", "sample": "Blood"},
-    {"name": "Reticulocyte Count", "category": "Hematology", "code": "RETIC", "sample": "Blood"},
-    {"name": "Platelet Count", "category": "Hematology", "code": "PLT", "sample": "Blood"},
-
-    {"name": "Fasting Blood Sugar (FBS)", "category": "Diabetes", "code": "FBS", "sample": "Blood (Fasting)"},
-    {"name": "Post-Prandial Blood Sugar (PPBS)", "category": "Diabetes", "code": "PPBS", "sample": "Blood (Post meal)"},
-    {"name": "HbA1c (Glycated Hemoglobin)", "category": "Diabetes", "code": "HBA1C", "sample": "Blood"},
-    {"name": "Random Blood Sugar (RBS)", "category": "Diabetes", "code": "RBS", "sample": "Blood"},
-    {"name": "OGTT (75g Glucose Tolerance)", "category": "Diabetes", "code": "OGTT", "sample": "Blood"},
-    {"name": "Fasting Insulin", "category": "Diabetes", "code": "F-INS", "sample": "Blood (Fasting)"},
-
-    {"name": "Lipid Profile", "category": "Cardiac", "code": "LIPID", "sample": "Blood (Fasting)"},
-    {"name": "Troponin I / T", "category": "Cardiac", "code": "TROP", "sample": "Blood"},
-    {"name": "ECG (12-lead)", "category": "Cardiac", "code": "ECG", "sample": "Non-invasive"},
-    {"name": "2D Echocardiography", "category": "Cardiac", "code": "ECHO", "sample": "Non-invasive"},
-    {"name": "TMT / Stress Test", "category": "Cardiac", "code": "TMT", "sample": "Non-invasive"},
-    {"name": "NT-proBNP", "category": "Cardiac", "code": "PROBNP", "sample": "Blood"},
-
-    {"name": "LFT (Liver Function Test)", "category": "Biochemistry", "code": "LFT", "sample": "Blood"},
-    {"name": "KFT / RFT (Renal Function)", "category": "Biochemistry", "code": "KFT", "sample": "Blood"},
-    {"name": "Serum Creatinine", "category": "Biochemistry", "code": "CREAT", "sample": "Blood"},
-    {"name": "Serum Uric Acid", "category": "Biochemistry", "code": "URIC", "sample": "Blood"},
-    {"name": "Serum Electrolytes (Na/K/Cl)", "category": "Biochemistry", "code": "ELECT", "sample": "Blood"},
-    {"name": "Serum Calcium", "category": "Biochemistry", "code": "CA", "sample": "Blood"},
-    {"name": "Serum Amylase", "category": "Biochemistry", "code": "AMY", "sample": "Blood"},
-    {"name": "Serum Lipase", "category": "Biochemistry", "code": "LIP", "sample": "Blood"},
-
-    {"name": "TSH (Thyroid Stimulating Hormone)", "category": "Endocrine", "code": "TSH", "sample": "Blood"},
-    {"name": "T3 / T4 / TSH (Complete Thyroid Panel)", "category": "Endocrine", "code": "THYR", "sample": "Blood"},
-    {"name": "Free T3 / Free T4", "category": "Endocrine", "code": "FT3FT4", "sample": "Blood"},
-    {"name": "Anti-TPO Antibodies", "category": "Endocrine", "code": "ATPO", "sample": "Blood"},
-    {"name": "Cortisol (AM/PM)", "category": "Endocrine", "code": "CORT", "sample": "Blood"},
-    {"name": "Vitamin D (25-OH)", "category": "Endocrine", "code": "VITD", "sample": "Blood"},
-    {"name": "Vitamin B12", "category": "Endocrine", "code": "B12", "sample": "Blood"},
-
-    {"name": "Urine Routine & Microscopy", "category": "Urine", "code": "URINE-R", "sample": "Urine"},
-    {"name": "Urine Culture & Sensitivity", "category": "Urine", "code": "URINE-C", "sample": "Urine"},
-    {"name": "24-hour Urine Protein", "category": "Urine", "code": "URINE-24H", "sample": "Urine (24h)"},
-    {"name": "Urine Microalbumin", "category": "Urine", "code": "MAU", "sample": "Urine"},
-
-    {"name": "Stool Routine", "category": "Stool", "code": "STOOL-R", "sample": "Stool"},
-    {"name": "Stool Culture", "category": "Stool", "code": "STOOL-C", "sample": "Stool"},
-    {"name": "Stool for Occult Blood", "category": "Stool", "code": "SOB", "sample": "Stool"},
-
-    {"name": "CRP (C-Reactive Protein)", "category": "Inflammation", "code": "CRP", "sample": "Blood"},
-    {"name": "Procalcitonin", "category": "Inflammation", "code": "PCT", "sample": "Blood"},
-    {"name": "ANA / RA Factor", "category": "Autoimmune", "code": "ANA", "sample": "Blood"},
-    {"name": "Anti-CCP", "category": "Autoimmune", "code": "ACCP", "sample": "Blood"},
-
-    {"name": "Dengue NS1 / IgM / IgG", "category": "Infection", "code": "DENGUE", "sample": "Blood"},
-    {"name": "Malaria Parasite / MP-QBC", "category": "Infection", "code": "MP", "sample": "Blood"},
-    {"name": "Typhidot / Widal", "category": "Infection", "code": "WIDAL", "sample": "Blood"},
-    {"name": "HIV I & II (ELISA)", "category": "Infection", "code": "HIV", "sample": "Blood"},
-    {"name": "HBsAg", "category": "Infection", "code": "HBSAG", "sample": "Blood"},
-    {"name": "Anti-HCV", "category": "Infection", "code": "HCV", "sample": "Blood"},
-    {"name": "VDRL", "category": "Infection", "code": "VDRL", "sample": "Blood"},
-    {"name": "COVID-19 RT-PCR", "category": "Infection", "code": "COVID-PCR", "sample": "Nasal Swab"},
-    {"name": "COVID-19 Rapid Antigen", "category": "Infection", "code": "COVID-RAT", "sample": "Nasal Swab"},
-
-    {"name": "Chest X-Ray PA View", "category": "Radiology", "code": "CXR", "sample": "Radiology"},
-    {"name": "Ultrasound Whole Abdomen", "category": "Radiology", "code": "USG-A", "sample": "Radiology"},
-    {"name": "Ultrasound Pelvis", "category": "Radiology", "code": "USG-P", "sample": "Radiology"},
-    {"name": "Ultrasound KUB", "category": "Radiology", "code": "USG-KUB", "sample": "Radiology"},
-    {"name": "CT Scan Brain (Plain)", "category": "Radiology", "code": "CT-BRAIN", "sample": "Radiology"},
-    {"name": "CT Scan Chest", "category": "Radiology", "code": "CT-CHEST", "sample": "Radiology"},
-    {"name": "MRI Brain", "category": "Radiology", "code": "MRI-BRAIN", "sample": "Radiology"},
-    {"name": "MRI Spine (LS)", "category": "Radiology", "code": "MRI-LS", "sample": "Radiology"},
-    {"name": "MRI Knee", "category": "Radiology", "code": "MRI-KNEE", "sample": "Radiology"},
-
-    {"name": "PSA (Prostate Specific Antigen)", "category": "Onco", "code": "PSA", "sample": "Blood"},
-    {"name": "CEA", "category": "Onco", "code": "CEA", "sample": "Blood"},
-    {"name": "CA-125 (Ovarian)", "category": "Onco", "code": "CA125", "sample": "Blood"},
-    {"name": "CA 19-9 (Pancreas)", "category": "Onco", "code": "CA199", "sample": "Blood"},
-    {"name": "AFP", "category": "Onco", "code": "AFP", "sample": "Blood"},
-
-    {"name": "Beta HCG (Pregnancy)", "category": "Pregnancy", "code": "BHCG", "sample": "Blood"},
-    {"name": "Urine Pregnancy Test (UPT)", "category": "Pregnancy", "code": "UPT", "sample": "Urine"},
-    {"name": "Anomaly Scan (18-20 wk)", "category": "Pregnancy", "code": "TIFFA", "sample": "Radiology"},
-    {"name": "NT Scan (11-13 wk)", "category": "Pregnancy", "code": "NT", "sample": "Radiology"},
-    {"name": "Double Marker", "category": "Pregnancy", "code": "DUAL", "sample": "Blood"},
-    {"name": "Triple / Quadruple Marker", "category": "Pregnancy", "code": "QUAD", "sample": "Blood"},
-
-    {"name": "PT / INR", "category": "Coagulation", "code": "PT", "sample": "Blood"},
-    {"name": "APTT", "category": "Coagulation", "code": "APTT", "sample": "Blood"},
-    {"name": "D-Dimer", "category": "Coagulation", "code": "DDIM", "sample": "Blood"},
-
-    {"name": "Blood Group & Rh Typing", "category": "Preop", "code": "BGRP", "sample": "Blood"},
-    {"name": "Pre-anesthetic checkup (PAC)", "category": "Preop", "code": "PAC", "sample": "Clinical"},
-
-    {"name": "Semen Analysis", "category": "Andrology", "code": "SEMEN", "sample": "Semen"},
-    {"name": "PAP Smear", "category": "Gynec", "code": "PAP", "sample": "Cervical smear"},
-    {"name": "HPV DNA", "category": "Gynec", "code": "HPV", "sample": "Cervical swab"}
+    {
+      "name": "Complete Blood Count (CBC)",
+      "code": "58410-2",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Hemoglobin (Hb)",
+      "code": "718-7",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Hematocrit (PCV)",
+      "code": "4544-3",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "RBC Count",
+      "code": "789-8",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "WBC Count (TLC)",
+      "code": "6690-2",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Differential WBC (DLC)",
+      "code": "24318-8",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Platelet Count",
+      "code": "777-3",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "MCV",
+      "code": "787-2",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "MCH",
+      "code": "785-6",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "MCHC",
+      "code": "786-4",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "RDW",
+      "code": "788-0",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "ESR",
+      "code": "4537-7",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Peripheral Smear",
+      "code": "10254-5",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Reticulocyte Count",
+      "code": "4679-7",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Coombs Test (Direct)",
+      "code": "1006-3",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Coombs Test (Indirect)",
+      "code": "1007-1",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Prothrombin Time (PT)",
+      "code": "5902-2",
+      "category": "Coagulation",
+      "sample": "Blood"
+    },
+    {
+      "name": "INR",
+      "code": "6301-6",
+      "category": "Coagulation",
+      "sample": "Blood"
+    },
+    {
+      "name": "APTT / PTT",
+      "code": "3173-2",
+      "category": "Coagulation",
+      "sample": "Blood"
+    },
+    {
+      "name": "D-Dimer",
+      "code": "48065-7",
+      "category": "Coagulation",
+      "sample": "Blood"
+    },
+    {
+      "name": "Fibrinogen",
+      "code": "3255-7",
+      "category": "Coagulation",
+      "sample": "Blood"
+    },
+    {
+      "name": "Bleeding Time",
+      "code": "3184-9",
+      "category": "Coagulation",
+      "sample": "Blood"
+    },
+    {
+      "name": "Clotting Time",
+      "code": "3185-6",
+      "category": "Coagulation",
+      "sample": "Blood"
+    },
+    {
+      "name": "Random Blood Sugar (RBS)",
+      "code": "2345-7",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Fasting Blood Sugar (FBS)",
+      "code": "1558-6",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Post-Prandial Blood Sugar (PPBS)",
+      "code": "1521-4",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "HbA1c (Glycated Hemoglobin)",
+      "code": "4548-4",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "OGTT (75g)",
+      "code": "20438-8",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Urea",
+      "code": "3094-0",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Blood Urea Nitrogen (BUN)",
+      "code": "3094-0",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Creatinine",
+      "code": "2160-0",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "eGFR",
+      "code": "48642-3",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Uric Acid",
+      "code": "3084-1",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Sodium (Na)",
+      "code": "2951-2",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Potassium (K)",
+      "code": "2823-3",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Chloride (Cl)",
+      "code": "2075-0",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Calcium (Total)",
+      "code": "17861-6",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Calcium (Ionized)",
+      "code": "1994-3",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Phosphorus",
+      "code": "2777-1",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Magnesium",
+      "code": "2601-3",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Total Protein",
+      "code": "2885-2",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Albumin",
+      "code": "1751-7",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Globulin",
+      "code": "10834-0",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "A:G Ratio",
+      "code": "1759-0",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Bilirubin (Total)",
+      "code": "1975-2",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Bilirubin (Direct)",
+      "code": "1968-7",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Bilirubin (Indirect)",
+      "code": "1971-1",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "SGOT / AST",
+      "code": "1920-8",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "SGPT / ALT",
+      "code": "1742-6",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Alkaline Phosphatase (ALP)",
+      "code": "6768-6",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "GGT",
+      "code": "2324-2",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "LDH",
+      "code": "2532-0",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Amylase",
+      "code": "1798-8",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Lipase",
+      "code": "3040-3",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "CK Total",
+      "code": "2157-6",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "CK-MB",
+      "code": "13969-1",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Troponin I",
+      "code": "10839-9",
+      "category": "Cardiology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Troponin T",
+      "code": "6598-7",
+      "category": "Cardiology",
+      "sample": "Blood"
+    },
+    {
+      "name": "NT-proBNP",
+      "code": "33762-6",
+      "category": "Cardiology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Homocysteine",
+      "code": "13965-9",
+      "category": "Cardiology",
+      "sample": "Blood"
+    },
+    {
+      "name": "hs-CRP",
+      "code": "30522-7",
+      "category": "Inflammation",
+      "sample": "Blood"
+    },
+    {
+      "name": "CRP (Qualitative)",
+      "code": "1988-5",
+      "category": "Inflammation",
+      "sample": "Blood"
+    },
+    {
+      "name": "Procalcitonin",
+      "code": "33959-8",
+      "category": "Inflammation",
+      "sample": "Blood"
+    },
+    {
+      "name": "Ferritin",
+      "code": "2276-4",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Iron (Serum)",
+      "code": "2498-4",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Total Iron Binding Capacity (TIBC)",
+      "code": "2500-7",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Transferrin Saturation",
+      "code": "2502-3",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Vitamin B12",
+      "code": "2132-9",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Folic Acid / Folate",
+      "code": "2284-8",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Vitamin D (25-OH)",
+      "code": "1989-3",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Vitamin D Total",
+      "code": "62292-8",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Ammonia",
+      "code": "3010-6",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Lactate",
+      "code": "32693-4",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "ABG (Arterial Blood Gas)",
+      "code": "24336-0",
+      "category": "Biochemistry",
+      "sample": "Blood"
+    },
+    {
+      "name": "Lipid Profile",
+      "code": "57698-3",
+      "category": "Lipid",
+      "sample": "Blood"
+    },
+    {
+      "name": "Total Cholesterol",
+      "code": "2093-3",
+      "category": "Lipid",
+      "sample": "Blood"
+    },
+    {
+      "name": "HDL Cholesterol",
+      "code": "2085-9",
+      "category": "Lipid",
+      "sample": "Blood"
+    },
+    {
+      "name": "LDL Cholesterol",
+      "code": "13457-7",
+      "category": "Lipid",
+      "sample": "Blood"
+    },
+    {
+      "name": "VLDL",
+      "code": "13458-5",
+      "category": "Lipid",
+      "sample": "Blood"
+    },
+    {
+      "name": "Triglycerides",
+      "code": "2571-8",
+      "category": "Lipid",
+      "sample": "Blood"
+    },
+    {
+      "name": "Non-HDL Cholesterol",
+      "code": "43396-1",
+      "category": "Lipid",
+      "sample": "Blood"
+    },
+    {
+      "name": "Apolipoprotein A1",
+      "code": "1869-7",
+      "category": "Lipid",
+      "sample": "Blood"
+    },
+    {
+      "name": "Apolipoprotein B",
+      "code": "1884-6",
+      "category": "Lipid",
+      "sample": "Blood"
+    },
+    {
+      "name": "Lipoprotein(a)",
+      "code": "10835-7",
+      "category": "Lipid",
+      "sample": "Blood"
+    },
+    {
+      "name": "Thyroid Profile (T3, T4, TSH)",
+      "code": "24357-6",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "TSH",
+      "code": "3016-3",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Free T3 (FT3)",
+      "code": "3051-0",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Free T4 (FT4)",
+      "code": "3024-7",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Total T3",
+      "code": "3053-6",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Total T4",
+      "code": "3026-2",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Anti-TPO Antibody",
+      "code": "8099-5",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Anti-Thyroglobulin",
+      "code": "8098-7",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Reverse T3",
+      "code": "3053-6",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Cortisol (Morning)",
+      "code": "2143-6",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Cortisol (Evening)",
+      "code": "2143-6",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "ACTH",
+      "code": "2141-0",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Growth Hormone",
+      "code": "2963-7",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "IGF-1",
+      "code": "2484-4",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Prolactin",
+      "code": "2842-3",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "FSH",
+      "code": "15067-2",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "LH",
+      "code": "10501-5",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Estradiol (E2)",
+      "code": "14715-7",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Progesterone",
+      "code": "2839-9",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Testosterone (Total)",
+      "code": "2986-8",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Testosterone (Free)",
+      "code": "2991-8",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "DHEA-S",
+      "code": "2191-5",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Insulin (Fasting)",
+      "code": "1554-5",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "C-Peptide",
+      "code": "1986-9",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "PTH (Parathyroid Hormone)",
+      "code": "2731-8",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Vitamin B12",
+      "code": "2132-9",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "AMH (Anti-Mullerian Hormone)",
+      "code": "38476-9",
+      "category": "Endocrine",
+      "sample": "Blood"
+    },
+    {
+      "name": "Urine Routine & Microscopy",
+      "code": "24356-8",
+      "category": "Urine",
+      "sample": "Urine"
+    },
+    {
+      "name": "Urine Culture & Sensitivity",
+      "code": "630-4",
+      "category": "Microbiology",
+      "sample": "Urine"
+    },
+    {
+      "name": "Urine Pregnancy Test (UPT)",
+      "code": "2106-3",
+      "category": "Urine",
+      "sample": "Urine"
+    },
+    {
+      "name": "Urine Ketone Bodies",
+      "code": "2514-8",
+      "category": "Urine",
+      "sample": "Urine"
+    },
+    {
+      "name": "Urine Microalbumin",
+      "code": "14957-5",
+      "category": "Urine",
+      "sample": "Urine"
+    },
+    {
+      "name": "Urine Microalbumin-Creatinine Ratio (ACR)",
+      "code": "9318-7",
+      "category": "Urine",
+      "sample": "Urine"
+    },
+    {
+      "name": "24-Hour Urine Protein",
+      "code": "2888-6",
+      "category": "Urine",
+      "sample": "Urine"
+    },
+    {
+      "name": "24-Hour Urine Creatinine",
+      "code": "2161-8",
+      "category": "Urine",
+      "sample": "Urine"
+    },
+    {
+      "name": "Urine Bence-Jones Protein",
+      "code": "13952-7",
+      "category": "Urine",
+      "sample": "Urine"
+    },
+    {
+      "name": "Urine Metanephrines",
+      "code": "9269-2",
+      "category": "Urine",
+      "sample": "Urine"
+    },
+    {
+      "name": "Urine VMA",
+      "code": "1911-7",
+      "category": "Urine",
+      "sample": "Urine"
+    },
+    {
+      "name": "Widal Test (Typhoid)",
+      "code": "5041-9",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Dengue NS1 Antigen",
+      "code": "44961-1",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Dengue IgM",
+      "code": "25340-1",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Dengue IgG",
+      "code": "25342-7",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Malaria (MP) Antigen",
+      "code": "20464-4",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Malaria Parasite Smear",
+      "code": "3151-8",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Chikungunya IgM",
+      "code": "50693-2",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Scrub Typhus IgM",
+      "code": "51820-0",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Leptospira IgM",
+      "code": "5203-5",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "VDRL / RPR",
+      "code": "5292-8",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "TPHA",
+      "code": "5290-2",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "HIV I & II (ELISA)",
+      "code": "56888-1",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "HIV I & II (Rapid)",
+      "code": "42891-2",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "HBsAg",
+      "code": "5195-3",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Anti-HBs (Hepatitis B Ab)",
+      "code": "5193-8",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "HBeAg",
+      "code": "5192-0",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Anti-HBc IgM",
+      "code": "5187-0",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "HCV Antibody",
+      "code": "16128-1",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Hepatitis A IgM",
+      "code": "22314-9",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Hepatitis E IgM",
+      "code": "22322-2",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "ASO Titre",
+      "code": "12245-2",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "RA Factor",
+      "code": "11572-5",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Anti-CCP",
+      "code": "32664-6",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "ANA (Antinuclear Antibody)",
+      "code": "5048-4",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Anti-dsDNA",
+      "code": "5133-4",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Complement C3",
+      "code": "4485-9",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Complement C4",
+      "code": "4498-2",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "COVID RT-PCR",
+      "code": "94500-6",
+      "category": "Microbiology",
+      "sample": "Nasal Swab"
+    },
+    {
+      "name": "COVID Rapid Antigen",
+      "code": "94558-4",
+      "category": "Microbiology",
+      "sample": "Nasal Swab"
+    },
+    {
+      "name": "COVID IgG Antibody",
+      "code": "94505-5",
+      "category": "Serology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Sputum AFB Smear",
+      "code": "666-8",
+      "category": "Microbiology",
+      "sample": "Sputum"
+    },
+    {
+      "name": "Sputum Culture & Sensitivity",
+      "code": "10357-6",
+      "category": "Microbiology",
+      "sample": "Sputum"
+    },
+    {
+      "name": "Gene Xpert (MTB)",
+      "code": "88519-5",
+      "category": "Microbiology",
+      "sample": "Sputum"
+    },
+    {
+      "name": "Blood Culture",
+      "code": "600-7",
+      "category": "Microbiology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Stool Routine",
+      "code": "10366-7",
+      "category": "Microbiology",
+      "sample": "Stool"
+    },
+    {
+      "name": "Stool Culture",
+      "code": "625-4",
+      "category": "Microbiology",
+      "sample": "Stool"
+    },
+    {
+      "name": "Stool Occult Blood",
+      "code": "14563-1",
+      "category": "Microbiology",
+      "sample": "Stool"
+    },
+    {
+      "name": "H. Pylori (Urea Breath Test)",
+      "code": "42630-4",
+      "category": "Microbiology",
+      "sample": "Breath"
+    },
+    {
+      "name": "H. Pylori Antigen (Stool)",
+      "code": "45094-0",
+      "category": "Microbiology",
+      "sample": "Stool"
+    },
+    {
+      "name": "Pus Culture & Sensitivity",
+      "code": "6462-6",
+      "category": "Microbiology",
+      "sample": "Pus"
+    },
+    {
+      "name": "Throat Swab Culture",
+      "code": "623-9",
+      "category": "Microbiology",
+      "sample": "Swab"
+    },
+    {
+      "name": "Ear Swab Culture",
+      "code": "618-9",
+      "category": "Microbiology",
+      "sample": "Swab"
+    },
+    {
+      "name": "Vaginal Swab",
+      "code": "17909-3",
+      "category": "Microbiology",
+      "sample": "Swab"
+    },
+    {
+      "name": "CSF Analysis",
+      "code": "24363-4",
+      "category": "Microbiology",
+      "sample": "CSF"
+    },
+    {
+      "name": "CSF Culture",
+      "code": "601-5",
+      "category": "Microbiology",
+      "sample": "CSF"
+    },
+    {
+      "name": "PSA (Prostate Specific Antigen)",
+      "code": "2857-1",
+      "category": "Tumor Marker",
+      "sample": "Blood"
+    },
+    {
+      "name": "Free PSA",
+      "code": "10886-0",
+      "category": "Tumor Marker",
+      "sample": "Blood"
+    },
+    {
+      "name": "CA 125",
+      "code": "10334-1",
+      "category": "Tumor Marker",
+      "sample": "Blood"
+    },
+    {
+      "name": "CA 15-3",
+      "code": "6875-9",
+      "category": "Tumor Marker",
+      "sample": "Blood"
+    },
+    {
+      "name": "CA 19-9",
+      "code": "24108-3",
+      "category": "Tumor Marker",
+      "sample": "Blood"
+    },
+    {
+      "name": "CEA (Carcinoembryonic Antigen)",
+      "code": "2039-6",
+      "category": "Tumor Marker",
+      "sample": "Blood"
+    },
+    {
+      "name": "AFP (Alpha Fetoprotein)",
+      "code": "1834-1",
+      "category": "Tumor Marker",
+      "sample": "Blood"
+    },
+    {
+      "name": "Beta HCG",
+      "code": "19080-1",
+      "category": "Tumor Marker",
+      "sample": "Blood"
+    },
+    {
+      "name": "Thyroglobulin",
+      "code": "3013-0",
+      "category": "Tumor Marker",
+      "sample": "Blood"
+    },
+    {
+      "name": "Calcitonin",
+      "code": "1988-5",
+      "category": "Tumor Marker",
+      "sample": "Blood"
+    },
+    {
+      "name": "Chromogranin A",
+      "code": "34550-4",
+      "category": "Tumor Marker",
+      "sample": "Blood"
+    },
+    {
+      "name": "X-Ray Chest PA View",
+      "code": "24648-8",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Chest AP View",
+      "code": "36572-5",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Chest Lateral",
+      "code": "42169-3",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Abdomen Erect",
+      "code": "36026-2",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Abdomen Supine",
+      "code": "44115-4",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Skull AP/Lateral",
+      "code": "37697-9",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Cervical Spine",
+      "code": "36006-4",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Lumbar Spine",
+      "code": "36034-6",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Dorsal Spine",
+      "code": "36037-9",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Pelvis AP",
+      "code": "36030-4",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Knee AP/Lateral",
+      "code": "36088-2",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Shoulder AP/Axial",
+      "code": "36109-6",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Hand AP/Oblique",
+      "code": "36061-9",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Foot AP/Oblique",
+      "code": "36055-1",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "X-Ray Sinuses (PNS)",
+      "code": "36055-1",
+      "category": "Radiology",
+      "sample": "X-ray"
+    },
+    {
+      "name": "USG Abdomen",
+      "code": "24558-9",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Whole Abdomen",
+      "code": "24560-5",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Upper Abdomen",
+      "code": "42160-2",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Pelvis",
+      "code": "24601-7",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG KUB (Kidney-Ureter-Bladder)",
+      "code": "24607-4",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Obstetric (Level I)",
+      "code": "37770-4",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Obstetric (Level II / Anomaly)",
+      "code": "37836-3",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Doppler (Renal)",
+      "code": "39061-6",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Doppler (Carotid)",
+      "code": "37728-2",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Doppler (Lower Limb Arterial)",
+      "code": "45036-1",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Doppler (Lower Limb Venous)",
+      "code": "45042-9",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Doppler (Fetal)",
+      "code": "18744-3",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Thyroid",
+      "code": "37955-1",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Breast",
+      "code": "37770-4",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Neck",
+      "code": "24630-6",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "USG Scrotum",
+      "code": "43460-5",
+      "category": "Radiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "CT Brain (Plain)",
+      "code": "24725-4",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "CT Brain with Contrast",
+      "code": "30799-1",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "CT Chest (HRCT)",
+      "code": "24628-0",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "CT Chest with Contrast",
+      "code": "30655-5",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "CT Abdomen with Contrast",
+      "code": "24725-4",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "CT Whole Abdomen (Triple Phase)",
+      "code": "42150-3",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "CT Neck",
+      "code": "30666-2",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "CT KUB",
+      "code": "30646-4",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "CT PNS (Sinuses)",
+      "code": "30638-1",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "CT Angiography (Coronary)",
+      "code": "42405-1",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "CT Angiography (Pulmonary)",
+      "code": "30692-8",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "CT Angiography (Renal)",
+      "code": "30693-6",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "CT Spine (Cervical)",
+      "code": "30649-8",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "CT Spine (Lumbar)",
+      "code": "30655-5",
+      "category": "Radiology",
+      "sample": "CT"
+    },
+    {
+      "name": "MRI Brain (Plain)",
+      "code": "24590-2",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MRI Brain with Contrast",
+      "code": "24591-0",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MRI Cervical Spine",
+      "code": "24587-8",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MRI Lumbo-Sacral Spine",
+      "code": "24638-9",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MRI Whole Spine Screening",
+      "code": "24710-6",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MRI Abdomen",
+      "code": "43467-0",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MRI Pelvis",
+      "code": "43473-8",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MRI Knee",
+      "code": "24597-7",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MRI Shoulder",
+      "code": "24601-7",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MRI Hip",
+      "code": "43470-4",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MRI Ankle",
+      "code": "43466-2",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MRI Wrist",
+      "code": "43476-1",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MRCP (Cholangiopancreatography)",
+      "code": "37826-4",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MR Angiography (Brain)",
+      "code": "26374-9",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "MR Venogram",
+      "code": "36831-5",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "Functional MRI (fMRI)",
+      "code": "43478-7",
+      "category": "Radiology",
+      "sample": "MRI"
+    },
+    {
+      "name": "ECG (12 Lead)",
+      "code": "11524-6",
+      "category": "Cardiology",
+      "sample": "ECG"
+    },
+    {
+      "name": "Echocardiogram (2D Echo)",
+      "code": "34552-0",
+      "category": "Cardiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "Echocardiogram (Colour Doppler)",
+      "code": "34553-8",
+      "category": "Cardiology",
+      "sample": "Ultrasound"
+    },
+    {
+      "name": "TMT (Treadmill Test)",
+      "code": "48027-7",
+      "category": "Cardiology",
+      "sample": "Test"
+    },
+    {
+      "name": "Holter Monitoring (24 hr)",
+      "code": "18752-6",
+      "category": "Cardiology",
+      "sample": "Test"
+    },
+    {
+      "name": "Holter Monitoring (48 hr)",
+      "code": "18752-6",
+      "category": "Cardiology",
+      "sample": "Test"
+    },
+    {
+      "name": "EEG (Electroencephalogram)",
+      "code": "11543-6",
+      "category": "Neurology",
+      "sample": "Test"
+    },
+    {
+      "name": "EMG (Electromyography)",
+      "code": "11542-8",
+      "category": "Neurology",
+      "sample": "Test"
+    },
+    {
+      "name": "NCV (Nerve Conduction Velocity)",
+      "code": "11539-4",
+      "category": "Neurology",
+      "sample": "Test"
+    },
+    {
+      "name": "Pulmonary Function Test (PFT)",
+      "code": "34534-8",
+      "category": "Pulmonology",
+      "sample": "Test"
+    },
+    {
+      "name": "Spirometry",
+      "code": "19835-8",
+      "category": "Pulmonology",
+      "sample": "Test"
+    },
+    {
+      "name": "Mammography (Screening)",
+      "code": "24605-8",
+      "category": "Radiology",
+      "sample": "Mammography"
+    },
+    {
+      "name": "Mammography (Diagnostic)",
+      "code": "24606-6",
+      "category": "Radiology",
+      "sample": "Mammography"
+    },
+    {
+      "name": "DEXA Scan (Bone Density)",
+      "code": "38265-5",
+      "category": "Radiology",
+      "sample": "DEXA"
+    },
+    {
+      "name": "PET-CT Whole Body",
+      "code": "44139-4",
+      "category": "Radiology",
+      "sample": "PET-CT"
+    },
+    {
+      "name": "PET-CT Brain",
+      "code": "44140-2",
+      "category": "Radiology",
+      "sample": "PET-CT"
+    },
+    {
+      "name": "Bone Scan (Tc-99m)",
+      "code": "39142-4",
+      "category": "Radiology",
+      "sample": "Nuclear"
+    },
+    {
+      "name": "Thyroid Scan (Tc-99m)",
+      "code": "39147-3",
+      "category": "Radiology",
+      "sample": "Nuclear"
+    },
+    {
+      "name": "Renal DTPA Scan",
+      "code": "39150-7",
+      "category": "Radiology",
+      "sample": "Nuclear"
+    },
+    {
+      "name": "Pap Smear",
+      "code": "10524-7",
+      "category": "Cytology",
+      "sample": "Cervical Swab"
+    },
+    {
+      "name": "FNAC",
+      "code": "26436-6",
+      "category": "Cytology",
+      "sample": "Biopsy"
+    },
+    {
+      "name": "Skin Biopsy",
+      "code": "22633-2",
+      "category": "Histopathology",
+      "sample": "Biopsy"
+    },
+    {
+      "name": "Endoscopic Biopsy",
+      "code": "22635-7",
+      "category": "Histopathology",
+      "sample": "Biopsy"
+    },
+    {
+      "name": "Bone Marrow Aspiration",
+      "code": "26440-8",
+      "category": "Hematology",
+      "sample": "Bone Marrow"
+    },
+    {
+      "name": "Bone Marrow Biopsy",
+      "code": "22637-3",
+      "category": "Histopathology",
+      "sample": "Bone Marrow"
+    },
+    {
+      "name": "Semen Analysis",
+      "code": "24362-6",
+      "category": "Andrology",
+      "sample": "Semen"
+    },
+    {
+      "name": "Karyotyping",
+      "code": "31200-9",
+      "category": "Genetics",
+      "sample": "Blood"
+    },
+    {
+      "name": "Hemoglobin Electrophoresis",
+      "code": "13538-4",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "G6PD Deficiency Screen",
+      "code": "10535-3",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Sickle Cell Screen",
+      "code": "20472-7",
+      "category": "Hematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Blood Group & Rh Typing",
+      "code": "883-9",
+      "category": "Immunohematology",
+      "sample": "Blood"
+    },
+    {
+      "name": "Cross Match",
+      "code": "882-1",
+      "category": "Immunohematology",
+      "sample": "Blood"
+    }
   ]
 }
