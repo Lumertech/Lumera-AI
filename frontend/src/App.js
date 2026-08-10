@@ -54,7 +54,10 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Admin routes redirect to admin login; everything else to user login
+    const path = location.pathname || '';
+    const target = path.startsWith('/admin') ? '/admin/login' : '/login';
+    return <Navigate to={target} replace />;
   }
 
   // Admins should always be in /admin/*; auto-redirect if they hit user routes

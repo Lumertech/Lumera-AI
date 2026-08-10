@@ -165,7 +165,7 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - UPI auto-reconciliation (PhonePe Business API)
 - Razorpay activation (pending user keys)
 - Azure Speech end-to-end activation (pending user keys)
-- Exotel webhook integration for incoming calls
+- **Call screener (Android app)** — user has decided to skip Exotel telephony wiring in the web app; call-screening voice bot will be built alongside the Android app (uses the existing ElevenLabs + unified bot logic pipeline)
 - `server.py` refactor into routers (`routes/voice.py`, `routes/whatsapp.py`, …)
 
 ## Key Endpoints (Phase 1 additions)
