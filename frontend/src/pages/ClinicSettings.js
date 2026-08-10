@@ -13,7 +13,7 @@ import { extractApiError } from '@/lib/errors';
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
 const emptyClinic = { name: '', address: '', phone: '', email: '', branding_color: '#4F46E5', is_primary: false };
-const emptySub = { name: '', email: '', phone_number: '', password: '', clinic_id: '' };
+const emptySub = { name: '', email: '', phone_number: '', password: '', clinic_id: '', role: 'front_desk' };
 
 const ClinicSettings = () => {
   const [clinics, setClinics] = useState([]);
@@ -86,21 +86,21 @@ const ClinicSettings = () => {
     setCreatingSub(true);
     try {
       await axios.post(`${API_URL}/clinics/sub-users`, subForm);
-      toast.success('Receptionist added');
+      toast.success('Team member added');
       setSubForm(emptySub);
       refresh();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || 'Failed to add receptionist');
+      toast.error(err?.response?.data?.detail || 'Failed to add team member');
     } finally {
       setCreatingSub(false);
     }
   };
 
   const deleteSubUser = async (id) => {
-    if (!window.confirm('Delete this receptionist?')) return;
+    if (!window.confirm('Remove this team member?')) return;
     try {
       await axios.delete(`${API_URL}/clinics/sub-users/${id}`);
-      toast.success('Receptionist removed');
+      toast.success('Team member removed');
       refresh();
     } catch (err) {
       toast.error('Failed to delete');
@@ -125,7 +125,7 @@ const ClinicSettings = () => {
             <h1 className="font-manrope font-bold text-2xl text-slate-900 mb-1 flex items-center gap-2">
               <Building2 className="h-6 w-6 text-indigo-600" /> Clinic Management
             </h1>
-            <p className="text-sm text-slate-600 font-inter">Manage multi-location clinics and receptionist sub-users. Receptionists can only manage appointments — they cannot edit pricing, bot instructions, or see prescriptions.</p>
+            <p className="text-sm text-slate-600 font-inter">Manage multi-location clinics and clinic staff (Front Desk and Assistants). Sub-users cannot edit pricing, bot instructions, or view prescriptions.</p>
           </CardContent>
         </Card>
 
@@ -208,17 +208,22 @@ const ClinicSettings = () => {
         {/* Receptionists */}
         <Card>
           <CardHeader>
-            <CardTitle className="font-manrope flex items-center gap-2"><Users className="h-5 w-5" /> Receptionists ({subs.length})</CardTitle>
+            <CardTitle className="font-manrope flex items-center gap-2"><Users className="h-5 w-5" /> Clinic Staff ({subs.length})</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {subs.length === 0 && <p className="text-sm text-slate-500">No receptionists yet. You can add up to 2 per clinic.</p>}
+            {subs.length === 0 && <p className="text-sm text-slate-500">No staff yet. Add up to 2 Front Desk + 2 Assistant per clinic.</p>}
             {subs.map((s) => {
               const clinic = clinics.find((c) => c.id === s.clinic_id);
+              const roleLabel = s.role === 'assistant' ? 'Assistant' : 'Front Desk';
+              const roleClass = s.role === 'assistant' ? 'bg-amber-100 text-amber-800' : 'bg-teal-100 text-teal-800';
               return (
                 <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200" data-testid={`sub-user-${s.id}`}>
-                  <div>
-                    <p className="font-manrope font-semibold">{s.name}</p>
-                    <p className="text-xs text-slate-500">{s.email} · {clinic ? clinic.name : 'No clinic'}</p>
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <p className="font-manrope font-semibold">{s.name}</p>
+                      <p className="text-xs text-slate-500">{s.email} · {clinic ? clinic.name : 'No clinic'}</p>
+                    </div>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${roleClass}`}>{roleLabel}</span>
                   </div>
                   <Button size="sm" variant="ghost" onClick={() => deleteSubUser(s.id)} data-testid={`delete-sub-${s.id}`}>
                     <Trash2 className="h-4 w-4 text-red-500" />
@@ -232,7 +237,7 @@ const ClinicSettings = () => {
         {/* Add receptionist */}
         <Card>
           <CardHeader>
-            <CardTitle className="font-manrope flex items-center gap-2"><UserPlus className="h-5 w-5" /> Add Receptionist</CardTitle>
+            <CardTitle className="font-manrope flex items-center gap-2"><UserPlus className="h-5 w-5" /> Add Staff Member</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid md:grid-cols-2 gap-3">
@@ -259,10 +264,22 @@ const ClinicSettings = () => {
                   {clinics.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
+              <div className="md:col-span-2">
+                <Label className="text-xs">Role</Label>
+                <select
+                  value={subForm.role}
+                  onChange={(e) => setSubForm({ ...subForm, role: e.target.value })}
+                  className="w-full h-10 rounded-md border border-slate-300 px-3 bg-white text-sm"
+                  data-testid="sub-role-select"
+                >
+                  <option value="front_desk">Front Desk — manage appointments, clients, reminders</option>
+                  <option value="assistant">Assistant — view schedules, update appointment status, read-only clients</option>
+                </select>
+              </div>
             </div>
-            <p className="text-xs text-slate-500">Receptionists can only manage appointments. They cannot view/edit pricing, bot instructions, prescriptions, or revenue.</p>
+            <p className="text-xs text-slate-500">Neither role can view/edit pricing, bot instructions, prescriptions, or revenue. Assistants have stricter read-mostly access.</p>
             <Button onClick={createSubUser} disabled={creatingSub} className="bg-indigo-600 hover:bg-indigo-700" data-testid="create-sub-btn">
-              {creatingSub ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserPlus className="h-4 w-4 mr-2" />} Add Receptionist
+              {creatingSub ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserPlus className="h-4 w-4 mr-2" />} Add Staff Member
             </Button>
           </CardContent>
         </Card>

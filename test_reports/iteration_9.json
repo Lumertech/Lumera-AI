@@ -1,0 +1,58 @@
+{
+  "summary": "Iteration 9 RBAC re-verification completed against the public URL. All five iteration_8 fixes passed: Sarah is role=doctor; assistant appointment/invoice/consultation-note boundaries work; front_desk appointment CRUD and invoice creation work; consultation notes block all sub-user roles; and role-neutral Clinic Staff UI copy renders. Backend regression: 50/52 passed (96.2%). Two new security assertions failed because assistant/front_desk client-detail responses expose full prescriptions and private doctor notes. Frontend doctor/admin guard, Doctor badge, standard /login admin redirect, role dropdown, and UI assistant creation passed; dedicated /admin/login still redirects to /login after successful authentication.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/clients/{client_id}",
+        "issue": "Assistant and front_desk both receive the doctor's full prescriptions array, including private_doctor_notes, through client detail. This contradicts the stated restriction that sub-users cannot view prescriptions and leaks sensitive clinical data.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Dedicated admin login at /admin/login",
+        "issue": "POST /api/admin/login returns 200 with a valid admin token/user, but clicking 'Sign In as Admin' navigates through /admin/dashboard and ProtectedRoute immediately redirects to /login. Standard admin login through /login works and reaches /admin/dashboard.",
+        "affected_selectors": ["input[type='email']", "input[type='password']", "button:has-text('Sign In as Admin')"]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Clinic Settings header",
+        "issues": [
+          "The explanatory sentence repeats the same restriction twice: 'Sub-users cannot edit pricing, bot instructions, or view prescriptions. — they cannot edit pricing, bot instructions, or see prescriptions.'"
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_rbac.py",
+    "/app/test_reports/pytest/iteration_9_rbac.xml"
+  ],
+  "action_items": [
+    "Prevent receptionist/front_desk/assistant from receiving prescriptions in GET /api/clients/{client_id}; verify private_doctor_notes cannot be exposed through any sub-user response.",
+    "Make AdminLogin update AuthContext user/token state (or use an AuthContext admin-login method) before navigating so /admin/login remains authenticated at /admin/dashboard.",
+    "Remove the duplicated Clinic Settings restriction sentence.",
+    "Add data-testid attributes to AdminLogin inputs/buttons and AdminLayout navigation/actions for stable automation."
+  ],
+  "critical_code_review_comments": [
+    "server.py get_client checks only `role != 'receptionist'` before querying prescriptions. Because front_desk/assistant now resolve to the parent owner, both roles receive parent prescriptions and private_doctor_notes. Use the complete restricted-role tuple or only include prescriptions for an authorized owner/doctor.",
+    "AdminLogin writes localStorage and axios defaults directly but never updates AuthProvider state. ProtectedRoute therefore sees user=null in the same SPA lifecycle and redirects to /login despite successful /api/admin/login.",
+    "AdminLogin and AdminLayout still omit data-testid on key controls; server.py static analysis also reports seven bare-except blocks."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_rbac.py"
+  ],
+  "success_rate": {
+    "backend": "96.2% (50/52)",
+    "frontend": "88% (Doctor badge/navigation, doctor admin guard, Clinic Staff UI, assistant creation, and standard admin redirect passed; dedicated /admin/login failed)"
+  },
+  "seed_data_creation": "Each pytest run created a unique TEST_RBAC clinic, assistant (Asst@12345), front_desk (Fd@12345), legacy receptionist, appointment/client, invoices, consultation note, and isolated prescription; teardown removed them. UI created and then deleted one TEST_UI_RBAC clinic and assistant.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Re-run test_rbac.py after fixes. The two deterministic failures are TestSubUserClientPrivacy for assistant and front_desk. Also retest /admin/login directly, not only the general /login route. The requested iteration_8 fixes otherwise passed, including all assistant appointment status/write cases, invoice POST/PUT blocks, consultation-note POST/GET/by-appointment/PUT blocks, front_desk CRUD/invoice creation, Sarah role/auth-me, Hexa, drug interactions, transcription, reminders, and patient portal smoke.",
+  "rca_of_the_issue": "Prescription leak RCA: server.py GET /clients/{id} excludes prescriptions only when role == 'receptionist'; the new front_desk and assistant roles take the permissive branch and, after owner resolution, receive parent prescriptions including private notes. Admin login RCA: AdminLogin stores credentials outside AuthContext and calls SPA navigate; AuthProvider's in-memory token/user remain null, so ProtectedRoute redirects to /login. Standard /login works because AuthContext.login sets user state."
+}

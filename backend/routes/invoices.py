@@ -178,6 +178,8 @@ async def get_invoice(invoice_id: str, current_user: dict = Depends(get_current_
 
 @router.post("/invoices")
 async def create_invoice(payload: InvoiceCreate, current_user: dict = Depends(get_current_user)):
+    if current_user.get('role') == 'assistant':
+        raise HTTPException(status_code=403, detail="Assistants cannot create invoices")
     owner_id = resolve_owner_id(current_user)
     items = [it.dict() for it in payload.items]
     if not items:
@@ -222,6 +224,8 @@ async def create_invoice(payload: InvoiceCreate, current_user: dict = Depends(ge
 
 @router.put("/invoices/{invoice_id}")
 async def update_invoice(invoice_id: str, payload: InvoiceUpdate, current_user: dict = Depends(get_current_user)):
+    if current_user.get('role') == 'assistant':
+        raise HTTPException(status_code=403, detail="Assistants cannot modify invoices")
     owner_id = resolve_owner_id(current_user)
     existing = await db.invoices.find_one({"id": invoice_id, "owner_id": owner_id}, {"_id": 0})
     if not existing:

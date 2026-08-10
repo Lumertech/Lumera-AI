@@ -9,8 +9,9 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Phone, Mic, Settings, Globe, Shield, Volume2, PlayCircle, History } from 'lucide-react';
+import { Phone, Mic, Settings, Globe, Shield, Volume2, PlayCircle, History, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import ElevenLabsVoicePanel from './ElevenLabsVoicePanel';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -165,24 +166,33 @@ const VoiceBotConfig = () => {
         </div>
 
         <Tabs defaultValue="settings" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="settings" className="flex items-center space-x-2">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="settings" className="flex items-center space-x-2" data-testid="voicebot-tab-settings">
               <Settings className="h-4 w-4" />
               <span>Settings</span>
             </TabsTrigger>
-            <TabsTrigger value="exotel" className="flex items-center space-x-2">
+            <TabsTrigger value="ai-voice" className="flex items-center space-x-2" data-testid="voicebot-tab-ai-voice">
+              <Sparkles className="h-4 w-4" />
+              <span>AI Voice</span>
+            </TabsTrigger>
+            <TabsTrigger value="exotel" className="flex items-center space-x-2" data-testid="voicebot-tab-exotel">
               <Phone className="h-4 w-4" />
               <span>Exotel</span>
             </TabsTrigger>
-            <TabsTrigger value="test" className="flex items-center space-x-2">
+            <TabsTrigger value="test" className="flex items-center space-x-2" data-testid="voicebot-tab-test">
               <Mic className="h-4 w-4" />
               <span>Test TTS</span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center space-x-2">
+            <TabsTrigger value="history" className="flex items-center space-x-2" data-testid="voicebot-tab-history">
               <History className="h-4 w-4" />
               <span>Call History</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* AI Voice — ElevenLabs */}
+          <TabsContent value="ai-voice">
+            <ElevenLabsVoicePanel />
+          </TabsContent>
 
           {/* General Settings */}
           <TabsContent value="settings">

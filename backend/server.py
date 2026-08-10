@@ -470,16 +470,23 @@ async def get_admin_user(current_user: dict = Depends(get_current_user)):
     return current_user
 
 def resolve_owner_id(current_user: dict) -> str:
-    """Returns parent doctor's user_id for sub-users (receptionists), else the user's own id.
+    """Returns parent owner's user_id for sub-users (receptionist/front_desk/assistant), else the user's own id.
     All clinic-scoped data (appointments, clients, prescriptions) is stored under the owning doctor."""
-    if current_user.get('role') == 'receptionist' and current_user.get('parent_user_id'):
+    role = current_user.get('role')
+    if role in ('receptionist', 'front_desk', 'assistant') and current_user.get('parent_user_id'):
         return current_user['parent_user_id']
     return current_user['id']
 
 async def require_doctor_or_owner(current_user: dict = Depends(get_current_user)):
-    """Blocks receptionists from sensitive endpoints (pricing, bot instructions, prescriptions, subscription, analytics revenue)."""
-    if current_user.get('role') == 'receptionist':
-        raise HTTPException(status_code=403, detail="Receptionists do not have access to this feature. Contact your clinic administrator.")
+    """Blocks all restricted sub-user roles from sensitive endpoints."""
+    if current_user.get('role') in ('receptionist', 'front_desk', 'assistant'):
+        raise HTTPException(status_code=403, detail="Your role does not have access to this feature. Contact your clinic administrator.")
+    return current_user
+
+async def require_write_appointments(current_user: dict = Depends(get_current_user)):
+    """Assistants have read-mostly access — block writes on appointments/clients."""
+    if current_user.get('role') == 'assistant':
+        raise HTTPException(status_code=403, detail="Assistants can view schedules but not create/reschedule appointments.")
     return current_user
 
 def generate_qr_code(data: str) -> str:
@@ -894,7 +901,7 @@ async def google_callback(code: str, current_user: dict = Depends(get_current_us
 
 # Appointments
 @api_router.post("/appointments")
-async def create_appointment(appt: AppointmentCreate, current_user: dict = Depends(get_current_user)):
+async def create_appointment(appt: AppointmentCreate, current_user: dict = Depends(require_write_appointments)):
     owner_id = resolve_owner_id(current_user)
     owner = await db.users.find_one({"id": owner_id}, {"_id": 0}) if owner_id != current_user['id'] else current_user
     appointment_id = str(uuid.uuid4())
@@ -970,6 +977,10 @@ async def get_appointment(appointment_id: str, current_user: dict = Depends(get_
 
 @api_router.put("/appointments/{appointment_id}")
 async def update_appointment(appointment_id: str, updates: dict, current_user: dict = Depends(get_current_user)):
+    # Assistants may ONLY change status (e.g., 'arrived', 'in_progress', 'completed').
+    if current_user.get('role') == 'assistant':
+        if set(updates.keys()) - {'status'}:
+            raise HTTPException(status_code=403, detail="Assistants may only update appointment status")
     owner_id = resolve_owner_id(current_user)
     result = await db.appointments.update_one(
         {"id": appointment_id, "professional_id": owner_id},
@@ -980,7 +991,7 @@ async def update_appointment(appointment_id: str, updates: dict, current_user: d
     return {"message": "Updated successfully"}
 
 @api_router.delete("/appointments/{appointment_id}")
-async def delete_appointment(appointment_id: str, current_user: dict = Depends(get_current_user)):
+async def delete_appointment(appointment_id: str, current_user: dict = Depends(require_write_appointments)):
     owner_id = resolve_owner_id(current_user)
     result = await db.appointments.delete_one(
         {"id": appointment_id, "professional_id": owner_id}
@@ -1014,9 +1025,9 @@ async def get_client(client_id: str, current_user: dict = Depends(get_current_us
         {"_id": 0}
     ).to_list(100)
     
-    # Receptionists don't see prescriptions
+    # Sub-users (receptionist / front_desk / assistant) don't see prescriptions
     prescriptions = []
-    if current_user.get('role') != 'receptionist':
+    if current_user.get('role') not in ('receptionist', 'front_desk', 'assistant'):
         prescriptions = await db.prescriptions.find(
             {"professional_id": owner_id, "client_phone": client['phone']},
             {"_id": 0}
@@ -3566,6 +3577,12 @@ app.include_router(_consultation_notes_router_mod.router, prefix="/api")
 app.include_router(_scheduler_health_router_mod.router, prefix="/api")
 app.include_router(_patient_portal_router_mod.router, prefix="/api")
 app.include_router(_invoices_router_mod.router, prefix="/api")
+
+from routes import admin_licenses as _admin_licenses_router_mod
+app.include_router(_admin_licenses_router_mod.router, prefix="/api")
+
+from routes import elevenlabs as _elevenlabs_router_mod
+app.include_router(_elevenlabs_router_mod.router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

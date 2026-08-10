@@ -31,29 +31,45 @@ const DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isReceptionist = user?.role === 'receptionist';
+  // Normalize role: 'receptionist' legacy → 'front_desk'; 'user' legacy → 'doctor'; default 'doctor' for owners
+  const rawRole = user?.role || 'doctor';
+  let role = rawRole;
+  if (rawRole === 'receptionist') role = 'front_desk';
+  else if (rawRole === 'user') role = 'doctor';
+  const isFrontDesk = role === 'front_desk';
+  const isAssistant = role === 'assistant';
+  const isSubUser = isFrontDesk || isAssistant;
+
+  const ROLE_LABEL = {
+    admin: 'Admin', doctor: 'Doctor', front_desk: 'Front Desk', assistant: 'Assistant',
+  };
+  const ROLE_STYLE = {
+    admin: 'bg-purple-100 text-purple-800 border-purple-300',
+    doctor: 'bg-indigo-100 text-indigo-800 border-indigo-300',
+    front_desk: 'bg-teal-100 text-teal-800 border-teal-300',
+    assistant: 'bg-amber-100 text-amber-800 border-amber-300',
+  };
+  const roleLabel = ROLE_LABEL[role] || (role[0]?.toUpperCase() + role.slice(1));
+  const roleStyle = ROLE_STYLE[role] || 'bg-slate-100 text-slate-800 border-slate-300';
 
   const allNavigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: BarChart3, roles: ['user', 'receptionist'] },
-    { name: 'Appointments', href: '/appointments', icon: Calendar, roles: ['user', 'receptionist'] },
-    { name: 'Clients', href: '/clients', icon: Users, roles: ['user', 'receptionist'] },
-    { name: 'Consultations', href: '/consultations', icon: Mic, roles: ['user'] },
-    { name: 'Invoices', href: '/invoices', icon: Receipt, roles: ['user'] },
-    { name: 'WhatsApp Bot', href: '/whatsapp', icon: MessageSquare, roles: ['user'] },
-    { name: 'Voice Bot', href: '/voice-bot', icon: Phone, roles: ['user'] },
-    { name: 'Clinics', href: '/clinics', icon: Building2, roles: ['user'] },
-    { name: 'Payments', href: '/payments', icon: CreditCard, roles: ['user'] },
-    { name: 'Reminders', href: '/reminders', icon: Bell, roles: ['user'] },
-    { name: 'Subscription', href: '/subscription', icon: CreditCard, roles: ['user'] },
-    { name: 'Tools', href: '/tools', icon: FileText, roles: ['user'] },
-    { name: 'Profile', href: '/profile', icon: User, roles: ['user', 'receptionist'] },
-    { name: 'Settings', href: '/settings', icon: Settings, roles: ['user'] },
+    { name: 'Dashboard', href: '/dashboard', icon: BarChart3, roles: ['doctor', 'front_desk', 'assistant'] },
+    { name: 'Appointments', href: '/appointments', icon: Calendar, roles: ['doctor', 'front_desk', 'assistant'] },
+    { name: 'Clients', href: '/clients', icon: Users, roles: ['doctor', 'front_desk', 'assistant'] },
+    { name: 'Consultations', href: '/consultations', icon: Mic, roles: ['doctor'] },
+    { name: 'Invoices', href: '/invoices', icon: Receipt, roles: ['doctor'] },
+    { name: 'WhatsApp Bot', href: '/whatsapp', icon: MessageSquare, roles: ['doctor'] },
+    { name: 'Voice Bot', href: '/voice-bot', icon: Phone, roles: ['doctor'] },
+    { name: 'Clinics', href: '/clinics', icon: Building2, roles: ['doctor'] },
+    { name: 'Payments', href: '/payments', icon: CreditCard, roles: ['doctor'] },
+    { name: 'Reminders', href: '/reminders', icon: Bell, roles: ['doctor', 'front_desk'] },
+    { name: 'Subscription', href: '/subscription', icon: CreditCard, roles: ['doctor'] },
+    { name: 'Tools', href: '/tools', icon: FileText, roles: ['doctor'] },
+    { name: 'Profile', href: '/profile', icon: User, roles: ['doctor', 'front_desk', 'assistant'] },
+    { name: 'Settings', href: '/settings', icon: Settings, roles: ['doctor'] },
   ];
 
-  const navigation = allNavigation.filter((item) => {
-    const role = isReceptionist ? 'receptionist' : 'user';
-    return item.roles.includes(role);
-  });
+  const navigation = allNavigation.filter((item) => item.roles.includes(role));
 
   const handleLogout = () => {
     logout();
@@ -139,7 +155,15 @@ const DashboardLayout = ({ children }) => {
                 <p className="font-manrope font-semibold text-sm text-slate-900 truncate">
                   {user?.name}
                 </p>
-                <p className="font-inter text-xs text-slate-500 truncate">{user?.email}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <p className="font-inter text-xs text-slate-500 truncate">{user?.email}</p>
+                </div>
+                <span
+                  data-testid="role-badge"
+                  className={`inline-flex items-center px-2 py-0.5 mt-1 rounded-full text-[10px] font-semibold border ${roleStyle}`}
+                >
+                  {roleLabel}
+                </span>
               </div>
             </div>
             <Button
@@ -197,7 +221,7 @@ const DashboardLayout = ({ children }) => {
       </div>
 
       {/* Hexa AI Assistant (doctors only) */}
-      {!isReceptionist && <HexaAssistant />}
+      {!isSubUser && <HexaAssistant />}
     </div>
   );
 };

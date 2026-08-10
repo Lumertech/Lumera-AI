@@ -1,0 +1,88 @@
+{
+  "summary": "Iteration 8 RBAC review completed against the public URL. Backend pytest: 28/37 passed (75.7%); 9 failed. Admin routing/sidebar and license UI passed, role creation/limits and most sensitive-route blocks passed. Critical gaps remain: new front_desk/assistant accounts are not parent-scoped on legacy appointment/client routes; assistant can create appointments and invoices; assistant/front_desk can create consultation notes; and the required doctor account still has role='user', producing a User badge and empty sidebar.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/appointments, GET /api/clients",
+        "issue": "Fresh assistant and front_desk tokens return 200 but cannot see the parent doctor's seeded appointment/client (empty parent scope). Front desk-created appointments are stored under the front_desk user ID, not the parent doctor ID.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "POST /api/appointments",
+        "issue": "Assistant write boundary is bypassed: POST returns 200 and creates an appointment instead of 403.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "POST /api/invoices",
+        "issue": "Assistant can create invoices (200 with persisted invoice) instead of receiving 403.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "POST /api/consultation-notes",
+        "issue": "Both assistant and front_desk can create consultation notes (200) instead of 403.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "POST /api/auth/login, GET /api/auth/me",
+        "issue": "Required doctor account sarah@test.com is returned with profession='doctor' but role='user', not role='doctor'. This breaks four-role consistency and frontend navigation.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "DashboardLayout profile/sidebar",
+        "issue": "After sarah@test.com login, data-testid='role-badge' renders 'User' instead of 'Doctor'; every role-filtered sidebar navigation item is absent. Direct /clinics access still renders, but the header falls back to 'Dashboard'.",
+        "selector": "[data-testid='role-badge'], [data-testid^='nav-']",
+        "priority": "CRITICAL"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Doctor role-based navigation",
+        "issue": "Backend supplies role='user'; DashboardLayout only defines navigation for doctor/front_desk/assistant, so the required doctor has no sidebar links.",
+        "affected_selectors": ["[data-testid='role-badge']", "[data-testid='dashboard-sidebar']"]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Clinic Settings",
+        "issues": [
+          "Role dropdown correctly exposes front_desk and assistant, but visible headings/copy still say 'Receptionists', 'Add Receptionist', and receptionist-only management language, which mislabels assistants and front desk staff."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_rbac.py",
+    "/app/test_reports/pytest/iteration_8_rbac.xml"
+  ],
+  "action_items": [
+    "Remove or update the duplicate legacy RBAC helpers in server.py: appointments/clients must use shared.resolve_owner_id for receptionist/front_desk/assistant, and appointment writes must apply the assistant write guard.",
+    "Protect POST /api/invoices from assistant and protect consultation-note mutations from receptionist/front_desk/assistant.",
+    "Migrate/seed sarah@test.com with role='doctor' (or implement a safe role normalization policy) so the Doctor badge and navigation render.",
+    "Retest all new-role parent scoping and blocked writes after fixes; these are security and data-isolation defects.",
+    "Update ClinicSettings role-neutral wording such as 'Clinic Staff' / 'Add Staff Member'."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 3,621 lines and duplicates get_current_user/resolve_owner_id/require_doctor_or_owner from shared.py. The server.py resolver handles only role='receptionist' while shared.py handles all three sub-user roles; legacy appointments/clients therefore bypass the new RBAC implementation.",
+    "shared.require_write_appointments exists but is not attached to POST/PUT/DELETE appointment routes; POST /appointments still depends only on get_current_user.",
+    "routes/invoices.py POST uses get_current_user with no assistant restriction; routes/consultation_notes.py checks only role == 'receptionist'.",
+    "AuthContext stores only token in localStorage, while Login reads localStorage.user and AdminLayout also reads localStorage.user. Current admin redirect succeeds only because ProtectedRoute later corrects it from context; admin identity persistence can be blank/stale.",
+    "AdminLayout navigation links and bottom actions lack data-testid attributes, contrary to the stated testability requirement."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_rbac.py"
+  ],
+  "success_rate": {
+    "backend": "75.7% (28/37)",
+    "frontend": "82% (admin login/redirects/sidebar, doctor admin guard, clinic role options, and license UI passed; doctor badge/sidebar failed)"
+  },
+  "seed_data_creation": "Each pytest run created a unique TEST_RBAC clinic, assistant, front_desk, DB-seeded legacy receptionist, shared appointment/client, invoice, and temporary second users for role-limit checks. Fixture teardown removed created clinics/users/appointments/invoices/notes/clients. Password used for fresh role users: Xxx@12345.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Run `pytest /app/backend/tests/test_rbac.py -v --tb=short --junitxml=/app/test_reports/pytest/iteration_8_rbac.xml`. Current deterministic failures are 9. Confirm Sarah's login response role becomes doctor before UI retest. Passed coverage includes assistant/front_desk creation fields, invalid role 400s, max two per role/clinic, assistant blocks for prescriptions/clinics/analytics/hexa/sub-users, front_desk blocks for prescriptions/hexa/clinic/invoice delete, legacy receptionist regression, admin licenses/list/summary access, Hexa doctor command, prescription drug-interactions and real WAV transcription, medication reminders/patient portal links/invoice lists.",
+  "rca_of_the_issue": "Primary RCA: RBAC was implemented in shared.py and extracted routers, but legacy appointments/clients in server.py still resolve only role='receptionist'. Thus front_desk/assistant use their own user IDs and lose parent clinic data. Appointment writes have no assistant guard; invoice POST has no role guard; consultation notes exclude only receptionist. Separately, the Sarah test user's persisted role remains the old value 'user', so DashboardLayout's role filter removes all navigation and renders the fallback User badge. Reproduction: create assistant/front_desk through POST /api/clinics/sub-users, login, GET parent appointments/clients (200 empty), then assistant POST appointments/invoices or either new role POST consultation-notes (unexpected 200)."
+}

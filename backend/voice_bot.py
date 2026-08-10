@@ -571,6 +571,55 @@ class VoiceCallManager:
         self.bot_logic = bot_logic
         self.speech_service = AzureSpeechService()
         self.active_sessions: Dict[str, VoiceCallSession] = {}
+        # ElevenLabs is preferred for outbound speech (better naturalness, multilingual).
+        # Azure remains fallback + STT engine.
+        try:
+            from elevenlabs_service import get_elevenlabs_service
+            self.elevenlabs = get_elevenlabs_service()
+        except Exception as e:
+            logger.warning(f"ElevenLabs service unavailable: {e}")
+            self.elevenlabs = None
+
+    async def _synth_speech(
+        self,
+        text: str,
+        language: SupportedLanguage,
+        professional_id: Optional[str] = None,
+    ) -> Optional[bytes]:
+        """Try ElevenLabs first (if user opted in), else Azure."""
+        # Check per-user preference
+        use_eleven = False
+        voice_id = None
+        model_id = "eleven_multilingual_v2"
+        stability = 0.5
+        similarity = 0.75
+        if professional_id:
+            try:
+                user = await self.db.users.find_one({"id": professional_id}, {"_id": 0})
+                if user:
+                    cfg = user.get("elevenlabs_config") or {}
+                    if cfg.get("enabled") and cfg.get("voice_id"):
+                        use_eleven = True
+                        voice_id = cfg["voice_id"]
+                        model_id = cfg.get("model_id", model_id)
+                        stability = cfg.get("stability", stability)
+                        similarity = cfg.get("similarity_boost", similarity)
+            except Exception as e:
+                logger.warning(f"user elevenlabs lookup failed: {e}")
+
+        if use_eleven and self.elevenlabs and self.elevenlabs.is_available() and voice_id:
+            try:
+                return await asyncio.to_thread(
+                    self.elevenlabs.synthesize,
+                    text,
+                    voice_id,
+                    model_id=model_id,
+                    stability=stability,
+                    similarity_boost=similarity,
+                )
+            except Exception as e:
+                logger.warning(f"ElevenLabs TTS failed, falling back to Azure: {e}")
+        return await self.speech_service.text_to_speech(text, language)
     
     async def handle_incoming_call(
         self, 
@@ -610,9 +659,9 @@ class VoiceCallManager:
             "created_at": session.created_at.isoformat()
         })
         
-        # Generate greeting audio
+        # Generate greeting audio (ElevenLabs preferred if user configured, else Azure)
         greeting = GREETINGS[session.language]
-        audio = await self.speech_service.text_to_speech(greeting, session.language)
+        audio = await self._synth_speech(greeting, session.language, professional_id)
         
         return {
             "session_id": call_sid,
@@ -659,8 +708,8 @@ class VoiceCallManager:
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
-        # TTS
-        audio = await self.speech_service.text_to_speech(response_text, session.language)
+        # TTS (ElevenLabs preferred, Azure fallback)
+        audio = await self._synth_speech(response_text, session.language, session.professional_id)
         
         # Update DB
         await self.db.voice_sessions.update_one(

@@ -41,8 +41,8 @@ async def create_note(
     background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
 ):
-    if current_user.get('role') == 'receptionist':
-        raise HTTPException(status_code=403, detail="Receptionists cannot write consultation notes")
+    if current_user.get('role') in ('receptionist', 'front_desk', 'assistant'):
+        raise HTTPException(status_code=403, detail="Your role cannot write consultation notes")
 
     owner_id = resolve_owner_id(current_user)
     appointment = await db.appointments.find_one(
@@ -86,7 +86,7 @@ Summary:
 
 @router.get("")
 async def list_notes(current_user: dict = Depends(get_current_user)):
-    if current_user.get('role') == 'receptionist':
+    if current_user.get('role') in ('receptionist', 'front_desk', 'assistant'):
         raise HTTPException(status_code=403, detail="Receptionists cannot view consultation notes")
     owner_id = resolve_owner_id(current_user)
     items = await db.consultation_notes.find(
@@ -97,7 +97,7 @@ async def list_notes(current_user: dict = Depends(get_current_user)):
 
 @router.get("/by-appointment/{appointment_id}")
 async def by_appointment(appointment_id: str, current_user: dict = Depends(get_current_user)):
-    if current_user.get('role') == 'receptionist':
+    if current_user.get('role') in ('receptionist', 'front_desk', 'assistant'):
         raise HTTPException(status_code=403, detail="Receptionists cannot view consultation notes")
     owner_id = resolve_owner_id(current_user)
     items = await db.consultation_notes.find(
@@ -112,7 +112,7 @@ async def update_note(
     payload: ConsultationNoteUpdate,
     current_user: dict = Depends(get_current_user),
 ):
-    if current_user.get('role') == 'receptionist':
+    if current_user.get('role') in ('receptionist', 'front_desk', 'assistant'):
         raise HTTPException(status_code=403, detail="Receptionists cannot edit consultation notes")
     owner_id = resolve_owner_id(current_user)
     updates = {k: v for k, v in payload.dict().items() if v is not None}

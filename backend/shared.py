@@ -54,18 +54,30 @@ async def get_current_user(authorization: str = Header(None)):
 
 
 def resolve_owner_id(current_user: dict) -> str:
-    """Returns parent doctor's user_id for sub-users (receptionists)."""
-    if current_user.get('role') == 'receptionist' and current_user.get('parent_user_id'):
+    """Returns parent doctor's user_id for sub-users (front_desk/receptionist/assistant), else the user's own id."""
+    role = current_user.get('role')
+    if role in ('receptionist', 'front_desk', 'assistant') and current_user.get('parent_user_id'):
         return current_user['parent_user_id']
     return current_user['id']
 
 
 async def require_doctor_or_owner(current_user: dict = Depends(get_current_user)):
-    """Block receptionists from sensitive endpoints."""
-    if current_user.get('role') == 'receptionist':
+    """Block receptionists/assistants from sensitive endpoints."""
+    role = current_user.get('role')
+    if role in ('receptionist', 'front_desk', 'assistant'):
         raise HTTPException(
             status_code=403,
-            detail="Receptionists do not have access to this feature. Contact your clinic administrator.",
+            detail="Your role does not have access to this feature. Contact your clinic administrator.",
+        )
+    return current_user
+
+
+async def require_write_appointments(current_user: dict = Depends(get_current_user)):
+    """Assistants have read-mostly access — block writes."""
+    if current_user.get('role') == 'assistant':
+        raise HTTPException(
+            status_code=403,
+            detail="Assistants can view schedules but not create/reschedule appointments.",
         )
     return current_user
 

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,11 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Shield, Lock, Mail, Home } from 'lucide-react';
 import { toast } from 'sonner';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const { adminLogin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -21,25 +20,14 @@ const AdminLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    try {
-      const response = await axios.post(`${API_URL}/admin/login`, formData);
-      
-      // Store admin token and user data
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      
-      // Set axios default header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-      
+    const result = await adminLogin(formData.email, formData.password);
+    if (result.success) {
       toast.success('Welcome, Admin!');
       navigate('/admin/dashboard');
-    } catch (error) {
-      console.error('Admin login failed:', error);
-      toast.error(error.response?.data?.detail || 'Invalid admin credentials');
-    } finally {
-      setLoading(false);
+    } else {
+      toast.error(result.error || 'Invalid admin credentials');
     }
+    setLoading(false);
   };
 
   return (
@@ -65,6 +53,7 @@ const AdminLogin = () => {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
                   className="pl-10"
+                  data-testid="admin-email-input"
                 />
               </div>
             </div>
@@ -79,6 +68,7 @@ const AdminLogin = () => {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
                   className="pl-10"
+                  data-testid="admin-password-input"
                 />
               </div>
             </div>
@@ -86,6 +76,7 @@ const AdminLogin = () => {
               type="submit"
               disabled={loading}
               className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 h-12 text-base"
+              data-testid="admin-login-submit-btn"
             >
               {loading ? 'Signing in...' : 'Sign In as Admin'}
             </Button>
@@ -94,6 +85,7 @@ const AdminLogin = () => {
               variant="outline"
               onClick={() => navigate('/')}
               className="w-full"
+              data-testid="admin-back-to-landing-btn"
             >
               <Home className="h-4 w-4 mr-2" />
               Back to Landing

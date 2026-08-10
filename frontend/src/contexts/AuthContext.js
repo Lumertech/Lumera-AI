@@ -36,12 +36,28 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.post(`${API_URL}/auth/login`, { email, password });
       const { token, user } = response.data;
       localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
       setToken(token);
       setUser(user);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      return { success: true };
+      return { success: true, user };
     } catch (error) {
       return { success: false, error: error.response?.data?.detail || 'Login failed' };
+    }
+  };
+
+  const adminLogin = async (email, password) => {
+    try {
+      const response = await axios.post(`${API_URL}/admin/login`, { email, password });
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      setToken(token);
+      setUser(user);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      return { success: true, user };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.detail || 'Admin login failed' };
     }
   };
 
@@ -67,13 +83,14 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
     delete axios.defaults.headers.common['Authorization'];
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, adminLogin, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

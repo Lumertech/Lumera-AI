@@ -128,6 +128,19 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - Sidebar: new **Invoices** nav item
 - Tests: 13/13 invoice pytest pass; PrescriptionWriter print regression fixed after test-agent flagged missing `primaryClinic` state declaration
 
+### Phase 11 — ElevenLabs Voice Bot Integration (2026-08-10) ✅
+- **Provider-agnostic TTS pipeline** — `elevenlabs_service.py` wraps ElevenLabs SDK; `voice_bot.VoiceCallManager` now prefers ElevenLabs when the user's `elevenlabs_config.enabled=true`, falls back to Azure Speech
+- **Multilingual (eleven_multilingual_v2)** — 12 languages exposed (English + 10 Indian regional + Arabic), auto-detected from text
+- **New backend routes** under `/api/elevenlabs/`:
+  - `GET /status`, `GET /languages`, `GET /voices` (account voices with default library fallback)
+  - `POST /tts` and `POST /preview` (thread-offloaded synthesis, base64 MP3)
+  - `GET /config`, `PUT /config` — per-user voice preferences
+  - Every synthesis logged to `db.elevenlabs_usage` (best-effort)
+- **Frontend:** new "AI Voice" tab in Voice Bot page (`ElevenLabsVoicePanel.js`) — enable switch, language + voice selectors, stability/similarity sliders, live preview player
+- **Curated defaults** — 9 built-in ElevenLabs premade voices exposed automatically when the API key lacks `voices_read` scope
+- **Friendly error surfacing** — "Unusual activity" (VPN/proxy on free tier), missing scopes, and unknown voice IDs all surface a clear user-facing message
+- Env: `ELEVENLABS_API_KEY` in `backend/.env`; SDK `elevenlabs==2.62.0`
+
 ## P1 Backlog (next)
 
 ### Phase 2 — AI Documentation Engine

@@ -48,6 +48,7 @@ class SubUserCreate(BaseModel):
     phone_number: str
     password: str
     clinic_id: Optional[str] = None
+    role: Optional[str] = "front_desk"  # front_desk | assistant
 
 
 @router.get("/clinics")
@@ -106,26 +107,21 @@ async def delete_clinic(clinic_id: str, current_user: dict = Depends(require_doc
     return {"success": True}
 
 
-@router.get("/clinics/sub-users")
-async def list_sub_users(current_user: dict = Depends(require_doctor_or_owner)):
-    owner_id = current_user['id']
-    return await db.users.find(
-        {"parent_user_id": owner_id, "role": "receptionist"},
-        {"_id": 0, "hashed_password": 0},
-    ).to_list(100)
-
-
 @router.post("/clinics/sub-users")
 async def create_sub_user(payload: SubUserCreate, current_user: dict = Depends(require_doctor_or_owner)):
     owner_id = current_user['id']
+    role = (payload.role or "front_desk").lower()
+    if role not in ("front_desk", "assistant"):
+        raise HTTPException(status_code=400, detail="Role must be 'front_desk' or 'assistant'")
     if payload.clinic_id:
+        # Max 2 front_desk + 2 assistant per clinic
         existing = await db.users.count_documents({
             "parent_user_id": owner_id,
-            "role": "receptionist",
+            "role": role,
             "clinic_id": payload.clinic_id,
         })
         if existing >= 2:
-            raise HTTPException(status_code=400, detail="Maximum 2 receptionists allowed per clinic")
+            raise HTTPException(status_code=400, detail=f"Maximum 2 {role} users allowed per clinic")
     if await db.users.find_one({"email": payload.email}):
         raise HTTPException(status_code=400, detail="Email already registered")
     is_valid, error_msg = PasswordValidator.validate(payload.password)
@@ -139,8 +135,8 @@ async def create_sub_user(payload: SubUserCreate, current_user: dict = Depends(r
         "email": payload.email,
         "hashed_password": pwd_context.hash(payload.password),
         "phone_number": payload.phone_number,
-        "profession": "receptionist",
-        "role": "receptionist",
+        "profession": "front_desk" if role == "front_desk" else "assistant",
+        "role": role,
         "parent_user_id": owner_id,
         "clinic_id": payload.clinic_id,
         "whatsapp_verified": False,
@@ -150,10 +146,23 @@ async def create_sub_user(payload: SubUserCreate, current_user: dict = Depends(r
     return {k: v for k, v in user.items() if k not in ["hashed_password", "_id"]}
 
 
+@router.get("/clinics/sub-users")
+async def list_sub_users(current_user: dict = Depends(require_doctor_or_owner)):
+    owner_id = current_user['id']
+    return await db.users.find(
+        {"parent_user_id": owner_id, "role": {"$in": ["receptionist", "front_desk", "assistant"]}},
+        {"_id": 0, "hashed_password": 0},
+    ).to_list(100)
+
+
 @router.delete("/clinics/sub-users/{sub_user_id}")
 async def delete_sub_user(sub_user_id: str, current_user: dict = Depends(require_doctor_or_owner)):
     owner_id = current_user['id']
-    result = await db.users.delete_one({"id": sub_user_id, "parent_user_id": owner_id, "role": "receptionist"})
+    result = await db.users.delete_one({
+        "id": sub_user_id,
+        "parent_user_id": owner_id,
+        "role": {"$in": ["receptionist", "front_desk", "assistant"]},
+    })
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Sub-user not found")
     return {"success": True}

@@ -23,7 +23,13 @@ const Login = () => {
 
     const result = await login(email, password);
     if (result.success) {
-      navigate('/dashboard');
+      // Route admins straight to the admin panel
+      const stored = JSON.parse(localStorage.getItem('user') || '{}');
+      if (stored?.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } else {
       setError(result.error);
     }
