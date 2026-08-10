@@ -201,6 +201,28 @@ const CollectPaymentDialog = ({ open, onOpenChange, invoice, onPaid }) => {
                     data-testid="cash-amount-input"
                   />
                 </div>
+                <div>
+                  <Label htmlFor="cash-tendered">Amount tendered (₹) <span className="text-xs text-slate-400">— for change calc</span></Label>
+                  <Input
+                    id="cash-tendered"
+                    type="number"
+                    placeholder="e.g. patient handed 1000"
+                    onChange={(e) => {
+                      const tendered = parseFloat(e.target.value);
+                      const due = parseFloat(cashAmount);
+                      if (!isNaN(tendered) && !isNaN(due)) {
+                        const change = tendered - due;
+                        const el = document.getElementById('change-due-display');
+                        if (el) {
+                          el.textContent = change >= 0 ? `Change to return: ₹${change.toLocaleString('en-IN')}` : `Short by ₹${Math.abs(change).toLocaleString('en-IN')}`;
+                          el.className = 'text-sm font-manrope font-semibold ' + (change >= 0 ? 'text-emerald-700' : 'text-rose-700');
+                        }
+                      }
+                    }}
+                    data-testid="cash-tendered-input"
+                  />
+                  <div id="change-due-display" className="mt-1 h-5 text-sm font-manrope font-semibold text-slate-500" data-testid="change-due-display" />
+                </div>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <Checkbox
                     checked={sendReceipt}

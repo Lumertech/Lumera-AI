@@ -110,6 +110,27 @@ const PaymentGatewaySettingsCard = () => {
     }
   };
 
+
+  const verifyUpi = async () => {
+    try {
+      const r = await axios.post(`${API_URL}/settings/payment/verify-upi`);
+      if (r.data.valid) toast.success(r.data.note || 'UPI verified');
+      else toast.error(r.data.reason || 'UPI check failed');
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Verify failed');
+    }
+  };
+
+  const verifyGateway = async () => {
+    try {
+      const r = await axios.post(`${API_URL}/settings/payment/verify-gateway`);
+      if (r.data.valid) toast.success(r.data.note || `${r.data.provider} verified`);
+      else toast.error(r.data.reason || 'Gateway check failed');
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Verify failed');
+    }
+  };
+
   const previewQr = async () => {
     if (!upiId.trim()) return toast.error('Save your UPI ID first');
     try {
@@ -226,12 +247,15 @@ const PaymentGatewaySettingsCard = () => {
                 <Input id="upi-name" placeholder="Dr Smith Clinic" value={upiName} onChange={(e) => setUpiName(e.target.value)} data-testid="upi-name-input" />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button onClick={saveUpi} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700" data-testid="upi-save-btn">
                 {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving…</> : 'Save UPI'}
               </Button>
               <Button variant="outline" onClick={previewQr} data-testid="upi-preview-qr-btn">
                 <QrCode className="h-4 w-4 mr-2" /> Preview QR (₹500)
+              </Button>
+              <Button variant="outline" onClick={verifyUpi} data-testid="upi-verify-btn" className="border-indigo-300 text-indigo-700 hover:bg-indigo-50">
+                Verify UPI
               </Button>
             </div>
             {qrPreview && (
@@ -296,6 +320,11 @@ const PaymentGatewaySettingsCard = () => {
               <Button onClick={saveGateway} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700" data-testid="gateway-save-btn">
                 {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving…</> : 'Save credentials'}
               </Button>
+              {settings?.gateway?.provider && (
+                <Button variant="outline" onClick={verifyGateway} className="border-indigo-300 text-indigo-700 hover:bg-indigo-50" data-testid="gateway-verify-btn">
+                  Verify Connection
+                </Button>
+              )}
               {settings?.gateway?.provider && (
                 <Button variant="outline" onClick={disconnectGateway} className="text-rose-600" data-testid="gateway-disconnect-btn">
                   Disconnect

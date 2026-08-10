@@ -418,3 +418,49 @@ async def list_prescriptions(current_user: dict = Depends(get_current_user)):
         {"professional_id": current_user['id']}, {"_id": 0}
     ).to_list(100)
     return prescriptions
+
+
+@router.get("/last-for/{client_phone}")
+async def last_prescription_for_client(client_phone: str, current_user: dict = Depends(get_current_user)):
+    """Return the most recent prescription written for this phone (for 'Import Last Rx' button)."""
+    from urllib.parse import unquote
+    phone = unquote(client_phone).strip()
+    doc = await db.prescriptions.find_one(
+        {"professional_id": current_user["id"], "client_phone": phone},
+        {"_id": 0},
+        sort=[("created_at", -1)],
+    )
+    if not doc:
+        return {"found": False}
+    return {
+        "found": True,
+        "created_at": doc.get("created_at"),
+        "medications": doc.get("medications", []),
+        "diagnosis": doc.get("diagnosis"),
+        "notes": doc.get("notes"),
+    }
+
+
+@router.get("/outstanding-balance/{client_phone}")
+async def outstanding_balance(client_phone: str, current_user: dict = Depends(get_current_user)):
+    """Aggregate unpaid + partial invoices for a phone across all appointments."""
+    from urllib.parse import unquote
+    phone = unquote(client_phone).strip()
+    owner_id = current_user["id"]
+    outstanding = 0.0
+    unpaid_count = 0
+    async for inv in db.invoices.find(
+        {"owner_id": owner_id, "client_phone": phone, "payment_status": {"$in": ["pending", "partial", "unpaid"]}},
+        {"_id": 0, "total": 1, "amount_paid": 1, "payment_status": 1},
+    ):
+        total = float(inv.get("total") or 0)
+        paid = float(inv.get("amount_paid") or 0)
+        due = max(0.0, total - paid)
+        outstanding += due
+        if due > 0:
+            unpaid_count += 1
+    return {
+        "client_phone": phone,
+        "outstanding": round(outstanding, 2),
+        "unpaid_count": unpaid_count,
+    }

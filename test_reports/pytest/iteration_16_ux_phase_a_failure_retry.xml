@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.642" timestamp="2026-08-10T18:15:15.183471+00:00" hostname="agent-env-ea14bf1a-122b-4afb-b875-6fa74ed89aaf"><testcase classname="backend.tests.test_iteration16_ux_phase_a.TestInvoiceReceiptAndCashProtection" name="test_01_paid_invoice_receipt_noops_without_whatsapp_provider" time="1.503"><failure message="AssertionError: assert {'invoice_id'...t_sent': True} == {'invoice_id'..._sent': False}&#10;  &#10;  Omitting 1 identical items, use -vv to show&#10;  Differing items:&#10;  {'receipt_sent': True} != {'receipt_sent': False}&#10;  &#10;  Full diff:&#10;    {...&#10;  &#10;  ...Full output truncated (6 lines hidden), use '-vv' to show">backend/tests/test_iteration16_ux_phase_a.py:500: in test_01_paid_invoice_receipt_noops_without_whatsapp_provider
+    assert response.json() == {"invoice_id": invoice["id"], "receipt_sent": False}
+E   AssertionError: assert {'invoice_id'...t_sent': True} == {'invoice_id'..._sent': False}
+E     
+E     Omitting 1 identical items, use -vv to show
+E     Differing items:
+E     {'receipt_sent': True} != {'receipt_sent': False}
+E     
+E     Full diff:
+E       {...
+E     
+E     ...Full output truncated (6 lines hidden), use '-vv' to show</failure></testcase></testsuite></testsuites>

@@ -298,6 +298,139 @@ async def build_upi_payment(body: UPIIntentPayload, current_user: dict = Depends
 # Mark invoice paid (Cash) + optional WhatsApp receipt                         #
 # --------------------------------------------------------------------------- #
 
+@router.post("/settings/payment/verify-upi")
+async def verify_upi(current_user: dict = Depends(get_current_user)):
+    """Basic UPI VPA format check + build a ₹1 test intent to ensure the QR generator works."""
+    owner_id = resolve_owner_id(current_user)
+    cfg = await _get_settings(owner_id)
+    upi = (cfg.get("upi") or {})
+    vpa = (upi.get("upi_id") or "").strip()
+    if not vpa:
+        raise HTTPException(status_code=400, detail="UPI ID not saved yet")
+
+    # RBI-published VPA regex: user@handle where handle is a bank/PSP identifier.
+    import re as _re
+    pattern = r"^[a-zA-Z0-9.\-_]{2,50}@[a-zA-Z]{2,20}$"
+    if not _re.match(pattern, vpa):
+        return {"valid": False, "reason": "UPI ID doesn't look right. Format should be name@handle (e.g. drsmith@okaxis)."}
+
+    # Handle allowlist — common Indian PSP handles
+    handle = vpa.split("@", 1)[1].lower()
+    known_handles = {
+        "okaxis", "okhdfcbank", "okicici", "oksbi", "okboi", "okpnb", "okbizaxis",
+        "ybl", "axl", "ibl", "airtel", "apl", "abfspay", "aubank", "barodampay",
+        "cnrb", "citi", "citigold", "dbs", "fam", "federal", "freecharge", "hdfcbank",
+        "icici", "idbi", "idfcbank", "indus", "kaypay", "kbl", "kotak", "kmb",
+        "mahb", "myicici", "obc", "paytm", "pingpay", "pnb", "postbank", "rbl",
+        "sbi", "sc", "scb", "seb", "shrigradbank", "sib", "srib", "tapicici",
+        "ubi", "unionbankofindia", "upi", "utbi", "vijb", "waaxis", "wahdfcbank",
+        "waicici", "wasbi", "yesg", "yesbankltd", "google", "gpay",
+    }
+    handle_known = handle in known_handles
+
+    # Try building the QR/intent — if this fails, credentials are broken.
+    try:
+        intent = _build_upi_intent(vpa, upi.get("display_name") or "Lumera", 1.0, "Verify", None)
+        _png_data_url(intent)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"QR generation failed: {e}")
+
+    return {
+        "valid": True,
+        "vpa": vpa,
+        "handle_recognized": handle_known,
+        "note": (
+            "Format looks valid and QR generation works."
+            + ("" if handle_known else f" Handle '@{handle}' is not in our common-handle list; double-check it if payments fail.")
+        ),
+    }
+
+
+@router.post("/settings/payment/verify-gateway")
+async def verify_gateway(current_user: dict = Depends(get_current_user)):
+    """Best-effort connectivity check for the configured gateway (currently only Razorpay is wired)."""
+    owner_id = resolve_owner_id(current_user)
+    cfg = await _get_settings(owner_id)
+    gateway = cfg.get("gateway") or {}
+    provider = gateway.get("provider")
+    creds = gateway.get("credentials") or {}
+    if not provider:
+        raise HTTPException(status_code=400, detail="No gateway configured")
+
+    if provider != "razorpay":
+        # Format-only check for other providers
+        expected = {p["id"]: p["fields"] for p in SUPPORTED_PROVIDERS}[provider]
+        missing = [f for f in expected if not creds.get(f)]
+        if missing:
+            return {"valid": False, "reason": f"Missing fields: {missing}"}
+        return {"valid": True, "provider": provider, "note": "Format check passed. Live connectivity test is only wired for Razorpay right now."}
+
+    # Razorpay: ping /v1/orders with the key
+    key_id = creds.get("key_id")
+    enc_secret = creds.get("key_secret")
+    if not (key_id and enc_secret):
+        return {"valid": False, "reason": "Razorpay key_id or key_secret missing"}
+    try:
+        key_secret = encryption_manager.decrypt(enc_secret)
+    except Exception:  # noqa: BLE001
+        return {"valid": False, "reason": "Could not decrypt stored key_secret. Re-save credentials."}
+
+    import httpx as _httpx
+    try:
+        async with _httpx.AsyncClient(timeout=10) as client:
+            # /v1/orders?count=1 is a cheap read to validate creds
+            r = await client.get(
+                "https://api.razorpay.com/v1/orders?count=1",
+                auth=(key_id, key_secret),
+            )
+        if r.status_code == 200:
+            return {"valid": True, "provider": "razorpay", "note": "Razorpay credentials verified."}
+        if r.status_code in (401, 403):
+            return {"valid": False, "provider": "razorpay", "reason": "Razorpay rejected the credentials (401/403). Re-check key_id and key_secret."}
+        return {"valid": False, "provider": "razorpay", "reason": f"HTTP {r.status_code}: {r.text[:200]}"}
+    except Exception as e:  # noqa: BLE001
+        return {"valid": False, "provider": "razorpay", "reason": f"Network error: {e}"}
+
+
+@router.post("/invoices/{invoice_id}/send-receipt")
+async def send_invoice_receipt(invoice_id: str, current_user: dict = Depends(get_current_user)):
+    """Send a WhatsApp receipt for a paid invoice — used by the auto-dispatch on Mark Paid."""
+    owner_id = resolve_owner_id(current_user)
+    inv = await db.invoices.find_one({"id": invoice_id, "owner_id": owner_id}, {"_id": 0})
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    if inv.get("payment_status") != "paid":
+        raise HTTPException(status_code=400, detail="Invoice is not marked paid yet")
+    phone = (inv.get("client_phone") or "").strip()
+    if not phone:
+        raise HTTPException(status_code=400, detail="Invoice has no client_phone on file")
+
+    method = (inv.get("payment_method") or "gateway").upper()
+    amount = float(inv.get("amount_paid") or inv.get("total") or 0)
+    doctor_name = current_user.get("name") or "Lumera Clinic"
+    msg = (
+        f"Hi {inv.get('client_name','')}, we've received your payment of ₹{amount:.2f} "
+        f"({method}) for invoice {inv.get('invoice_number', invoice_id[:8])}.\n"
+        f"Thank you for choosing us.\n- {doctor_name}"
+    )
+    try:
+        result = await send_whatsapp_message(phone, msg)
+        # Treat None (unconfigured / skipped) as NOT sent — only a real Twilio message object counts.
+        sent = bool(result)
+    except Exception:  # noqa: BLE001
+        sent = False
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.invoices.update_one(
+        {"id": invoice_id},
+        {"$set": {
+            "receipt_sent_at": now_iso if sent else None,
+            "receipt_status": "sent" if sent else "failed",
+        }},
+    )
+    return {"invoice_id": invoice_id, "receipt_sent": sent}
+
+
 @router.post("/invoices/{invoice_id}/mark-cash-paid")
 async def mark_invoice_cash_paid(
     invoice_id: str,
@@ -340,8 +473,8 @@ async def mark_invoice_cash_paid(
                 f"Thank you.\n- {current_user.get('name','Lumera Clinic')}"
             )
             try:
-                await send_whatsapp_message(phone, msg)
-                receipt_sent = True
+                result = await send_whatsapp_message(phone, msg)
+                receipt_sent = bool(result)
             except Exception:  # noqa: BLE001
                 receipt_sent = False
 

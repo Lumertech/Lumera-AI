@@ -64,6 +64,9 @@ const PrescriptionWriter = () => {
   const [pastPrivateNotes, setPastPrivateNotes] = useState([]);
   const [showPastNotes, setShowPastNotes] = useState(false);
   const [linkToAbha, setLinkToAbha] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState('');
+  const [importingLastRx, setImportingLastRx] = useState(false);
+  const [outstanding, setOutstanding] = useState(null);
 
   // Drug interactions
   const [interactionsLoading, setInteractionsLoading] = useState(false);
@@ -143,6 +146,13 @@ const PrescriptionWriter = () => {
           }
         }
       } catch (_) { /* non-fatal */ }
+      // Outstanding balance chip
+      if (response.data.client_phone) {
+        try {
+          const ob = await axios.get(`${API_URL}/prescriptions/outstanding-balance/${encodeURIComponent(response.data.client_phone)}`);
+          if (ob.data?.outstanding > 0) setOutstanding(ob.data);
+        } catch (_) { /* non-fatal */ }
+      }
     } catch (error) {
       console.error('Failed to fetch appointment:', error);
       toast.error('Failed to load appointment');
@@ -160,6 +170,59 @@ const PrescriptionWriter = () => {
       console.error('Failed to fetch private notes history', err);
     }
   };
+
+  const importLastRx = async () => {
+    const phone = appointment?.client_phone;
+    if (!phone) return toast.error('No patient phone on this appointment');
+    setImportingLastRx(true);
+    try {
+      const res = await axios.get(`${API_URL}/prescriptions/last-for/${encodeURIComponent(phone)}`);
+      if (!res.data.found) {
+        toast.info('No previous prescriptions for this patient');
+        return;
+      }
+      const meds = (res.data.medications || []).filter((m) => m?.medicine_name);
+      if (meds.length === 0) {
+        toast.info('Previous prescription had no medications');
+        return;
+      }
+      setMedications(meds);
+      if (res.data.diagnosis && !symptoms) setSymptoms(res.data.diagnosis);
+      toast.success(`Imported ${meds.length} medication(s) from last Rx`);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Could not import last Rx');
+    } finally {
+      setImportingLastRx(false);
+    }
+  };
+
+  const applyFollowUpChip = (days) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    setFollowUpDate(d.toISOString().slice(0, 10));
+    toast.success(`Follow-up set to ${d.toDateString()}`);
+  };
+
+  // Compute BMI live from vitals.weight (kg) + vitals.height (cm)
+  const bmi = React.useMemo(() => {
+    const w = parseFloat(vitals?.weight);
+    const h = parseFloat(vitals?.height);
+    if (!w || !h) return null;
+    const hM = h / 100;
+    const v = w / (hM * hM);
+    if (!isFinite(v) || v <= 0) return null;
+    return v.toFixed(1);
+  }, [vitals?.weight, vitals?.height]);
+
+  const bmiCategory = React.useMemo(() => {
+    if (!bmi) return null;
+    const v = parseFloat(bmi);
+    if (v < 18.5) return { label: 'Underweight', color: 'text-amber-700 bg-amber-50 border-amber-200' };
+    if (v < 25)   return { label: 'Normal',      color: 'text-emerald-700 bg-emerald-50 border-emerald-200' };
+    if (v < 30)   return { label: 'Overweight',  color: 'text-amber-700 bg-amber-50 border-amber-200' };
+    return { label: 'Obese', color: 'text-rose-700 bg-rose-50 border-rose-200' };
+  }, [bmi]);
+
 
   const getAISuggestions = async () => {
     if (!symptoms.trim()) return toast.error('Please enter symptoms first');
@@ -388,6 +451,7 @@ const PrescriptionWriter = () => {
         link_to_abha: linkToAbha,
         vitals,
         lab_tests: labTests,
+        follow_up_date: followUpDate || null,
         request_feedback: true,
       });
       toast.success('Prescription sent to patient via WhatsApp!');
@@ -424,8 +488,27 @@ const PrescriptionWriter = () => {
                 <p className="font-inter text-slate-600">
                   Patient: {appointment?.client_name} | Age: {appointment?.patient_details?.age} | Sex: {appointment?.patient_details?.sex}
                 </p>
+                {outstanding && outstanding.outstanding > 0 && (
+                  <div
+                    className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300"
+                    data-testid="outstanding-balance-chip"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+                    Outstanding Balance: ₹{Number(outstanding.outstanding).toLocaleString('en-IN')}
+                    <span className="text-rose-600">· {outstanding.unpaid_count} unpaid</span>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={importLastRx}
+                  disabled={importingLastRx || !appointment?.client_phone}
+                  data-testid="import-last-rx-btn"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
+                  {importingLastRx ? 'Importing…' : 'Import Last Rx'}
+                </Button>
                 <Button
                   variant="outline"
                   onClick={() => setTimelineOpen(true)}
@@ -807,6 +890,54 @@ const PrescriptionWriter = () => {
               <span className="text-sm text-slate-700">One-click link this prescription to patient's ABHA record</span>
             </label>
             <Badge variant="outline" className="text-[10px]">ABDM compliant</Badge>
+          </CardContent>
+        </Card>
+
+        {/* Prescription footer: vitals summary + BMI + follow-up chips */}
+        <Card className="border-slate-200 bg-slate-50" data-testid="rx-footer-card">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="flex flex-wrap gap-2 text-xs">
+                {vitals?.bp && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>BP</b> {vitals.bp}</span>}
+                {vitals?.pulse && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>Pulse</b> {vitals.pulse}</span>}
+                {vitals?.spo2 && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>SpO₂</b> {vitals.spo2}</span>}
+                {vitals?.temperature && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>Temp</b> {vitals.temperature}</span>}
+                {vitals?.weight && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>Wt</b> {vitals.weight}kg</span>}
+                {vitals?.height && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>Ht</b> {vitals.height}cm</span>}
+                {bmi && (
+                  <span
+                    className={`px-2 py-1 rounded border font-semibold ${bmiCategory?.color || ''}`}
+                    data-testid="bmi-chip"
+                  >
+                    <b>BMI</b> {bmi} · {bmiCategory?.label}
+                  </span>
+                )}
+                {!vitals?.bp && !vitals?.pulse && !vitals?.weight && (
+                  <span className="text-slate-500 italic">No vitals recorded yet — ask the nurse to capture them from Vitals Entry.</span>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2" data-testid="followup-chips">
+                <span className="text-xs text-slate-600 font-semibold">Follow-up:</span>
+                {[{ l: '+3 D', d: 3 }, { l: '+1 W', d: 7 }, { l: '+2 W', d: 14 }, { l: '+1 M', d: 30 }].map((c) => (
+                  <button
+                    key={c.d}
+                    type="button"
+                    onClick={() => applyFollowUpChip(c.d)}
+                    className="px-2 py-1 rounded-full text-xs bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                    data-testid={`followup-chip-${c.d}`}
+                  >
+                    {c.l}
+                  </button>
+                ))}
+                <Input
+                  type="date"
+                  value={followUpDate}
+                  onChange={(e) => setFollowUpDate(e.target.value)}
+                  className="h-7 text-xs w-36"
+                  data-testid="followup-date-input"
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 

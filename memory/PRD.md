@@ -304,6 +304,25 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - `prescriptions.medications[].is_tapering: bool`, `prescriptions.medications[].taper_schedule: [{dosage, frequency, duration, notes}]`
 
 
+## Phase 18 — UX Phase A: Clinical Speedups + Payment Polish (2026-02-10) ✅
+Shipped 6 high-impact features from the 30+ UX list:
+
+**Clinical Workflow Speedups**
+- **Import Last Rx** button on the Prescription canvas — 1-click auto-populate the patient's previous medications for chronic follow-ups. Backend: `GET /api/prescriptions/last-for/{phone}`.
+- **Outstanding Balance chip** on Prescription header — red pulsing badge showing `Outstanding Balance: ₹X · N unpaid` computed live from all pending/partial invoices for the phone. Backend: `GET /api/prescriptions/outstanding-balance/{phone}`.
+- **Vitals bar + BMI + Follow-up chips** in the Rx footer — BP/Pulse/SpO₂/Temp/Wt/Ht badges + auto-calculated BMI with category colour (Underweight/Normal/Overweight/Obese) + `+3D / +1W / +2W / +1M` chips plus a manual date picker; follow-up saves with the Rx.
+
+**Payment Polish**
+- **Cash Change Calculator** in CollectPaymentDialog — "Amount tendered" input with live change/short display (green if change to return, red if short).
+- **Auto Digital Receipt** on Mark Paid — Invoices.markStatus now fires `POST /api/invoices/{id}/send-receipt` when flipping to paid; toast surfaces whether the WA send succeeded.
+- **Verify UPI + Verify Gateway** buttons in Settings — `POST /api/settings/payment/verify-upi` runs RBI-format regex + known-handle allowlist + QR builder round-trip; `POST /api/settings/payment/verify-gateway` pings Razorpay `/v1/orders?count=1` with the stored key (format-only for other providers).
+
+**Backend hardening**
+- `send-receipt` and `mark-cash-paid` now treat `send_whatsapp_message` returning None (unconfigured Twilio) as `receipt_sent:false` instead of silently reporting success (found by testing agent iteration 16).
+- Testing agent iteration 16: 15/16 → 1 fix → verified green.
+
+
+
 ## Phase 17 — Self-Serve Payment Methods (2026-02-10) ✅
 - **New backend module** `routes/settings.py` — 3 collection methods per practice:
   - **A. UPI VPA** (0% fees, default): stores `upi_id` + `display_name`; `POST /api/payments/upi/intent` builds NPCI-compliant `upi://pay?pa=…&am=…&cu=INR&tr=INV…` deep-link + returns a PNG QR (`data:image/png;base64,…`).

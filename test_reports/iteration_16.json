@@ -1,0 +1,45 @@
+{
+  "summary": "Backend-only UX Phase A testing completed against the public endpoint. Final suite: 15/16 passed (93.8%). Import Last Rx, outstanding balance aggregation, UPI verification, Razorpay/non-Razorpay gateway verification, unpaid/foreign receipt guards, cash overpayment protection, both supplied logins, and requested regressions passed. Paid send-receipt incorrectly reports and persists success when WhatsApp is unconfigured.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/invoices/{invoice_id}/send-receipt",
+        "issue": "With Twilio/WhatsApp unconfigured, send_whatsapp_message returned None and logged that sending was skipped, but the endpoint returned receipt_sent:true and persisted receipt_status:'sent' plus a receipt_sent_at timestamp. Expected receipt_sent:false and failed/no timestamp. Reproduced in the full suite and two focused retries.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration16_ux_phase_a.py",
+    "/app/test_reports/pytest/iteration_16_ux_phase_a_final.xml",
+    "/app/test_reports/pytest/iteration_16_ux_phase_a_persistence_retry.xml"
+  ],
+  "action_items": [
+    "In send_invoice_receipt, derive sent from the return value of send_whatsapp_message (for example, sent = bool(await send_whatsapp_message(...))) instead of treating every non-throwing no-op as success; persist failed status and no sent timestamp when the result is falsy.",
+    "Use resolve_owner_id(current_user) in outstanding_balance so receptionist/front-desk/assistant users query the owning practice's invoices, consistent with invoice CRUD."
+  ],
+  "critical_code_review_comments": [
+    "settings.send_invoice_receipt unconditionally assigns sent=True after awaiting send_whatsapp_message, while shared.send_whatsapp_message explicitly returns None both when Twilio is absent and when provider sending fails internally; this creates false delivery acknowledgements and inaccurate audit fields.",
+    "prescriptions.outstanding_balance uses current_user['id'] rather than resolve_owner_id(current_user), although invoice records are stored under resolved owner_id. Authenticated clinic sub-users will therefore receive a false zero balance for the owner's patients."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration16_ux_phase_a.py",
+    "/app/test_reports/iteration_16.json"
+  ],
+  "success_rate": {
+    "backend": "93.8% (15/16)",
+    "frontend": "Not tested (backend-only request)"
+  },
+  "seed_data_creation": "Created one isolated TEST doctor, one appointment/client, one prescription, and six invoices through public APIs per full run; focused retries created isolated paid invoices. Teardown removed all test users, settings, prescriptions, reminders, appointments, clients, invoices, counters, and test login-limit rows.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Used Doctor / Test Professional and Meta App Review Reviewer credentials from /app/memory/test_credentials.md; no supplied passwords were embedded in the test file.",
+  "context_for_next_testing_agent": "The deterministic failing case is TestInvoiceReceiptAndCashProtection::test_01_paid_invoice_receipt_noops_without_whatsapp_provider. Backend logs show 'Twilio not configured - WhatsApp send skipped' immediately before HTTP 200, while GET invoice shows receipt_status='sent' and a non-null receipt_sent_at. All other 15 cases pass, including the iteration_15 overpayment regression with persistence verification.",
+  "rca_of_the_issue": "send_invoice_receipt ignores the sender's return value: it awaits send_whatsapp_message and then sets sent=True unless an exception escapes. The shared sender returns None instead of raising when Twilio is unconfigured or when its internal send catches an exception, so the endpoint misclassifies a skipped/failed dispatch as delivered and writes incorrect receipt audit state."
+}

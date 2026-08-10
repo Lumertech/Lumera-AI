@@ -134,7 +134,17 @@ const Invoices = () => {
       const body = { payment_status: status };
       if (status === 'paid') body.amount_paid = inv.total;
       await axios.put(`${API_URL}/invoices/${inv.id}`, body);
-      toast.success(`Marked ${status}`);
+      // Auto-fire WhatsApp receipt when flipping to paid (best-effort, non-blocking)
+      if (status === 'paid' && inv.client_phone) {
+        try {
+          const r = await axios.post(`${API_URL}/invoices/${inv.id}/send-receipt`);
+          toast.success(r.data?.receipt_sent ? `Marked paid · WhatsApp receipt sent` : `Marked paid · receipt could not be sent`);
+        } catch {
+          toast.success(`Marked ${status}`);
+        }
+      } else {
+        toast.success(`Marked ${status}`);
+      }
       refresh();
     } catch (err) {
       toast.error(extractApiError(err, 'Failed to update'));

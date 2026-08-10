@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.018" timestamp="2026-08-10T18:15:53.398767+00:00" hostname="agent-env-ea14bf1a-122b-4afb-b875-6fa74ed89aaf"><testcase classname="backend.tests.test_iteration16_ux_phase_a.TestInvoiceReceiptAndCashProtection" name="test_01_paid_invoice_receipt_noops_without_whatsapp_provider" time="1.848"><failure message="AssertionError: {'persisted_receipt_sent_at': '2026-08-10T18:15:55.194249+00:00', 'persisted_receipt_status': 'sent', 'response': {'invoice_id': 'f01ec6d0-5861-4755-9d53-52c1ad92ccff', 'receipt_sent': True}}&#10;assert (True, 'sent'...194249+00:00') == (False, 'failed', None)&#10;  &#10;  At index 0 diff: True != False&#10;  &#10;  Full diff:&#10;    (&#10;  -     False,&#10;  -     'failed',...&#10;  &#10;  ...Full output truncated (5 lines hidden), use '-vv' to show">backend/tests/test_iteration16_ux_phase_a.py:509: in test_01_paid_invoice_receipt_noops_without_whatsapp_provider
+    assert (
+E   AssertionError: {'persisted_receipt_sent_at': '2026-08-10T18:15:55.194249+00:00', 'persisted_receipt_status': 'sent', 'response': {'invoice_id': 'f01ec6d0-5861-4755-9d53-52c1ad92ccff', 'receipt_sent': True}}
+E   assert (True, 'sent'...194249+00:00') == (False, 'failed', None)
+E     
+E     At index 0 diff: True != False
+E     
+E     Full diff:
+E       (
+E     -     False,
+E     -     'failed',...
+E     
+E     ...Full output truncated (5 lines hidden), use '-vv' to show</failure></testcase></testsuite></testsuites>
