@@ -304,6 +304,17 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - `prescriptions.medications[].is_tapering: bool`, `prescriptions.medications[].taper_schedule: [{dosage, frequency, duration, notes}]`
 
 
+## Phase 15 — WhatsApp Templates Seeder (2026-02-10) ✅
+- **Single source of truth** `backend/whatsapp_templates.py` — 4 utility templates (`appointment_confirmation_v1`, `appointment_reminder_v1`, `prescription_ready_v1`, `payment_link_v1`) with body text, variable examples, footer "Lumera Solutions LLP", DOCUMENT header on prescription, URL button on payment link.
+- **CLI publisher** `backend/seed_whatsapp_templates.py`: one-shot Graph API publisher. Resolves creds from CLI args → env vars → Mongo `meta_whatsapp_configs`. Supports `--dry-run`. Idempotent (Meta error codes 2388023/100 treated as `already_exists`).
+- **New backend endpoints** in `routes/meta_whatsapp.py`:
+  - `POST /api/meta-whatsapp/templates/publish` — one-click publish for the connected doctor's WABA, returns per-template status + summary counts.
+  - `GET /api/meta-whatsapp/templates` — live list from Meta of templates on the WABA.
+- **UI**: added "Publish 4 utility templates" button + result panel to `Settings → Meta WhatsApp Business` card. Button is disabled until WABA config is saved. Shows submitted/already_exists/failed counts inline.
+- Verified: unconfigured → 400, fake WABA+token → 4 per-template `failed http=401 "Invalid OAuth access token data"`.
+
+
+
 ## Phase 14 — Reviewer Seed + Router Split (2026-02-10) ✅
 - **Reviewer seed script** `backend/seed_reviewer.py`: idempotent seeder that upserts `reviewer@lumer.me / MetaReview@2026` as a doctor with 3 demo patients (`+919000000001..03`) and 1 appointment `appt-reviewer-demo-2026` named "Reviewer Demo" scheduled tomorrow @ 10:00. Safe to re-run any time to reset password.
 - `test_credentials.md` updated with reviewer credentials.

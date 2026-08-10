@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Facebook, CheckCircle2, AlertTriangle, Copy, ExternalLink } from 'lucide-react';
+import { Facebook, CheckCircle2, AlertTriangle, Copy, ExternalLink, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
@@ -18,6 +18,8 @@ const MetaWhatsAppSetup = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishResult, setPublishResult] = useState(null);
 
   const load = async () => {
     try {
@@ -46,6 +48,28 @@ const MetaWhatsAppSetup = () => {
       toast.error(e.response?.data?.detail || 'Save failed');
     } finally { setSaving(false); }
   };
+
+  const publishTemplates = async () => {
+    setPublishing(true);
+    setPublishResult(null);
+    try {
+      const res = await axios.post(`${API_URL}/meta-whatsapp/templates/publish`);
+      setPublishResult(res.data);
+      const { summary } = res.data;
+      if (summary.failed > 0) {
+        toast.error(`${summary.failed} template(s) failed. Check details below.`);
+      } else if (summary.submitted > 0) {
+        toast.success(`${summary.submitted} template(s) submitted for review.`);
+      } else {
+        toast.info('All templates already exist — nothing to publish.');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Publish failed');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
 
   const copyWebhook = async () => {
     if (!cfg.webhook_url) return;
@@ -135,6 +159,55 @@ const MetaWhatsAppSetup = () => {
         <Button onClick={save} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700" data-testid="meta-save-btn">
           {saving ? 'Saving…' : 'Save Meta WhatsApp'}
         </Button>
+
+        <div className="border-t pt-4 space-y-3">
+          <div>
+            <div className="font-manrope font-semibold text-slate-900">Publish Lumera utility templates</div>
+            <p className="text-xs text-slate-600 mt-1">
+              One-click publish of the 4 pre-baked utility templates
+              (<code>appointment_confirmation_v1</code>, <code>appointment_reminder_v1</code>,
+              <code>prescription_ready_v1</code>, <code>payment_link_v1</code>) to Meta for
+              review. Idempotent — templates that already exist are skipped.
+              Requires WABA ID + System User Token saved above.
+            </p>
+          </div>
+          <Button
+            onClick={publishTemplates}
+            disabled={publishing || !cfg.configured}
+            variant="outline"
+            className="border-emerald-500 text-emerald-700 hover:bg-emerald-50"
+            data-testid="meta-publish-templates-btn"
+          >
+            {publishing
+              ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Publishing…</>
+              : <><Send className="h-4 w-4 mr-2" /> Publish 4 utility templates</>}
+          </Button>
+
+          {publishResult && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2 text-sm" data-testid="publish-templates-result">
+              <div className="flex gap-4 text-xs">
+                <span className="text-emerald-700">✓ Submitted: <strong>{publishResult.summary.submitted}</strong></span>
+                <span className="text-slate-600">↺ Already exists: <strong>{publishResult.summary.already_exists}</strong></span>
+                <span className="text-rose-700">✗ Failed: <strong>{publishResult.summary.failed}</strong></span>
+              </div>
+              <ul className="text-xs text-slate-700 space-y-1">
+                {publishResult.results.map((r) => (
+                  <li key={r.name} className="font-mono">
+                    <span className={r.status === 'submitted' ? 'text-emerald-700' : r.status === 'already_exists' ? 'text-slate-500' : 'text-rose-700'}>
+                      {r.status === 'submitted' ? '✓' : r.status === 'already_exists' ? '↺' : '✗'}
+                    </span>{' '}
+                    {r.name} — {r.status}
+                    {r.error ? <span className="text-rose-600"> ({r.error})</span> : null}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-slate-600">
+                Templates are PENDING Meta review. Approval typically takes 1–24 hours.
+                Track in Meta Business Manager → WhatsApp Manager → Message Templates.
+              </p>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

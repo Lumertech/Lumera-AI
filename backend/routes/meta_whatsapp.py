@@ -88,6 +88,81 @@ async def set_config(body: MetaConfig, current_user: dict = Depends(get_current_
     return {"message": "Saved", "configured": bool(payload.get("phone_number_id") and payload.get("system_user_token"))}
 
 
+@router.post("/templates/publish")
+async def publish_templates(current_user: dict = Depends(get_current_user)):
+    """Publish Lumera's 4 utility templates to the connected doctor's WABA.
+
+    Idempotent: templates that already exist are reported as `already_exists`,
+    not re-created. Approval by Meta typically takes 1–24 hours.
+    """
+    from whatsapp_templates import LUMERA_UTILITY_TEMPLATES, DEFAULT_LANGUAGE  # local import to avoid module-load penalty
+
+    TEMPLATE_ALREADY_EXISTS_CODES = {2388023, 100}
+
+    owner_id = resolve_owner_id(current_user)
+    cfg = await _get_config(owner_id)
+    if not (cfg.get("waba_id") and cfg.get("system_user_token")):
+        raise HTTPException(
+            status_code=400,
+            detail="Meta WhatsApp not configured. Add WABA ID and System User Token in Settings → WhatsApp.",
+        )
+
+    headers = {"Authorization": f"Bearer {cfg['system_user_token']}", "Content-Type": "application/json"}
+    url = f"{GRAPH_BASE}/{cfg['waba_id']}/message_templates"
+
+    results = []
+    async with httpx.AsyncClient(timeout=30) as client:
+        for tmpl in LUMERA_UTILITY_TEMPLATES:
+            resp = await client.post(url, headers=headers, json=tmpl)
+            try:
+                body = resp.json()
+            except Exception:  # noqa: BLE001
+                body = {"raw": resp.text}
+
+            if resp.status_code in (200, 201):
+                results.append({
+                    "name": tmpl["name"],
+                    "status": "submitted",
+                    "id": body.get("id"),
+                    "review_status": body.get("status"),
+                })
+                continue
+
+            err = body.get("error", {}) if isinstance(body, dict) else {}
+            if err.get("code") in TEMPLATE_ALREADY_EXISTS_CODES or err.get("error_subcode") in TEMPLATE_ALREADY_EXISTS_CODES:
+                results.append({"name": tmpl["name"], "status": "already_exists"})
+            else:
+                results.append({
+                    "name": tmpl["name"],
+                    "status": "failed",
+                    "http": resp.status_code,
+                    "error": err.get("message") or str(body)[:300],
+                })
+
+    summary = {
+        "submitted": sum(1 for r in results if r["status"] == "submitted"),
+        "already_exists": sum(1 for r in results if r["status"] == "already_exists"),
+        "failed": sum(1 for r in results if r["status"] == "failed"),
+    }
+    return {"language": DEFAULT_LANGUAGE, "summary": summary, "results": results}
+
+
+@router.get("/templates")
+async def list_templates(current_user: dict = Depends(get_current_user)):
+    """List templates on the doctor's WABA (fetches from Meta live)."""
+    owner_id = resolve_owner_id(current_user)
+    cfg = await _get_config(owner_id)
+    if not (cfg.get("waba_id") and cfg.get("system_user_token")):
+        return {"configured": False, "templates": []}
+    url = f"{GRAPH_BASE}/{cfg['waba_id']}/message_templates?fields=name,language,category,status,quality_score"
+    headers = {"Authorization": f"Bearer {cfg['system_user_token']}"}
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.get(url, headers=headers)
+    if r.status_code != 200:
+        return {"configured": True, "templates": [], "error": r.text[:300]}
+    return {"configured": True, "templates": r.json().get("data", [])}
+
+
 @router.post("/send")
 async def send_message(body: SendMessage, current_user: dict = Depends(get_current_user)):
     owner_id = resolve_owner_id(current_user)
