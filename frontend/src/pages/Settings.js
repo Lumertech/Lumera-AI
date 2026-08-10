@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Settings as SettingsIcon, Calendar, Bell, CreditCard, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import MetaWhatsAppSetup from './MetaWhatsAppSetup';
+import PaymentGatewaySettingsCard from '@/components/PaymentGatewaySettingsCard';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -339,6 +340,9 @@ const Settings = () => {
 
         {/* Meta WhatsApp Business */}
         <MetaWhatsAppSetup />
+
+        {/* Payment & Gateway Settings (UPI / Gateway / Cash) */}
+        <PaymentGatewaySettingsCard />
 
         <Card className="border-slate-200">
           <CardHeader>

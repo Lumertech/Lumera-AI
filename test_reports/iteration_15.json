@@ -1,0 +1,58 @@
+{
+  "summary": "Backend-only public-endpoint testing completed for Payment & Gateway Settings, UPI intents, cash invoice settlement, owner resolution, and requested regressions. Final suite result: 27/29 passed (93.1%); both failures reproduced on retry. Provider entries and all seven field schemas are correct, but the providers response has the wrong top-level shape. Cash settlement accepts and persists overpayment. A critical static/runtime review also found Fernet uses a generated per-process key because ENCRYPTION_KEY is absent, so encrypted gateway secrets will become unreadable after restart and the generated key is printed to logs.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "PUT /api/settings/payment/gateway and GET /api/settings/payment",
+        "issue": "ENCRYPTION_KEY is absent from both backend/.env and the backend process environment; runtime logs confirm EncryptionManager generated a random Fernet key. Gateway secrets saved now cannot be decrypted/masked after a backend restart, and security.py prints the generated key to logs.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "POST /api/invoices/{invoice_id}/mark-cash-paid",
+        "issue": "Accepts amount_paid above invoice total and persists it (for a total of 200, amount_paid=201 returned 200 with paid status). The existing invoice update API rejects overpayment, so this creates inconsistent and invalid financial records.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "GET /api/settings/payment/providers",
+        "issue": "Returns {\"providers\": [...]} instead of the required top-level array. The nested array does contain exactly seven providers with all requested ids, names, countries, and exact field lists."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_payment_settings.py",
+    "/app/test_reports/pytest/iteration_15_payment_settings.xml",
+    "/app/test_reports/pytest/iteration_15_payment_settings_failure_retry.xml"
+  ],
+  "action_items": [
+    "Configure a stable ENCRYPTION_KEY before process startup, fail fast when it is missing, and never print generated encryption keys; verify an existing saved secret remains maskable after restart.",
+    "Reject amount_paid greater than invoice total in mark-cash-paid before updating MongoDB.",
+    "Return SUPPORTED_PROVIDERS directly from GET /api/settings/payment/providers to satisfy the array contract.",
+    "Consider setting receipt_sent from the actual send result: send_whatsapp_message returns None when Twilio is unconfigured, but mark-cash-paid currently reports true after any non-throwing no-op."
+  ],
+  "critical_code_review_comments": [
+    "security.EncryptionManager generates and logs a Fernet key when ENCRYPTION_KEY is missing. server.py imports security before its own load_dotenv call; the deployed process has no ENCRYPTION_KEY and emitted the generated-key warning, so restart persistence is not safe.",
+    "mark_invoice_cash_paid only validates paid > 0 and treats every paid >= total as paid; it needs the same upper-bound invariant already enforced by routes/invoices.py.",
+    "mark_invoice_cash_paid sets receipt_sent=True without checking the return value of send_whatsapp_message, whose unconfigured path returns None."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_payment_settings.py",
+    "/app/test_reports/iteration_15.json"
+  ],
+  "success_rate": {
+    "backend": "93.1% (27/29)",
+    "frontend": "Not tested (backend-only request)"
+  },
+  "seed_data_creation": "Registered one isolated TEST payment doctor, created one isolated front-desk sub-user, seven TEST invoices across Sarah and the isolated owner, and one deletion ticket per full run; fixture teardown removed users, payment settings, invoices, login-limit rows, and deletion tickets. Failure retry used and cleaned a second isolated doctor and invoice.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Used Doctor / Test Professional credentials from /app/memory/test_credentials.md; no credentials were guessed or embedded.",
+  "context_for_next_testing_agent": "Final suite covers auth guards; fresh defaults; all method transitions; invalid method/VPA/provider/missing fields; UPI intent query and PNG data URL; Razorpay and PhonePe masking plus encrypted-at-rest DB checks; owner resolution through a created front-desk user; gateway deletion; full/partial/receipt/invalid/foreign-owner cash settlement; health/login/appointments/clients/safety/data-deletion/Meta publish regressions. Two deterministic failures are provider response shape and overpayment acceptance. Re-test restart decryptability after ENCRYPTION_KEY is fixed.",
+  "rca_of_the_issue": "Provider shape: list_providers wraps SUPPORTED_PROVIDERS in a providers object. Overpayment: mark_invoice_cash_paid checks only paid <= 0 and uses paid >= total for status, with no upper bound. Encryption: EncryptionManager falls back to Fernet.generate_key() and logs it when ENCRYPTION_KEY is absent; the running backend emitted this warning, making the cipher process-local rather than restart-stable."
+}

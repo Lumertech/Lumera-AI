@@ -1,6 +1,9 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Form, Depends, Header, Query, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.responses import Response, RedirectResponse
 from dotenv import load_dotenv
+# Load .env BEFORE importing modules that read env at import time (e.g. security.EncryptionManager).
+from pathlib import Path as _P
+load_dotenv(_P(__file__).parent / '.env')
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
@@ -3258,6 +3261,9 @@ app.include_router(_auth_router_mod.router, prefix="/api")
 
 from routes import appointments as _appts_router_mod
 app.include_router(_appts_router_mod.router, prefix="/api")
+
+from routes import settings as _settings_router_mod
+app.include_router(_settings_router_mod.router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

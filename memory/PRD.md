@@ -304,6 +304,19 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - `prescriptions.medications[].is_tapering: bool`, `prescriptions.medications[].taper_schedule: [{dosage, frequency, duration, notes}]`
 
 
+## Phase 17 — Self-Serve Payment Methods (2026-02-10) ✅
+- **New backend module** `routes/settings.py` — 3 collection methods per practice:
+  - **A. UPI VPA** (0% fees, default): stores `upi_id` + `display_name`; `POST /api/payments/upi/intent` builds NPCI-compliant `upi://pay?pa=…&am=…&cu=INR&tr=INV…` deep-link + returns a PNG QR (`data:image/png;base64,…`).
+  - **B. Direct API creds** for 7 providers: Razorpay / PhonePe Business / Paytm / Cashfree / PayU / Stripe / Airpay-SabPaisa. Secret fields encrypted with Fernet; only masked previews (`••••••••••••9876`) leave the API. `GET /providers` exposes the field-schema for each.
+  - **C. Counter Cash**: `POST /api/invoices/{id}/mark-cash-paid` records `payment_method=cash`, `amount_paid`, `paid_by`, `paid_at`; optional `send_whatsapp_receipt` fires a friendly receipt to the patient's number.
+- **New Frontend UI** `components/PaymentGatewaySettingsCard.js` mounted in `Settings.js`: 3-tile radio picker, UPI form with **live QR preview** button, provider dropdown for gateway with dynamic fields, "Get keys" deep-link out to each provider's dashboard, disconnect gateway.
+- **New Frontend UI** `components/CollectPaymentDialog.js` mounted in `Invoices.js` (new **Collect** button on unpaid rows): renders the right panel based on active method — QR + "Send on WhatsApp" for UPI, "Create payment link" for gateway, cash amount + "Mark Paid (Cash)" + optional WhatsApp receipt for cash.
+- **Critical infra fix**: `load_dotenv()` was running AFTER `from security import ...` — meaning `EncryptionManager` generated a random Fernet key on every restart, silently losing encrypted secrets. Moved `load_dotenv()` to line 4 of `server.py` before any module imports read env; added stable `ENCRYPTION_KEY` to `backend/.env`. Verified: secret survives backend restart.
+- **Additional fix**: `mark-cash-paid` now rejects overpayment with 400 (previously accepted it, creating inconsistent financial records).
+- Testing agent iteration 15: 27/29 passed; both criticals then fixed and verified.
+
+
+
 ## Phase 16 — Expanded Drug & Lab Dictionaries with Fuzzy Search (2026-02-10) ✅
 - **New builder** `backend/build_clinical_data.py`: expands ~180 curated Indian brand+generic seeds across common Indian dose forms (Tablet / DS / SR / Kid / Syrup / Suspension / Injection) → writes `data/indian_drugs.json`.
 - **Drug catalogue grew 104 → 2,370** (23× larger). 59 categories: Analgesic, NSAID, Antibiotic, PPI, H2 Blocker, Antihistamine, Cough, Antidiabetic, Insulin, Statin, Beta Blocker, ACE Inhibitor, ARB, CCB, Diuretic, Anxiolytic, SSRI/SNRI, Bronchodilator, Steroid Inhaler, Corticosteroid, Antiemetic, Laxative, Supplement, Thyroid, Antifungal, Antiviral, Antimalarial, Antihelminthic, Muscle Relaxant, Ophthalmic, Topical, Anticonvulsant, OCP, Progestogen, Anticoagulant, Immunosuppressant, Alpha Blocker, PDE5 Inhibitor and more.

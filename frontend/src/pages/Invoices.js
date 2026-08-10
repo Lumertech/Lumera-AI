@@ -7,11 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Receipt, Plus, Trash2, Printer, Loader2, CheckCircle2, Search, Settings as SettingsIcon } from 'lucide-react';
+import { Receipt, Plus, Trash2, Printer, Loader2, CheckCircle2, Search, Settings as SettingsIcon, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractApiError } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
 import { printDocument, renderInvoiceHTML } from '@/lib/print';
+import CollectPaymentDialog from '@/components/CollectPaymentDialog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -26,6 +27,7 @@ const emptyItem = () => ({ description: '', consultation_type: '', qty: 1, rate:
 const Invoices = () => {
   const { user } = useAuth();
   const [invoices, setInvoices] = useState([]);
+  const [collectFor, setCollectFor] = useState(null);
   const [types, setTypes] = useState([]);
   const [clinics, setClinics] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -334,6 +336,11 @@ const Invoices = () => {
                       <Printer className="h-4 w-4" />
                     </Button>
                     {inv.payment_status !== 'paid' && (
+                      <Button size="sm" variant="outline" onClick={() => setCollectFor(inv)} data-testid={`collect-${inv.id}`} className="text-indigo-700 border-indigo-300 hover:bg-indigo-50">
+                        <Wallet className="h-4 w-4 mr-1" /> Collect
+                      </Button>
+                    )}
+                    {inv.payment_status !== 'paid' && (
                       <Button size="sm" variant="outline" onClick={() => markStatus(inv, 'paid')} data-testid={`mark-paid-${inv.id}`} className="text-emerald-700 border-emerald-300 hover:bg-emerald-50">
                         <CheckCircle2 className="h-4 w-4 mr-1" /> Paid
                       </Button>
@@ -446,6 +453,13 @@ const Invoices = () => {
           </div>
         )}
       </div>
+
+      <CollectPaymentDialog
+        open={!!collectFor}
+        onOpenChange={(open) => !open && setCollectFor(null)}
+        invoice={collectFor}
+        onPaid={refresh}
+      />
     </DashboardLayout>
   );
 };
