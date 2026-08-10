@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Home } from 'lucide-react';
 
 const Login = () => {
   const { login } = useAuth();
@@ -38,6 +38,14 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-teal-50 flex items-center justify-center p-4">
+      <Link
+        to="/"
+        className="absolute top-6 left-6 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:text-indigo-700 hover:bg-white/80 transition-colors font-inter text-sm font-medium"
+        data-testid="login-back-home-link"
+      >
+        <Home className="h-4 w-4" />
+        Back to home
+      </Link>
       <Card className="w-full max-w-md border-slate-200 shadow-xl">
         <CardHeader className="space-y-2 text-center pb-6">
           <div className="flex items-center justify-center space-x-3 mb-2">
@@ -106,7 +114,7 @@ const Login = () => {
 
           <div className="mt-6 text-center space-y-2">
             <p className="font-inter text-sm text-slate-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link to="/register" className="text-indigo-600 hover:text-indigo-700 font-semibold" data-testid="register-link">
                 Sign up
               </Link>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { Building2 } from 'lucide-react';
+import { Building2, Home } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,6 +48,14 @@ const PolyclinicRegister = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-indigo-800 to-purple-900 flex items-center justify-center p-4">
+      <Link
+        to="/"
+        className="absolute top-6 left-6 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-indigo-100 hover:text-white hover:bg-white/10 transition-colors font-inter text-sm font-medium"
+        data-testid="polyclinic-register-back-home-link"
+      >
+        <Home className="h-4 w-4" />
+        Back to home
+      </Link>
       <Card className="w-full max-w-lg" data-testid="polyclinic-register-card">
         <CardHeader className="text-center">
           <div className="mx-auto w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mb-3">

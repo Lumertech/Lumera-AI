@@ -10,7 +10,6 @@ import {
   Settings,
   CreditCard,
   Bell,
-  FileText,
   BarChart3,
   LogOut,
   Menu,
@@ -53,20 +52,25 @@ const DashboardLayout = ({ children }) => {
   const roleStyle = ROLE_STYLE[role] || 'bg-slate-100 text-slate-800 border-slate-300';
 
   const allNavigation = [
+    // Daily Operations
     { name: 'Dashboard', href: '/dashboard', icon: BarChart3, roles: ['doctor', 'front_desk', 'assistant'] },
-    { name: 'Appointments', href: '/appointments', icon: Calendar, roles: ['doctor', 'front_desk', 'assistant'] },
-    { name: 'Clients', href: '/clients', icon: Users, roles: ['doctor', 'front_desk', 'assistant'] },
-    { name: 'Consultations', href: '/consultations', icon: Mic, roles: ['doctor'] },
-    { name: 'Invoices', href: '/invoices', icon: Receipt, roles: ['doctor'] },
-    { name: 'WhatsApp Bot', href: '/whatsapp', icon: MessageSquare, roles: ['doctor'] },
-    { name: 'Voice Bot', href: '/voice-bot', icon: Phone, roles: ['doctor'] },
-    { name: 'Clinics', href: '/clinics', icon: Building2, roles: ['doctor'] },
+    { name: 'Appointments & OPD', href: '/appointments', icon: Calendar, roles: ['doctor', 'front_desk', 'assistant'] },
+    { name: 'Patients', href: '/clients', icon: Users, roles: ['doctor', 'front_desk', 'assistant'] },
+    // Clinical Care
+    { name: 'Consultations & EMR', href: '/consultations', icon: Mic, roles: ['doctor'] },
+    // Finance
+    { name: 'Invoices & Billing', href: '/invoices', icon: Receipt, roles: ['doctor'] },
     { name: 'Payments', href: '/payments', icon: CreditCard, roles: ['doctor'] },
-    { name: 'Reminders', href: '/reminders', icon: Bell, roles: ['doctor', 'front_desk'] },
-    { name: 'Subscription', href: '/subscription', icon: CreditCard, roles: ['doctor'] },
-    { name: 'Tools', href: '/tools', icon: FileText, roles: ['doctor'] },
+    // Automation
+    { name: 'AI Voice & WhatsApp', href: '/voice-bot', icon: Phone, roles: ['doctor'] },
+    { name: 'WhatsApp Bot', href: '/whatsapp', icon: MessageSquare, roles: ['doctor'] },
+    { name: 'Reminders & Retention', href: '/reminders', icon: Bell, roles: ['doctor', 'front_desk'] },
+    // Organization
+    { name: 'Clinics & Staff', href: '/clinics', icon: Building2, roles: ['doctor'] },
+    // Settings
     { name: 'Profile', href: '/profile', icon: User, roles: ['doctor', 'front_desk', 'assistant'] },
     { name: 'Settings', href: '/settings', icon: Settings, roles: ['doctor'] },
+    { name: 'Subscription', href: '/subscription', icon: CreditCard, roles: ['doctor'] },
   ];
 
   const navigation = allNavigation.filter((item) => item.roles.includes(role));

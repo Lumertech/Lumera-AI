@@ -128,6 +128,14 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - Sidebar: new **Invoices** nav item
 - Tests: 13/13 invoice pytest pass; PrescriptionWriter print regression fixed after test-agent flagged missing `primaryClinic` state declaration
 
+### Phase 13 — Sidebar Refactor + Logout UX (2026-08-10) ✅
+- Left sidebar reordered into clinical workflow: **Daily Ops → Clinical Care → Finance → Automation → Organization → Settings**
+  1. Dashboard  2. Appointments & OPD  3. Patients  4. Consultations & EMR
+  5. Invoices & Billing  6. Payments  7. AI Voice & WhatsApp  8. WhatsApp Bot
+  9. Reminders & Retention  10. Clinics & Staff  11. Profile  12. Settings  13. Subscription
+- Removed broken "Tools" nav item (never had a route — was 404-ing)
+- Added "Back to home" pill link on Login, Admin Login, Register and Polyclinic Register pages — visible in top-left after logout so users can always get back to the landing page
+
 ### Phase 12 — Voice Library Gallery + Polyclinic Umbrella (2026-08-10) ✅
 **Voice Library Gallery**
 - Curated 18 premade ElevenLabs voices (9 female + 9 male, spanning American/British/Australian/Southern accents) with public 5-second preview MP3 URLs

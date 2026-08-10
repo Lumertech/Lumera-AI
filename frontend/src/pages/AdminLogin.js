@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,14 @@ const AdminLogin = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      <Link
+        to="/"
+        className="absolute top-6 left-6 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 transition-colors font-inter text-sm font-medium"
+        data-testid="admin-login-back-home-link"
+      >
+        <Home className="h-4 w-4" />
+        Back to home
+      </Link>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center pb-8">
           <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">

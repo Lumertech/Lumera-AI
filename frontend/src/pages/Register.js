@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Home } from 'lucide-react';
 
 const Register = () => {
   const { register } = useAuth();
@@ -53,6 +53,14 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-teal-50 flex items-center justify-center p-4">
+      <Link
+        to="/"
+        className="absolute top-6 left-6 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:text-indigo-700 hover:bg-white/80 transition-colors font-inter text-sm font-medium"
+        data-testid="register-back-home-link"
+      >
+        <Home className="h-4 w-4" />
+        Back to home
+      </Link>
       <Card className="w-full max-w-md border-slate-200 shadow-xl">
         <CardHeader className="space-y-2 text-center pb-6">
           <div className="flex items-center justify-center space-x-3 mb-2">
@@ -166,7 +174,7 @@ const Register = () => {
                 htmlFor="terms"
                 className="text-sm font-inter text-slate-700 leading-relaxed cursor-pointer"
               >
-                I agree to Lumera Tech LLC's{' '}
+                I agree to Lumera Tech LLC&apos;s{' '}
                 <Link to="/policies#terms-of-service" target="_blank" className="text-indigo-600 hover:underline font-semibold">
                   Terms of Service
                 </Link>
