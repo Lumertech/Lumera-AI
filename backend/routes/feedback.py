@@ -126,6 +126,18 @@ async def list_triggers(status: Optional[str] = None, current_user: dict = Depen
     return rows
 
 
+@router.get("/recent")
+async def recent_feedback(limit: int = 10, current_user: dict = Depends(get_current_user)):
+    """Latest responded feedback ratings for the current doctor / polyclinic scope."""
+    owner_id = resolve_owner_id(current_user)
+    rows = await db.feedback_triggers.find(
+        {"doctor_id": owner_id, "status": "responded"},
+        {"_id": 0, "id": 1, "client_name": 1, "client_phone": 1, "rating": 1,
+         "comment": 1, "responded_at": 1, "appointment_id": 1},
+    ).sort("responded_at", -1).to_list(max(1, min(limit, 50)))
+    return rows
+
+
 @router.get("/summary")
 async def feedback_summary(current_user: dict = Depends(get_current_user)):
     """Overall rating summary for the current doctor / polyclinic scope."""

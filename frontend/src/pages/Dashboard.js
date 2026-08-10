@@ -8,6 +8,7 @@ import { Calendar, Users, IndianRupee, Clock, TrendingUp, Award } from 'lucide-r
 import { formatDate, formatTime, formatCurrency } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import FeedbackWidget from '@/components/FeedbackWidget';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -198,6 +199,9 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Patient feedback widget (live star ratings) */}
+        <FeedbackWidget />
 
         {/* Quick Actions */}
         <div className="grid md:grid-cols-3 gap-6">

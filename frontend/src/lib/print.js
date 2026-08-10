@@ -71,7 +71,7 @@ const escape = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]));
 
-export function renderPrescriptionHTML({ clinic, doctor, patient, medications = [], instructions = '', date }) {
+export function renderPrescriptionHTML({ clinic, doctor, patient, medications = [], instructions = '', date, vitals = null, labTests = [] }) {
   const dateStr = date ? new Date(date).toLocaleDateString() : new Date().toLocaleDateString();
   const clinicBlock = clinic ? `
     <h1>${escape(clinic.name)}</h1>
@@ -96,6 +96,35 @@ export function renderPrescriptionHTML({ clinic, doctor, patient, medications = 
     </tr>`;
   }).join('');
 
+  // Vitals block (only if any value is present)
+  const vitalOrder = [
+    ['bp', 'BP'], ['pulse', 'Pulse'], ['spo2', 'SpO2'], ['temperature', 'Temp'],
+    ['weight', 'Weight'], ['height', 'Height'], ['respiratory_rate', 'RR'],
+  ];
+  const vitalsPresent = vitals && vitalOrder.some(([k]) => vitals[k]);
+  const vitalsBlock = vitalsPresent
+    ? `<h2>Vitals</h2>
+       <table>
+         <thead><tr>${vitalOrder.map(([k, label]) => vitals[k] ? `<th>${escape(label)}</th>` : '').join('')}</tr></thead>
+         <tbody><tr>${vitalOrder.map(([k]) => vitals[k] ? `<td>${escape(vitals[k])}</td>` : '').join('')}</tr></tbody>
+       </table>`
+    : '';
+
+  // Lab / Imaging orders
+  const labBlock = (labTests && labTests.length > 0)
+    ? `<h2>Lab / Imaging Orders</h2>
+       <table>
+         <thead><tr><th>#</th><th>Test</th><th>Code</th><th>Sample</th><th>Notes</th></tr></thead>
+         <tbody>${labTests.map((t, i) => `<tr>
+           <td>${i + 1}</td>
+           <td><strong>${escape(t.name || '')}</strong>${t.category ? `<div class="muted">${escape(t.category)}</div>` : ''}</td>
+           <td>${escape(t.code || '')}</td>
+           <td>${escape(t.sample || '')}</td>
+           <td>${escape(t.notes || '')}</td>
+         </tr>`).join('')}</tbody>
+       </table>`
+    : '';
+
   return `
     <div class="row">
       <div>${clinicBlock}</div>
@@ -119,11 +148,15 @@ export function renderPrescriptionHTML({ clinic, doctor, patient, medications = 
       </div>
     </div>
 
+    ${vitalsBlock}
+
     <h2>Rx</h2>
     <table>
       <thead><tr><th>#</th><th>Medicine</th><th>Dosage</th><th>Frequency</th><th>Duration</th></tr></thead>
       <tbody>${medsRows || '<tr><td colspan="5" class="muted">No medications</td></tr>'}</tbody>
     </table>
+
+    ${labBlock}
 
     ${instructions ? `<h2>General instructions</h2><div>${escape(instructions).replace(/\n/g, '<br/>')}</div>` : ''}
 

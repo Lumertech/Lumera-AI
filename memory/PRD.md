@@ -128,6 +128,22 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - Sidebar: new **Invoices** nav item
 - Tests: 13/13 invoice pytest pass; PrescriptionWriter print regression fixed after test-agent flagged missing `primaryClinic` state declaration
 
+### Phase 15 — Feedback Widget + Nurse Vitals + Auto-Print (2026-08-10) ✅
+
+**Feedback Widget on Dashboard:**
+- New `GET /api/feedback/recent?limit=8` endpoint returns the latest responded ratings for the doctor/polyclinic scope
+- `FeedbackWidget` component on the Dashboard shows avg rating + % positive, then a live list of recent stars with patient name, comment preview, and time-ago. 1-3★ rows highlighted in red with a "Needs follow-up" badge; auto-refreshes every 60 seconds
+
+**Auto-Vitals from Nurse:**
+- New endpoints `GET/PUT /api/appointments/{id}/vitals` — assistants, receptionists, front-desk, and doctors can record vitals directly on the appointment (uses `resolve_owner_id` so staff writes into their parent doctor's scope)
+- New `/vitals/:appointmentId` page (`VitalsEntry.js`) — tablet-friendly form with 7 vital fields, save button, and last-saved-by/at metadata
+- "Take Vitals" button added to the appointment details page next to "Write Prescription"
+- Prescription writer auto-fetches saved vitals on mount and displays a green "Vitals pre-filled by <name> · <time>" badge above the vitals card
+
+**Print Prescription with Vitals + Lab Orders:**
+- `renderPrescriptionHTML` extended to render a Vitals table and a Lab / Imaging Orders table (with test name, code, sample, notes)
+- After successful WhatsApp send, `submitPrescription` auto-triggers `handlePrint()` so patients walk out with a printed copy
+
 ### Phase 14 — Smart Prescription + Global Doctor Filter + Post-Consult Feedback (2026-08-10) ✅
 
 **Smart Prescription (Phase C):**

@@ -15,6 +15,7 @@ import Dashboard from '@/pages/Dashboard';
 import Appointments from '@/pages/Appointments';
 import AppointmentDetails from '@/pages/AppointmentDetails';
 import PrescriptionWriter from '@/pages/PrescriptionWriter';
+import VitalsEntry from '@/pages/VitalsEntry';
 import Clients from '@/pages/Clients';
 import WhatsAppConfig from '@/pages/WhatsAppConfig';
 import VoiceBotConfig from '@/pages/VoiceBotConfig';
@@ -271,6 +272,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <PrescriptionWriter />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vitals/:appointmentId"
+            element={
+              <ProtectedRoute>
+                <VitalsEntry />
               </ProtectedRoute>
             }
           />

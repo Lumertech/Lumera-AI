@@ -1098,6 +1098,55 @@ async def get_patient_details(appointment_id: str, current_user: dict = Depends(
     
     return appointment.get("patient_details", {})
 
+
+# Vitals — nurses/assistants and doctors can capture, doctor sees them
+# pre-populated when the prescription writer opens.
+class VitalsPayload(BaseModel):
+    bp: Optional[str] = None
+    pulse: Optional[str] = None
+    spo2: Optional[str] = None
+    temperature: Optional[str] = None
+    weight: Optional[str] = None
+    height: Optional[str] = None
+    respiratory_rate: Optional[str] = None
+
+
+@api_router.get("/appointments/{appointment_id}/vitals")
+async def get_appointment_vitals(appointment_id: str, current_user: dict = Depends(get_current_user)):
+    owner_id = resolve_owner_id(current_user)
+    appt = await db.appointments.find_one(
+        {"id": appointment_id, "professional_id": owner_id}, {"_id": 0}
+    )
+    if not appt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    return {"vitals": appt.get("vitals") or {}, "captured_by": appt.get("vitals_captured_by"),
+            "captured_at": appt.get("vitals_captured_at")}
+
+
+@api_router.put("/appointments/{appointment_id}/vitals")
+async def upsert_appointment_vitals(appointment_id: str, body: VitalsPayload,
+                                     current_user: dict = Depends(get_current_user)):
+    """Assistants (nurses) and doctors can record vitals directly on the appointment."""
+    role = current_user.get("role")
+    if role not in ("user", "doctor", "assistant", "receptionist", "front_desk"):
+        raise HTTPException(status_code=403, detail="Not allowed to capture vitals")
+    owner_id = resolve_owner_id(current_user)
+    appt = await db.appointments.find_one({"id": appointment_id, "professional_id": owner_id})
+    if not appt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    payload = {k: v for k, v in body.model_dump().items() if v is not None}
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.appointments.update_one(
+        {"id": appointment_id},
+        {"$set": {
+            "vitals": payload,
+            "vitals_captured_by": current_user.get("name") or current_user.get("email"),
+            "vitals_captured_by_role": role,
+            "vitals_captured_at": now_iso,
+        }},
+    )
+    return {"message": "Vitals saved", "vitals": payload, "captured_by": current_user.get("name")}
+
 # Time Slots
 @api_router.get("/slots/available")
 async def get_available_slots(date: str, current_user: dict = Depends(get_current_user)):

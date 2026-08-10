@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, User, FileText, Save, CreditCard, FolderOpen, ShieldCheck } from 'lucide-react';
+import { Calendar, User, FileText, Save, CreditCard, FolderOpen, ShieldCheck, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate, formatTime } from '@/lib/utils';
 import RequestPaymentModalV2 from '@/components/RequestPaymentModalV2';
@@ -160,6 +160,15 @@ const AppointmentDetails = () => {
                   data-testid="back-btn"
                 >
                   Back
+                </Button>
+                <Button
+                  onClick={() => navigate(`/vitals/${id}`)}
+                  variant="outline"
+                  className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                  data-testid="take-vitals-btn"
+                >
+                  <Heart className="h-4 w-4 mr-2" />
+                  Take Vitals
                 </Button>
                 <Button
                   onClick={goToPrescription}

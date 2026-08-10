@@ -90,11 +90,23 @@ const PrescriptionWriter = () => {
     }
   }, [appointment?.client_phone]);
 
+  const [vitalsCapturedBy, setVitalsCapturedBy] = useState(null);
+
   const fetchAppointment = async () => {
     try {
       const response = await axios.get(`${API_URL}/appointments/${id}`);
       setAppointment(response.data);
       if (response.data.notes) setSymptoms(response.data.notes);
+      // Load pre-populated vitals recorded by nurse/assistant
+      try {
+        const v = await axios.get(`${API_URL}/appointments/${id}/vitals`);
+        if (v.data.vitals && Object.keys(v.data.vitals).length > 0) {
+          setVitals(v.data.vitals);
+          if (v.data.captured_by) {
+            setVitalsCapturedBy({ by: v.data.captured_by, at: v.data.captured_at });
+          }
+        }
+      } catch (_) { /* non-fatal */ }
     } catch (error) {
       console.error('Failed to fetch appointment:', error);
       toast.error('Failed to load appointment');
@@ -318,6 +330,8 @@ const PrescriptionWriter = () => {
       medications: validMeds,
       instructions: generalInstructions,
       date: new Date().toISOString(),
+      vitals,
+      labTests,
     });
     printDocument({ title: `Prescription - ${appointment?.client_name || ''}`, html });
   };
@@ -341,6 +355,8 @@ const PrescriptionWriter = () => {
         request_feedback: true,
       });
       toast.success('Prescription sent to patient via WhatsApp!');
+      // Auto-print so the patient walks out with a printed copy
+      try { handlePrint(); } catch (e) { /* non-blocking */ }
       setTimeout(() => navigate('/appointments'), 1500);
     } catch (error) {
       console.error('Failed to send prescription:', error);
@@ -381,6 +397,12 @@ const PrescriptionWriter = () => {
         </Card>
 
         {/* Vitals header */}
+        {vitalsCapturedBy && (
+          <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 flex items-center gap-2" data-testid="vitals-prefilled-badge">
+            <span>✓ Vitals pre-filled by <strong>{vitalsCapturedBy.by}</strong></span>
+            {vitalsCapturedBy.at && <span className="text-slate-500">· {new Date(vitalsCapturedBy.at).toLocaleTimeString()}</span>}
+          </div>
+        )}
         <VitalsHeader vitals={vitals} onChange={setVitals} />
 
         {/* Rx Presets */}
