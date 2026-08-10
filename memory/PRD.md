@@ -128,6 +128,31 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - Sidebar: new **Invoices** nav item
 - Tests: 13/13 invoice pytest pass; PrescriptionWriter print regression fixed after test-agent flagged missing `primaryClinic` state declaration
 
+### Phase 18 — Whisper Fallback + Multi-language + Waveform + Meta WhatsApp Scaffold (2026-08-10) ✅
+
+**Whisper Fallback** (`POST /api/ambient/transcribe`)
+- Multipart audio upload → OpenAI Whisper via Emergent LLM Key
+- Automatic fallback: when browser SpeechRecognition captures nothing (unsupported/failed), the recorded audio blob is sent to Whisper
+- Language hint (ISO 639-1) passed for higher-accuracy Hinglish
+- Prompt tuned with Indian brand names
+
+**Multi-language Toggle**
+- Language dropdown with 11 Indian options: English-IN, Hindi, Tamil, Telugu, Bengali, Marathi, Kannada, Malayalam, Gujarati, Punjabi + English-US
+- SpeechRecognition `lang` updates live; Whisper uses corresponding ISO code
+
+**Live Waveform**
+- AudioContext + AnalyserNode → animated 32-bar canvas visualization while recording
+- Purple gradient bars react to voice amplitude
+- Small "Recording… patient can see this indicator" caption sits next to the waveform for patient reassurance
+
+**Meta WhatsApp scaffolding** (`routes/meta_whatsapp.py`) — ready to activate when creds arrive
+- `PUT /api/meta-whatsapp/config` (owner-scoped) — stores App ID / Secret / WABA / phone_number_id / system-user token / verify token
+- `GET /api/meta-whatsapp/config` — presence flags only (never leaks secrets)
+- `POST /api/meta-whatsapp/send` — text or up to 3 quick-reply buttons via Graph v20 `interactive` payload
+- `GET /api/meta-whatsapp/webhook` — hub.challenge verification (env token OR any user's stored token)
+- `POST /api/meta-whatsapp/webhook` — persists inbound messages + button replies + status callbacks into `db.meta_whatsapp_messages`
+- Verified: unconfigured send returns 400; webhook verify returns 200 for correct token, 403 for wrong
+
 ### Phase 17 — Ambient AI EMR (2026-08-10) ✅
 - New backend `routes/ambient_ai.py` → `POST /api/ambient/extract` — sends a raw transcript to GPT-4o-mini via Emergent LLM Key and returns STRICT JSON with: `symptoms`, `provisional_diagnosis`, `vitals` (BP/pulse/spo2/temp/weight), `medications[]` (name + dose + freq + duration + instructions), `lab_tests[]`, `general_instructions`
 - Prompt tuned for **Hinglish + Indian brand names** (Pan 40, Crocin, Amlodac, etc.) — converts "din me do baar khaana ke baad" → "1-0-1 after food"; verified end-to-end with a realistic gastritis transcript → correctly extracted BP 120/80, Pulse 72, "acute gastritis", Pan 40 + Digene, CBC + stool routine, follow-up in 5 days

@@ -11,7 +11,7 @@ import logging
 import os
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field
 
 from shared import get_current_user
@@ -128,3 +128,43 @@ async def extract_emr(body: ExtractRequest, current_user: dict = Depends(get_cur
         "raw_transcript": body.transcript,
     })
     return result
+
+
+@router.post("/transcribe")
+async def whisper_transcribe(
+    file: UploadFile = File(...),
+    language: Optional[str] = Form(None),
+    current_user: dict = Depends(get_current_user),
+):
+    """Whisper STT fallback for browsers without SpeechRecognition, or when
+    doctors want higher-accuracy Hinglish transcription."""
+    if current_user.get("profession") != "doctor":
+        raise HTTPException(status_code=403, detail="Only doctors can use Ambient AI")
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(status_code=503, detail="Emergent LLM Key not configured")
+    try:
+        from emergentintegrations.llm.openai import OpenAISpeechToText
+    except ImportError as e:
+        raise HTTPException(status_code=503, detail=f"emergentintegrations missing: {e}")
+
+    content = await file.read()
+    if len(content) > 24 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Audio must be ≤ 24 MB")
+
+    import io
+    buf = io.BytesIO(content)
+    buf.name = file.filename or "audio.webm"
+
+    stt = OpenAISpeechToText(api_key=EMERGENT_LLM_KEY)
+    try:
+        resp = await stt.transcribe(
+            file=buf,
+            model="whisper-1",
+            response_format="json",
+            language=language if language else None,
+            prompt="Indian clinical consultation. Doctor may mix English and Hindi (Hinglish). Uses Indian drug brand names like Pan 40, Crocin, Augmentin, Amlodac.",
+        )
+    except Exception as e:
+        logger.exception("Whisper failed")
+        raise HTTPException(status_code=502, detail=f"Whisper failed: {str(e)[:200]}")
+    return {"transcript": getattr(resp, "text", "") or ""}

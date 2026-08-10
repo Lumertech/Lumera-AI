@@ -4,21 +4,57 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Mic, MicOff, Pause, Play, Sparkles, Loader2, AlertCircle, CheckCircle2, Eraser } from 'lucide-react';
+import { Mic, MicOff, Pause, Play, Sparkles, Loader2, AlertCircle, CheckCircle2, Eraser, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
-/**
- * AmbientAIToggle — an ambient scribe.
- * Uses the browser SpeechRecognition API for continuous transcription; when
- * the doctor stops, the transcript is sent to the LLM to extract structured
- * EMR fields (symptoms, dx, vitals, medications, labs, general instructions).
- * The doctor reviews & applies. Nothing is written to the parent form until
- * the doctor confirms.
- */
+// Supported languages — code = SpeechRecognition BCP-47 tag, whisper = ISO 639-1
+const LANGUAGES = [
+  { code: 'en-IN', whisper: 'en', label: 'English (India)' },
+  { code: 'hi-IN', whisper: 'hi', label: 'हिन्दी (Hindi)' },
+  { code: 'ta-IN', whisper: 'ta', label: 'தமிழ் (Tamil)' },
+  { code: 'te-IN', whisper: 'te', label: 'తెలుగు (Telugu)' },
+  { code: 'bn-IN', whisper: 'bn', label: 'বাংলা (Bengali)' },
+  { code: 'mr-IN', whisper: 'mr', label: 'मराठी (Marathi)' },
+  { code: 'kn-IN', whisper: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
+  { code: 'ml-IN', whisper: 'ml', label: 'മലയാളം (Malayalam)' },
+  { code: 'gu-IN', whisper: 'gu', label: 'ગુજરાતી (Gujarati)' },
+  { code: 'pa-IN', whisper: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
+  { code: 'en-US', whisper: 'en', label: 'English (US)' },
+];
+
+const Waveform = ({ analyser, active }) => {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    if (!active || !analyser || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const buf = new Uint8Array(analyser.frequencyBinCount);
+    let raf;
+    const draw = () => {
+      raf = requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(buf);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const bars = 32;
+      const step = Math.floor(buf.length / bars);
+      const bw = canvas.width / bars;
+      for (let i = 0; i < bars; i++) {
+        const v = buf[i * step] / 255;
+        const bh = Math.max(2, v * canvas.height);
+        ctx.fillStyle = `hsl(${280 + i * 3}, 80%, ${55 + v * 25}%)`;
+        ctx.fillRect(i * bw + 1, (canvas.height - bh) / 2, bw - 2, bh);
+      }
+    };
+    draw();
+    return () => cancelAnimationFrame(raf);
+  }, [analyser, active]);
+  return <canvas ref={canvasRef} width={220} height={40} className="rounded" data-testid="ambient-waveform" />;
+};
+
 const AmbientAIToggle = ({ onApply, context = '' }) => {
   const [enabled, setEnabled] = useState(false);
   const [listening, setListening] = useState(false);
@@ -28,121 +64,186 @@ const AmbientAIToggle = ({ onApply, context = '' }) => {
   const [extracting, setExtracting] = useState(false);
   const [extracted, setExtracted] = useState(null);
   const [showReview, setShowReview] = useState(false);
+  const [langCode, setLangCode] = useState('en-IN');
   const [supported, setSupported] = useState(true);
+  const [analyser, setAnalyser] = useState(null);
+  const [whisperBusy, setWhisperBusy] = useState(false);
   const recognitionRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const streamRef = useRef(null);
+  const mediaRecRef = useRef(null);
+  const whisperChunksRef = useRef([]);
+  const listeningRef = useRef(false);
+  const pausedRef = useRef(false);
 
-  // Initialize SpeechRecognition
+  useEffect(() => { listeningRef.current = listening; }, [listening]);
+  useEffect(() => { pausedRef.current = paused; }, [paused]);
+
+  // Init SpeechRecognition once
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { setSupported(false); return; }
     const rec = new SR();
     rec.continuous = true;
     rec.interimResults = true;
-    rec.lang = 'en-IN';  // Indian English handles Hinglish reasonably
+    rec.lang = langCode;
     rec.onresult = (e) => {
-      let finalText = '';
-      let interimText = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalText += t + ' ';
-        else interimText += t;
+      let f = '', i = '';
+      for (let k = e.resultIndex; k < e.results.length; k++) {
+        const t = e.results[k][0].transcript;
+        if (e.results[k].isFinal) f += t + ' '; else i += t;
       }
-      if (finalText) setTranscript((prev) => (prev + finalText).trim() + ' ');
-      setInterim(interimText);
+      if (f) setTranscript((p) => (p + f).trim() + ' ');
+      setInterim(i);
     };
     rec.onerror = (e) => {
-      if (e.error === 'not-allowed') {
-        toast.error('Microphone permission denied');
-        setEnabled(false); setListening(false);
-      } else if (e.error === 'no-speech') {
-        // ignore
-      } else {
-        console.warn('SpeechRecognition:', e.error);
-      }
+      if (e.error === 'not-allowed') { toast.error('Microphone permission denied'); setEnabled(false); setListening(false); }
     };
     rec.onend = () => {
-      // Auto-restart if still meant to be listening (avoid Chrome's auto-stop)
       if (listeningRef.current && !pausedRef.current) {
-        try { rec.start(); } catch (_e) { /* ignore */ }
-      } else {
-        setListening(false);
-      }
+        try { rec.start(); } catch (_e) { /* already started */ }
+      } else setListening(false);
     };
     recognitionRef.current = rec;
-    return () => { try { rec.stop(); } catch (_e) { /* stop guarded */ } };
+    return () => { try { rec.stop(); } catch (_e) { /* noop */ } };
   }, []);
 
-  // Track listening/paused refs for onend restart logic
-  const listeningRef = useRef(false);
-  const pausedRef = useRef(false);
-  useEffect(() => { listeningRef.current = listening; }, [listening]);
-  useEffect(() => { pausedRef.current = paused; }, [paused]);
+  // Reapply language when changed while not listening
+  useEffect(() => {
+    if (recognitionRef.current) recognitionRef.current.lang = langCode;
+  }, [langCode]);
 
-  const startListening = () => {
-    if (!supported || !recognitionRef.current) return;
+  const startAudio = async () => {
+    // Get mic stream once for both waveform + Whisper fallback
     try {
-      setTranscript(''); setInterim('');
-      recognitionRef.current.start();
-      setListening(true); setPaused(false);
-      toast.info('Ambient AI listening…');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AC();
+      audioCtxRef.current = ctx;
+      const source = ctx.createMediaStreamSource(stream);
+      const an = ctx.createAnalyser();
+      an.fftSize = 128;
+      source.connect(an);
+      setAnalyser(an);
+
+      // MediaRecorder for Whisper fallback / high accuracy
+      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+      const mr = new MediaRecorder(stream, { mimeType: mime });
+      whisperChunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data && e.data.size > 0) whisperChunksRef.current.push(e.data); };
+      mediaRecRef.current = mr;
+      mr.start(1000); // capture in 1s chunks
+      return true;
     } catch (e) {
-      console.warn('start failed', e);
+      toast.error('Microphone access denied');
+      return false;
     }
   };
 
-  const stopAndExtract = async () => {
-    try { recognitionRef.current?.stop(); } catch (_e) { /* ignore */ }
-    setListening(false);
-    setPaused(false);
-    const raw = (transcript + ' ' + interim).trim();
-    setInterim('');
-    if (!raw || raw.length < 5) {
-      toast.error('No speech captured yet.');
-      return;
+  const stopAudio = () => {
+    try { mediaRecRef.current?.stop(); } catch (_e) { /* noop */ }
+    try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch (_e) { /* noop */ }
+    try { audioCtxRef.current?.close(); } catch (_e) { /* noop */ }
+    streamRef.current = null; audioCtxRef.current = null; mediaRecRef.current = null;
+    setAnalyser(null);
+  };
+
+  const startListening = async () => {
+    setTranscript(''); setInterim(''); whisperChunksRef.current = [];
+    const ok = await startAudio();
+    if (!ok) return;
+    if (supported && recognitionRef.current) {
+      try {
+        recognitionRef.current.lang = langCode;
+        recognitionRef.current.start();
+      } catch (_e) { /* already running */ }
+    } else {
+      toast.info('Live transcription unsupported — using Whisper on Stop');
     }
+    setListening(true); setPaused(false);
+    toast.info('Ambient AI listening…');
+  };
+
+  const stopAndExtract = async () => {
+    setListening(false); setPaused(false);
+    try { recognitionRef.current?.stop(); } catch (_e) { /* noop */ }
+
+    // Wait a beat for MediaRecorder to flush
+    await new Promise((r) => setTimeout(r, 250));
+    let finalTranscript = (transcript + ' ' + interim).trim();
+    setInterim('');
+
+    // If browser transcription empty or user chose Whisper fallback, run Whisper
+    if (!finalTranscript || finalTranscript.length < 5) {
+      try {
+        const blob = new Blob(whisperChunksRef.current, { type: 'audio/webm' });
+        if (blob.size < 1000) {
+          stopAudio();
+          return toast.error('No speech captured');
+        }
+        setWhisperBusy(true);
+        const lang = LANGUAGES.find((l) => l.code === langCode)?.whisper || 'en';
+        const fd = new FormData();
+        fd.append('file', blob, 'ambient.webm');
+        fd.append('language', lang);
+        const res = await axios.post(`${API_URL}/ambient/transcribe`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        finalTranscript = res.data.transcript || '';
+        setTranscript(finalTranscript);
+      } catch (err) {
+        toast.error(err.response?.data?.detail || 'Whisper transcription failed');
+        stopAudio();
+        return;
+      } finally {
+        setWhisperBusy(false);
+      }
+    }
+
+    stopAudio();
+    if (!finalTranscript || finalTranscript.length < 5) return toast.error('No speech captured');
+
     setExtracting(true);
     try {
       const res = await axios.post(`${API_URL}/ambient/extract`, {
-        transcript: raw,
+        transcript: finalTranscript,
         context: context || undefined,
       });
       setExtracted(res.data);
       setShowReview(true);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'AI extraction failed');
-    } finally {
-      setExtracting(false);
-    }
+    } finally { setExtracting(false); }
   };
 
   const togglePause = () => {
     if (paused) {
-      try { recognitionRef.current?.start(); } catch (_e) { /* ignore */ }
-      setPaused(false);
-      toast.info('Resumed');
+      try { recognitionRef.current?.start(); } catch (_e) { /* noop */ }
+      try { mediaRecRef.current?.resume(); } catch (_e) { /* noop */ }
+      setPaused(false); toast.info('Resumed');
     } else {
-      try { recognitionRef.current?.stop(); } catch (_e) { /* ignore */ }
-      setPaused(true);
-      toast.info('Paused');
+      try { recognitionRef.current?.stop(); } catch (_e) { /* noop */ }
+      try { mediaRecRef.current?.pause(); } catch (_e) { /* noop */ }
+      setPaused(true); toast.info('Paused');
     }
   };
 
-  const onEnableChange = (v) => {
+  const onEnableChange = async (v) => {
     setEnabled(v);
-    if (v) startListening();
+    if (v) await startListening();
     else {
-      try { recognitionRef.current?.stop(); } catch (_e) { /* ignore */ }
-      setListening(false); setPaused(false);
-      setTranscript(''); setInterim('');
+      try { recognitionRef.current?.stop(); } catch (_e) { /* noop */ }
+      stopAudio();
+      setListening(false); setPaused(false); setTranscript(''); setInterim('');
     }
   };
 
-  const clearTranscript = () => { setTranscript(''); setInterim(''); toast.info('Transcript cleared'); };
+  const clearTranscript = () => { setTranscript(''); setInterim(''); };
 
   const applyToForm = () => {
     if (extracted && onApply) onApply(extracted);
-    setShowReview(false);
-    setExtracted(null);
+    setShowReview(false); setExtracted(null);
     setTranscript(''); setInterim('');
     setEnabled(false); setListening(false);
     toast.success('Applied to consultation');
@@ -152,7 +253,7 @@ const AmbientAIToggle = ({ onApply, context = '' }) => {
     <>
       <Card className={`border-slate-200 ${listening && !paused ? 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-300' : ''}`} data-testid="ambient-ai-toggle">
         <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${listening && !paused ? 'bg-purple-600 animate-pulse' : 'bg-slate-100'}`}>
                 {listening && !paused ? <Mic className="h-5 w-5 text-white" /> : <Sparkles className="h-5 w-5 text-purple-600" />}
@@ -160,35 +261,42 @@ const AmbientAIToggle = ({ onApply, context = '' }) => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-slate-900">Ambient AI Mode</span>
-                  {listening && !paused && <Badge className="bg-purple-600 animate-pulse" data-testid="ambient-listening-badge">Listening</Badge>}
+                  {listening && !paused && <Badge className="bg-purple-600 animate-pulse" data-testid="ambient-listening-badge">Recording</Badge>}
                   {paused && <Badge variant="secondary" data-testid="ambient-paused-badge">Paused</Badge>}
+                  {whisperBusy && <Badge className="bg-indigo-600"><Zap className="h-3 w-3 mr-0.5" /> Whisper</Badge>}
                 </div>
-                <p className="text-xs text-slate-500">
-                  {supported
-                    ? "Speak naturally — I'll auto-fill symptoms, diagnosis, meds & labs."
-                    : "Your browser doesn't support live transcription. Use Chrome / Edge on desktop."}
-                </p>
+                <p className="text-xs text-slate-500">Speak naturally — I&apos;ll auto-fill symptoms, diagnosis, meds &amp; labs.</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Select value={langCode} onValueChange={setLangCode} disabled={listening}>
+                <SelectTrigger className="w-40 h-9" data-testid="ambient-lang-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGES.map((l) => <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
               {listening && (
                 <>
                   <Button variant="outline" size="sm" onClick={togglePause} data-testid="ambient-pause-btn">
                     {paused ? <><Play className="h-4 w-4 mr-1" /> Resume</> : <><Pause className="h-4 w-4 mr-1" /> Pause</>}
                   </Button>
-                  <Button size="sm" onClick={stopAndExtract} disabled={extracting} className="bg-purple-600 hover:bg-purple-700" data-testid="ambient-stop-extract-btn">
-                    {extracting ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Extracting…</> : <><MicOff className="h-4 w-4 mr-1" /> Stop &amp; Extract</>}
+                  <Button size="sm" onClick={stopAndExtract} disabled={extracting || whisperBusy} className="bg-purple-600 hover:bg-purple-700" data-testid="ambient-stop-extract-btn">
+                    {extracting ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Extracting…</> : whisperBusy ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Transcribing…</> : <><MicOff className="h-4 w-4 mr-1" /> Stop &amp; Extract</>}
                   </Button>
                 </>
               )}
-              <Switch
-                checked={enabled}
-                onCheckedChange={onEnableChange}
-                disabled={!supported}
-                data-testid="ambient-enable-switch"
-              />
+              <Switch checked={enabled} onCheckedChange={onEnableChange} data-testid="ambient-enable-switch" />
             </div>
           </div>
+
+          {listening && analyser && !paused && (
+            <div className="flex items-center gap-3 px-2" data-testid="ambient-recording-strip">
+              <Waveform analyser={analyser} active />
+              <span className="text-xs text-purple-700 font-medium">Recording… patient can see this indicator</span>
+            </div>
+          )}
 
           {(listening || transcript) && (
             <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm max-h-40 overflow-y-auto" data-testid="ambient-transcript">
@@ -208,13 +316,12 @@ const AmbientAIToggle = ({ onApply, context = '' }) => {
 
           {!supported && (
             <p className="text-xs text-amber-700 flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" /> Requires Chrome / Edge on desktop for live transcription.
+              <AlertCircle className="h-3 w-3" /> Live transcription not supported here — Whisper will run on Stop.
             </p>
           )}
         </CardContent>
       </Card>
 
-      {/* Review dialog */}
       <Dialog open={showReview} onOpenChange={setShowReview}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
