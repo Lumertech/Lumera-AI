@@ -10,6 +10,7 @@ import { Settings as SettingsIcon, Calendar, Bell, CreditCard, Star } from 'luci
 import { toast } from 'sonner';
 import MetaWhatsAppSetup from './MetaWhatsAppSetup';
 import PaymentGatewaySettingsCard from '@/components/PaymentGatewaySettingsCard';
+import ReviewLoopSettingsCard from '@/components/ReviewLoopSettingsCard';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -343,6 +344,9 @@ const Settings = () => {
 
         {/* Payment & Gateway Settings (UPI / Gateway / Cash) */}
         <PaymentGatewaySettingsCard />
+
+        {/* Google Review Loop */}
+        <ReviewLoopSettingsCard />
 
         <Card className="border-slate-200">
           <CardHeader>

@@ -125,6 +125,12 @@ class MarkCashPaidPayload(BaseModel):
     receipt_phone: Optional[str] = None
 
 
+
+class ReviewsSettingsPayload(BaseModel):
+    google_review_url: Optional[str] = None
+    enabled: bool = True
+    delay_hours: int = 2
+
 # --------------------------------------------------------------------------- #
 # Providers + current settings                                                 #
 # --------------------------------------------------------------------------- #
@@ -286,12 +292,56 @@ async def build_upi_payment(body: UPIIntentPayload, current_user: dict = Depends
         note=body.note,
         txn_ref=txn_ref,
     )
+
+    # Persist the intent so we can render a public /pay/{id} landing page for
+    # desktop users whose WhatsApp cannot follow raw upi:// deep-links.
+    import uuid as _uuid
+    from datetime import timedelta as _td
+    intent_id = _uuid.uuid4().hex[:12]
+    await db.pay_intents.insert_one({
+        "id": intent_id,
+        "owner_id": owner_id,
+        "vpa": upi["upi_id"],
+        "display_name": upi.get("display_name") or "Lumera Clinic",
+        "amount": float(body.amount),
+        "note": body.note or "",
+        "invoice_id": body.invoice_id,
+        "upi_intent": intent,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": (datetime.now(timezone.utc) + _td(hours=24)).isoformat(),
+    })
+
+    import os as _os
+    origin = _os.environ.get("PUBLIC_APP_URL", "").rstrip("/")
+    payment_page_url = f"{origin}/pay/{intent_id}" if origin else f"/pay/{intent_id}"
+
     return {
+        "intent_id": intent_id,
         "upi_intent": intent,
         "qr_png_data_url": _png_data_url(intent),
         "vpa": upi["upi_id"],
         "display_name": upi.get("display_name"),
+        "payment_page_url": payment_page_url,
     }
+
+
+@router.get("/payments/upi/intent/{intent_id}")
+async def get_public_upi_intent(intent_id: str):
+    """PUBLIC (no auth) endpoint used by the /pay/{id} landing page."""
+    doc = await db.pay_intents.find_one({"id": intent_id}, {"_id": 0, "owner_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Payment link not found or expired")
+    if doc.get("expires_at"):
+        try:
+            exp = datetime.fromisoformat(doc["expires_at"])
+            if datetime.now(timezone.utc) > exp:
+                raise HTTPException(status_code=410, detail="Payment link expired")
+        except HTTPException:
+            raise
+        except Exception:  # noqa: BLE001
+            pass
+    doc["qr_png_data_url"] = _png_data_url(doc["upi_intent"])
+    return doc
 
 
 # --------------------------------------------------------------------------- #
@@ -391,6 +441,38 @@ async def verify_gateway(current_user: dict = Depends(get_current_user)):
     except Exception as e:  # noqa: BLE001
         return {"valid": False, "provider": "razorpay", "reason": f"Network error: {e}"}
 
+
+
+@router.get("/settings/reviews")
+async def get_reviews_settings(current_user: dict = Depends(get_current_user)):
+    owner_id = resolve_owner_id(current_user)
+    doc = await db.review_settings.find_one({"owner_id": owner_id}, {"_id": 0}) or {}
+    return {
+        "google_review_url": doc.get("google_review_url", ""),
+        "enabled": doc.get("enabled", True),
+        "delay_hours": doc.get("delay_hours", 2),
+    }
+
+
+@router.put("/settings/reviews")
+async def save_reviews_settings(body: ReviewsSettingsPayload, current_user: dict = Depends(get_current_user)):
+    if body.google_review_url and not body.google_review_url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="Review URL must start with http:// or https://")
+    if body.delay_hours < 0 or body.delay_hours > 168:
+        raise HTTPException(status_code=400, detail="Delay must be between 0 and 168 hours (7 days)")
+    owner_id = resolve_owner_id(current_user)
+    await db.review_settings.update_one(
+        {"owner_id": owner_id},
+        {"$set": {
+            "owner_id": owner_id,
+            "google_review_url": (body.google_review_url or "").strip(),
+            "enabled": body.enabled,
+            "delay_hours": body.delay_hours,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True,
+    )
+    return {"message": "Review loop settings saved"}
 
 @router.post("/invoices/{invoice_id}/send-receipt")
 async def send_invoice_receipt(invoice_id: str, current_user: dict = Depends(get_current_user)):

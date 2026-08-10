@@ -304,6 +304,29 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - `prescriptions.medications[].is_tapering: bool`, `prescriptions.medications[].taper_schedule: [{dosage, frequency, duration, notes}]`
 
 
+## Phase 19 — UX Phase C: Patient WhatsApp Loops (2026-02-10) ✅
+Shipped 3 patient-facing WhatsApp features:
+
+**1. Pre-Consultation Intake (3-question form on booking)**
+- `POST /api/appointments` now sends a WhatsApp message on creation asking the patient to reply with (1) main symptoms, (2) duration, (3) medications/allergies. Appointment row gets `pre_intake_dispatched_at` + `pre_intake_status='sent'`.
+- New `PUT /api/appointments/{id}/pre-intake` for front desk to capture the patient's verbal or WA-relayed reply. Coerces non-string values (fixed 500 → 200 for numeric fields, iteration_17).
+
+**2. Google Review Loop (2-hour post-consult)**
+- New settings module: `GET/PUT /api/settings/reviews` — save `google_review_url`, toggle `enabled`, tune `delay_hours` (0–168). URL must start with http:// or https://.
+- Existing 2-hour post-consult feedback dispatcher (`_send_feedback_message`) now appends `⭐ Loved the visit? Please leave a Google Review: <url>` when configured; feedback_triggers gets `review_link_included:true` flag.
+- New `<ReviewLoopSettingsCard />` mounted in Settings with URL input, enabled toggle, delay input, and helper link to `business.google.com/reviews`.
+
+**3. Desktop UPI QR Fallback**
+- `POST /api/payments/upi/intent` now persists each intent to `pay_intents` collection (24h TTL) and returns `payment_page_url` (e.g. `https://…/pay/{intent_id}`).
+- New PUBLIC endpoint (no auth) `GET /api/payments/upi/intent/{id}` — powers the payment page for desktop patients who can't tap `upi://` directly.
+- New frontend page `/pay/:intentId` (`PayLink.js`) — mobile-friendly landing with big amount, doctor VPA, scannable QR, "Pay in UPI app" button, Copy UPI link, and post-payment guidance.
+- `CollectPaymentDialog` WA text now leads with the desktop-friendly `payment_page_url` and appends the raw `upi://` intent as a secondary line — works on any device.
+- Backend `.env` now has `PUBLIC_APP_URL` (points to production frontend) so QR links are absolute.
+
+**Testing agent iteration 17**: 17/18 pass → 1 fix (numeric-field 500) → verified green.
+
+
+
 ## Phase 18 — UX Phase A: Clinical Speedups + Payment Polish (2026-02-10) ✅
 Shipped 6 high-impact features from the 30+ UX list:
 

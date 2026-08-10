@@ -83,13 +83,56 @@ async def create_appointment(appt: AppointmentCreate, current_user: dict = Depen
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
 
-    # Send WhatsApp confirmation (best-effort)
-    await send_whatsapp_message(
-        appt.client_phone,
-        f"Your appointment with {(owner or {}).get('name','your doctor')} is confirmed for {appt.appointment_date} at {appt.start_time}.",
+    # Send WhatsApp confirmation + 3-question pre-intake (best-effort)
+    doctor_name = (owner or {}).get("name", "your doctor")
+    pre_intake_msg = (
+        f"Hi {appt.client_name}, your appointment with Dr. {doctor_name} is confirmed "
+        f"for {appt.appointment_date} at {appt.start_time}.\n\n"
+        f"To help Dr. {doctor_name} prepare, please reply with:\n"
+        f"1️⃣ Your main symptoms in a line or two\n"
+        f"2️⃣ How many days have you had them?\n"
+        f"3️⃣ Any regular medications or allergies?\n\n"
+        f"Just reply to this message — we'll capture it for your visit.\n- Lumera"
+    )
+    await send_whatsapp_message(appt.client_phone, pre_intake_msg)
+
+    # Log the pre-intake dispatch so front desk can see it was sent
+    await db.appointments.update_one(
+        {"id": appointment_id},
+        {"$set": {
+            "pre_intake_dispatched_at": datetime.now(timezone.utc).isoformat(),
+            "pre_intake_status": "sent",
+        }},
     )
 
     return appointment
+
+
+@router.put("/appointments/{appointment_id}/pre-intake")
+async def save_pre_intake(
+    appointment_id: str,
+    body: dict,
+    current_user: dict = Depends(get_current_user),
+):
+    """Front desk / doctor manually captures the patient's 3 answers (verbal or WA-relayed)."""
+    owner_id = resolve_owner_id(current_user)
+    updates = {
+        "pre_intake": {
+            "symptoms": str(body.get("symptoms") or "").strip(),
+            "duration": str(body.get("duration") or "").strip(),
+            "medications_allergies": str(body.get("medications_allergies") or "").strip(),
+            "captured_at": datetime.now(timezone.utc).isoformat(),
+            "captured_by": current_user.get("name") or current_user.get("email"),
+        },
+        "pre_intake_status": "captured",
+    }
+    r = await db.appointments.update_one(
+        {"id": appointment_id, "professional_id": owner_id},
+        {"$set": updates},
+    )
+    if r.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    return {"message": "Pre-intake saved", "pre_intake": updates["pre_intake"]}
 
 
 @router.get("/appointments")

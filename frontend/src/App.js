@@ -9,6 +9,7 @@ import '@/App.css';
 import Landing from '@/pages/Landing';
 import Policies from '@/pages/Policies';
 import DataDeletion from '@/pages/DataDeletion';
+import PayLink from '@/pages/PayLink';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import WhatsAppLogin from '@/pages/WhatsAppLogin';
@@ -126,6 +127,7 @@ function App() {
           <Route path="/privacy" element={<Navigate to="/policies#privacy-policy" replace />} />
           <Route path="/terms" element={<Navigate to="/policies#terms-of-service" replace />} />
           <Route path="/data-deletion" element={<DataDeletion />} />
+          <Route path="/pay/:intentId" element={<PayLink />} />
           <Route
             path="/whatsapp-login"
             element={

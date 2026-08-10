@@ -67,23 +67,37 @@ async def _persist_trigger(doctor_id: str, appointment_id: Optional[str], prescr
 
 
 async def _send_feedback_message(trigger: dict) -> bool:
-    """Send the WhatsApp feedback prompt for a trigger."""
+    """Send the WhatsApp feedback prompt for a trigger, plus a Google Review link if configured."""
     doctor = await db.users.find_one({"id": trigger["doctor_id"]}, {"_id": 0}) or {}
     doctor_name = doctor.get("name", "your doctor")
     portal_base = (doctor.get("public_portal_base") or "").rstrip("/")
     link = f"{portal_base}/feedback/{trigger['token']}" if portal_base else ""
     link_line = f"\n\nOr tap this link: {link}" if link else ""
+
+    # Google Review loop: if enabled, append review link
+    review_cfg = await db.review_settings.find_one({"owner_id": trigger["doctor_id"]}, {"_id": 0}) or {}
+    review_line = ""
+    if review_cfg.get("enabled") and review_cfg.get("google_review_url"):
+        review_line = (
+            f"\n\n⭐ Loved the visit? Please leave a Google Review: "
+            f"{review_cfg['google_review_url']}"
+        )
+
     msg = (
         f"Hi {trigger['client_name']}, thanks for visiting Dr. {doctor_name} today. "
         f"How was your experience?\n\n"
-        f"Reply with a number from 1 to 5 (5 = excellent).{link_line}\n\n"
+        f"Reply with a number from 1 to 5 (5 = excellent).{link_line}{review_line}\n\n"
         f"Your feedback helps us improve. — {doctor_name}"
     )
     ok = await send_whatsapp_message(trigger["client_phone"], msg)
     if ok:
         await db.feedback_triggers.update_one(
             {"id": trigger["id"]},
-            {"$set": {"status": "sent", "sent_at": datetime.now(timezone.utc).isoformat()}},
+            {"$set": {
+                "status": "sent",
+                "sent_at": datetime.now(timezone.utc).isoformat(),
+                "review_link_included": bool(review_line),
+            }},
         )
     return bool(ok)
 

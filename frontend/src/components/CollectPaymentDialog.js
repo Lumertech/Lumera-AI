@@ -56,10 +56,17 @@ const CollectPaymentDialog = ({ open, onOpenChange, invoice, onPaid }) => {
 
   const sendUpiOnWhatsApp = async () => {
     if (!invoice?.client_phone) return toast.error('Patient has no phone number on file');
+    // Prefer the public /pay/:id landing page (desktop-friendly QR fallback);
+    // include the raw upi:// intent as a secondary line for direct mobile launch.
+    const primaryLink = qr.payment_page_url
+      ? (qr.payment_page_url.startsWith('http') ? qr.payment_page_url : `${window.location.origin}${qr.payment_page_url}`)
+      : qr.upi_intent;
     const url = `https://wa.me/${invoice.client_phone.replace(/[^0-9]/g, '')}` +
       `?text=${encodeURIComponent(
         `Hi ${invoice.client_name || ''}, please pay ₹${invoice.total} for invoice ` +
-        `${invoice.invoice_number || invoice.id}.\n\nUPI link: ${qr.upi_intent}\n\n- Lumera`
+        `${invoice.invoice_number || invoice.id}.\n\n` +
+        `📱 Pay here (works on any device):\n${primaryLink}\n\n` +
+        `Or tap directly in your UPI app: ${qr.upi_intent}\n\n- Lumera`
       )}`;
     window.open(url, '_blank');
   };

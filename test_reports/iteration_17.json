@@ -1,0 +1,46 @@
+{
+  "summary": "Backend-only Phase C testing completed against the public endpoint. All requested acceptance flows passed: appointment creation persisted pre-intake dispatch audit fields; pre-intake capture and wrong-owner isolation worked; review settings defaults/CRUD/validation and review-link message composition worked; authenticated UPI intent creation persisted a 12-char id and the no-auth public GET returned complete payment data; both supplied logins and all requested regressions passed. Overall suite: 17/18 passed (94.4%). One additional malformed-input edge returns HTTP 500.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "PUT /api/appointments/{id}/pre-intake",
+        "issue": "A JSON number in a pre-intake text field (for example symptoms:42) returns 500 Internal Server Error instead of a 400/422 validation response. Reproduced twice; backend traceback is AttributeError: 'int' object has no attribute 'strip' at appointments.py:121.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration17_phase_c.py",
+    "/app/test_reports/pytest/iteration_17_phase_c_final.xml"
+  ],
+  "action_items": [
+    "Replace the raw dict body on PUT /appointments/{id}/pre-intake with a Pydantic request model containing string fields so malformed values produce 422 rather than reaching .strip() and causing 500.",
+    "Wire review_settings.delay_hours into automatic prescription feedback scheduling; the current automatic path remains hardcoded to two hours.",
+    "Make positive feedback submission read the new review_settings collection; submit_feedback still reads users.google_review_url, so URLs saved through /settings/reviews are ignored in that follow-up path."
+  ],
+  "critical_code_review_comments": [
+    "save_pre_intake accepts body: dict and directly calls .strip() on caller-controlled values without type validation, causing the reproduced 500.",
+    "ReviewsSettingsPayload.delay_hours is persisted, but prescriptions.py:396-408 always schedules feedback at datetime.now()+2h, making the configured delay ineffective for the automatic workflow.",
+    "feedback._send_feedback_message uses review_settings, while feedback.submit_feedback uses the legacy users.google_review_url field. The two feedback paths can therefore disagree after settings are updated through the new API."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration17_phase_c.py",
+    "/app/test_reports/iteration_17.json"
+  ],
+  "success_rate": {
+    "backend": "94.4% (17/18); 100% of explicitly requested acceptance cases passed",
+    "frontend": "Not tested (backend-only request)"
+  },
+  "seed_data_creation": "Registered one isolated TEST doctor and created one appointment/client, one feedback trigger, one persisted UPI intent, review/payment settings, and two invoices per run. Fixture teardown removed all isolated users, appointments, clients, feedback triggers, intents, settings, invoices, counters, and login-limit rows.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Used Doctor / Test Professional and Meta App Review Reviewer credentials from /app/memory/test_credentials.md; credentials were loaded at runtime and not embedded in the test file.",
+  "context_for_next_testing_agent": "The final suite has one deterministic failure: TestPreConsultationIntake::test_04_non_string_pre_intake_is_validation_error. The feedback-link assertion uses a controlled method-level send stub because Twilio is intentionally unconfigured, while scheduling and persistence still run against the real database. Public UPI retrieval was explicitly called with no Authorization header and passed. Receipt no-op and cash overpayment iteration_16 regressions passed with persistence checks.",
+  "rca_of_the_issue": "The pre-intake endpoint declares body as an unvalidated dict and evaluates (body.get(field) or '').strip(). Numeric truthy JSON values survive the fallback and do not implement strip(), so AttributeError escapes as HTTP 500. A typed Pydantic payload is the appropriate boundary validation."
+}
