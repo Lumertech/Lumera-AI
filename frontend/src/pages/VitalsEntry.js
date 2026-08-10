@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import DashboardLayout from '@/components/Layout/DashboardLayout';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Heart, ArrowLeft, CheckCircle2, Save } from 'lucide-react';
+import { Heart, ArrowLeft, CheckCircle2, Save, Mic, MicOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
@@ -31,6 +31,58 @@ const VitalsEntry = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
+  const [dictating, setDictating] = useState(false);
+  const recogRef = useRef(null);
+
+  // Parse spoken vitals like: "BP 130 over 85, pulse 78, SpO2 98, temp 98 point 6"
+  const parseVitals = (t) => {
+    const out = {};
+    const num = '(\\d{1,3}(?:[\\.]\\d{1,2})?)';
+    const numWord = num + '(?:\\s*point\\s*(\\d{1,2}))?';
+    const rx = (p) => new RegExp(p, 'i');
+    const m1 = t.match(rx(`(?:bp|blood\\s*pressure)\\s*(?:is|:)?\\s*${num}\\s*(?:over|/|by)\\s*${num}`));
+    if (m1) out.bp = `${m1[1]}/${m1[2]}`;
+    const m2 = t.match(rx(`(?:pulse|heart\\s*rate|hr)\\s*(?:is|:)?\\s*${num}`));
+    if (m2) out.pulse = m2[1];
+    const m3 = t.match(rx(`(?:spo\\s*2|oxygen|saturation)\\s*(?:is|:)?\\s*${num}`));
+    if (m3) out.spo2 = m3[1];
+    const m4 = t.match(rx(`(?:temp(?:erature)?)\\s*(?:is|:)?\\s*${numWord}`));
+    if (m4) out.temperature = m4[2] ? `${m4[1]}.${m4[2]}` : m4[1];
+    const m5 = t.match(rx(`(?:weight|wt)\\s*(?:is|:)?\\s*${numWord}`));
+    if (m5) out.weight = m5[2] ? `${m5[1]}.${m5[2]}` : m5[1];
+    const m6 = t.match(rx(`(?:height|ht)\\s*(?:is|:)?\\s*${num}`));
+    if (m6) out.height = m6[1];
+    const m7 = t.match(rx(`(?:resp(?:iratory)?\\s*rate|rr)\\s*(?:is|:)?\\s*${num}`));
+    if (m7) out.respiratory_rate = m7[1];
+    return out;
+  };
+
+  const startDictation = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return toast.error('Speech input not supported here');
+    const rec = new SR();
+    rec.lang = 'en-IN'; rec.continuous = true; rec.interimResults = true;
+    let final = '';
+    rec.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
+      }
+    };
+    rec.onend = () => {
+      setDictating(false);
+      const parsed = parseVitals(final.trim());
+      const applied = Object.keys(parsed).length;
+      if (applied) {
+        setVitals((v) => ({ ...v, ...parsed }));
+        toast.success(`Auto-filled ${applied} vital${applied > 1 ? 's' : ''}`);
+      } else toast.info('Say something like "BP 130 over 85, pulse 78"');
+    };
+    rec.onerror = () => { setDictating(false); };
+    recogRef.current = rec;
+    rec.start(); setDictating(true);
+  };
+
+  const stopDictation = () => { try { recogRef.current?.stop(); } catch (_e) { /* noop */ } };
 
   useEffect(() => {
     (async () => {
@@ -127,7 +179,7 @@ const VitalsEntry = () => {
               </p>
             )}
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <Button
                 onClick={save}
                 disabled={saving}
@@ -136,6 +188,14 @@ const VitalsEntry = () => {
               >
                 <Save className="h-4 w-4 mr-2" />
                 {saving ? 'Saving…' : 'Save vitals'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={dictating ? stopDictation : startDictation}
+                className={dictating ? 'border-purple-400 text-purple-700 animate-pulse' : ''}
+                data-testid="vitals-dictate-btn"
+              >
+                {dictating ? <><MicOff className="h-4 w-4 mr-1" /> Stop dictation</> : <><Mic className="h-4 w-4 mr-1" /> Dictate vitals</>}
               </Button>
               {savedOk && (
                 <Badge className="bg-emerald-600" data-testid="vitals-saved-badge">

@@ -303,5 +303,15 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - `prescriptions.linked_to_abha: bool`, `prescriptions.abha_id: str`, `prescriptions.abha_linked_at`
 - `prescriptions.medications[].is_tapering: bool`, `prescriptions.medications[].taper_schedule: [{dosage, frequency, duration, notes}]`
 
+
+## Phase 12 — Clinical Timeline, Allergy Alerts & Voice-to-Vitals (2026-02-10) ✅
+- **Backend regex crash fix** in `/api/safety/timeline/{client_phone}` — phone numbers with `+` now `re.escape`-ed (was crashing with MongoDB `Regular expression is invalid`).
+- **Patient Consult History Timeline**: new reusable `<PatientTimeline />` component. Wired into Patients list ("View Consult History" per client card) and PrescriptionWriter header ("Consult History" button). Aggregates appointments + prescriptions + invoices + ambient AI sessions, newest first.
+- **Real-Time Clinical Allergy Alerts** already wired in `PrescriptionWriter.js` — now also surfaces an amber "safety-check unavailable" banner (`data-testid=safety-check-unavailable-banner`) if `/api/safety/drug-check` errors, preventing fail-open behavior.
+- **Voice-to-Vitals for Nurses** in `VitalsEntry.js`: mic button using Web SpeechRecognition + regex parser auto-fills BP/pulse/SpO₂/temp/weight/height/RR. Missing imports fixed.
+- **Route alias**: added `/appointments/:appointmentId/vitals` alongside `/vitals/:appointmentId`.
+- Backend testing agent: 9/9 pass on safety endpoints incl. `+` regression, 4-source aggregation, and Penicillin conflict.
+
+
 ## Test Credentials
 See `/app/memory/test_credentials.md`

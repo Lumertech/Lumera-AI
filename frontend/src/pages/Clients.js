@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Users, Search, Phone, Mail, Calendar, CreditCard, Loader2, CheckCircle, Clock } from 'lucide-react';
+import { Users, Search, Phone, Mail, Calendar, CreditCard, Loader2, CheckCircle, Clock, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/utils';
+import PatientTimeline from '@/components/PatientTimeline';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -19,6 +20,13 @@ const Clients = () => {
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [timelineClient, setTimelineClient] = useState(null);
+
+  const openTimeline = (client) => {
+    setTimelineClient(client);
+    setTimelineOpen(true);
+  };
 
   useEffect(() => {
     fetchClients();
@@ -125,15 +133,27 @@ const Clients = () => {
                           </span>
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => fetchPaymentHistory(client)}
-                        className="w-full mt-4 text-xs"
-                      >
-                        <CreditCard className="h-3 w-3 mr-1" />
-                        View Payment History
-                      </Button>
+                      <div className="flex flex-col gap-2 mt-4">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openTimeline(client)}
+                          className="w-full text-xs"
+                          data-testid={`view-timeline-btn-${index}`}
+                        >
+                          <History className="h-3 w-3 mr-1" />
+                          View Consult History
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => fetchPaymentHistory(client)}
+                          className="w-full text-xs"
+                        >
+                          <CreditCard className="h-3 w-3 mr-1" />
+                          View Payment History
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -229,6 +249,13 @@ const Clients = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <PatientTimeline
+        open={timelineOpen}
+        onOpenChange={setTimelineOpen}
+        clientName={timelineClient?.name}
+        clientPhone={timelineClient?.phone}
+      />
     </DashboardLayout>
   );
 };

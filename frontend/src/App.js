@@ -289,6 +289,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/appointments/:appointmentId/vitals"
+            element={
+              <ProtectedRoute>
+                <VitalsEntry />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />

@@ -19,6 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { printDocument, renderPrescriptionHTML } from '@/lib/print';
 import { VitalsHeader, DrugAutocomplete, LabTestPicker, RxPresets } from '@/components/PrescriptionExtras';
 import AmbientAIToggle from '@/components/AmbientAIToggle';
+import PatientTimeline from '@/components/PatientTimeline';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -93,6 +94,30 @@ const PrescriptionWriter = () => {
 
   const [vitalsCapturedBy, setVitalsCapturedBy] = useState(null);
   const [letterhead, setLetterhead] = useState(null);
+  const [safetyAlert, setSafetyAlert] = useState(null); // {allergy_conflicts, duplicates}
+  const [safetyCheckError, setSafetyCheckError] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+
+  // Debounced clinical safety check
+  useEffect(() => {
+    if (!appointment?.client_phone) return;
+    const meds = (medications || []).map((m) => m.medicine_name).filter(Boolean);
+    if (meds.length === 0) { setSafetyAlert(null); setSafetyCheckError(false); return; }
+    const t = setTimeout(async () => {
+      try {
+        const res = await axios.post(`${API_URL}/safety/drug-check`, {
+          client_phone: appointment.client_phone,
+          medication_names: meds,
+        });
+        setSafetyAlert(res.data.safe ? null : res.data);
+        setSafetyCheckError(false);
+      } catch (_e) {
+        setSafetyCheckError(true);
+        setSafetyAlert(null);
+      }
+    }, 800);
+    return () => clearTimeout(t);
+  }, [medications, appointment?.client_phone]);
 
   useEffect(() => {
     (async () => {
@@ -400,9 +425,19 @@ const PrescriptionWriter = () => {
                   Patient: {appointment?.client_name} | Age: {appointment?.patient_details?.age} | Sex: {appointment?.patient_details?.sex}
                 </p>
               </div>
-              <Button variant="outline" onClick={() => navigate(`/appointments/${id}`)} data-testid="back-to-details-btn">
-                Back to Details
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setTimelineOpen(true)}
+                  disabled={!appointment?.client_phone}
+                  data-testid="view-patient-timeline-btn"
+                >
+                  Consult History
+                </Button>
+                <Button variant="outline" onClick={() => navigate(`/appointments/${id}`)} data-testid="back-to-details-btn">
+                  Back to Details
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -438,6 +473,37 @@ const PrescriptionWriter = () => {
         />
 
         {/* Vitals header */}
+        {safetyAlert && (
+          <div className="rounded-lg border-2 border-red-300 bg-red-50 p-4 flex items-start gap-3 animate-pulse" data-testid="safety-alert-banner">
+            <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white flex-shrink-0">!</div>
+            <div className="flex-1">
+              <p className="font-semibold text-red-900">Clinical safety alert</p>
+              {safetyAlert.allergy_conflicts?.length > 0 && (
+                <ul className="text-sm text-red-800 mt-1">
+                  {safetyAlert.allergy_conflicts.map((c, i) => (
+                    <li key={`a-${i}`}>⚠️ <strong>{c.medication}</strong> conflicts with allergy: <strong>{c.allergy}</strong></li>
+                  ))}
+                </ul>
+              )}
+              {safetyAlert.duplicates?.length > 0 && (
+                <ul className="text-sm text-red-800 mt-1">
+                  {safetyAlert.duplicates.map((d, i) => (
+                    <li key={`d-${i}`}>🔁 <strong>{d.medication}</strong> was already prescribed on {d.existing_prescription_date}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+        {!safetyAlert && safetyCheckError && (
+          <div
+            className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900 flex items-center gap-2"
+            data-testid="safety-check-unavailable-banner"
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            Allergy &amp; duplicate check is temporarily unavailable — please verify manually before prescribing.
+          </div>
+        )}
         {vitalsCapturedBy && (
           <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 flex items-center gap-2" data-testid="vitals-prefilled-badge">
             <span>✓ Vitals pre-filled by <strong>{vitalsCapturedBy.by}</strong></span>
@@ -769,6 +835,13 @@ const PrescriptionWriter = () => {
           clientName={appointment.client_name}
         />
       )}
+
+      <PatientTimeline
+        open={timelineOpen}
+        onOpenChange={setTimelineOpen}
+        clientName={appointment?.client_name}
+        clientPhone={appointment?.client_phone}
+      />
     </DashboardLayout>
   );
 };
