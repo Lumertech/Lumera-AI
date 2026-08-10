@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import RequestPaymentModalV2 from '@/components/RequestPaymentModalV2';
 import { useAuth } from '@/contexts/AuthContext';
 import { printDocument, renderPrescriptionHTML } from '@/lib/print';
+import { VitalsHeader, DrugAutocomplete, LabTestPicker, RxPresets } from '@/components/PrescriptionExtras';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -51,6 +52,10 @@ const PrescriptionWriter = () => {
   const [generalInstructions, setGeneralInstructions] = useState('');
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+
+  // Vitals + Lab tests (Phase C)
+  const [vitals, setVitals] = useState({});
+  const [labTests, setLabTests] = useState([]);
 
   // Phase 1 additions
   const [privateNotes, setPrivateNotes] = useState('');
@@ -331,6 +336,9 @@ const PrescriptionWriter = () => {
         instructions: generalInstructions,
         private_doctor_notes: privateNotes,
         link_to_abha: linkToAbha,
+        vitals,
+        lab_tests: labTests,
+        request_feedback: true,
       });
       toast.success('Prescription sent to patient via WhatsApp!');
       setTimeout(() => navigate('/appointments'), 1500);
@@ -371,6 +379,28 @@ const PrescriptionWriter = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Vitals header */}
+        <VitalsHeader vitals={vitals} onChange={setVitals} />
+
+        {/* Rx Presets */}
+        <RxPresets
+          medications={medications}
+          defaultInstructions={generalInstructions}
+          onLoad={(meds, defInstr) => {
+            const cleaned = meds.map((m) => ({
+              medicine_name: m.medicine_name || '',
+              dosage: m.dosage || '',
+              frequency: m.frequency || '',
+              duration: m.duration || '',
+              instructions: m.instructions || '',
+              is_tapering: !!m.is_tapering,
+              taper_schedule: m.taper_schedule || [],
+            }));
+            setMedications(cleaned);
+            if (defInstr && !generalInstructions.trim()) setGeneralInstructions(defInstr);
+          }}
+        />
 
         {/* Symptoms + AI */}
         <Card className="border-slate-200">
@@ -480,7 +510,21 @@ const PrescriptionWriter = () => {
                   <div className="grid md:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label className="text-xs">Medicine Name</Label>
-                      <Input value={med.medicine_name} onChange={(e) => updateMedication(index, 'medicine_name', e.target.value)} placeholder="e.g., Paracetamol" data-testid={`medicine-name-${index}`} />
+                      <DrugAutocomplete
+                        value={med.medicine_name}
+                        onChange={(v) => updateMedication(index, 'medicine_name', v)}
+                        onSelect={(drug) => {
+                          const updated = [...medications];
+                          updated[index] = {
+                            ...updated[index],
+                            medicine_name: drug.name,
+                            dosage: drug.default_dose || updated[index].dosage,
+                            frequency: drug.default_frequency || updated[index].frequency,
+                            duration: drug.default_duration || updated[index].duration,
+                          };
+                          setMedications(updated);
+                        }}
+                      />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Dosage</Label>
@@ -551,6 +595,9 @@ const PrescriptionWriter = () => {
             ))}
           </CardContent>
         </Card>
+
+        {/* Lab / Imaging Orders */}
+        <LabTestPicker tests={labTests} onChange={setLabTests} />
 
         {/* General instructions */}
         <Card className="border-slate-200">

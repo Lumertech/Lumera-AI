@@ -59,6 +59,9 @@ class PrescriptionCreate(BaseModel):
     instructions: str
     private_doctor_notes: Optional[str] = None
     link_to_abha: Optional[bool] = False
+    vitals: Optional[Dict[str, Any]] = None       # {bp, pulse, spo2, weight, temperature, height, respiratory_rate}
+    lab_tests: Optional[List[Dict[str, Any]]] = None  # [{name, code, category, notes}]
+    request_feedback: Optional[bool] = True       # schedule 2h post-consult feedback
 
 
 class DrugInteractionRequest(BaseModel):
@@ -303,6 +306,8 @@ async def create_prescription(
         "medications": prescription.medications,
         "instructions": prescription.instructions,
         "private_doctor_notes": prescription.private_doctor_notes or "",
+        "vitals": prescription.vitals or {},
+        "lab_tests": prescription.lab_tests or [],
         "linked_to_abha": False,
         "doctor_name": current_user['name'],
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -340,15 +345,34 @@ async def create_prescription(
         return base
 
     meds_text = "\n".join([_format_med(i, med) for i, med in enumerate(prescription.medications)])
+
+    # Vitals block
+    v = prescription.vitals or {}
+    vitals_lines = []
+    if v.get("bp"): vitals_lines.append(f"BP: {v['bp']}")
+    if v.get("pulse"): vitals_lines.append(f"Pulse: {v['pulse']}")
+    if v.get("spo2"): vitals_lines.append(f"SpO2: {v['spo2']}")
+    if v.get("temperature"): vitals_lines.append(f"Temp: {v['temperature']}")
+    if v.get("weight"): vitals_lines.append(f"Weight: {v['weight']}")
+    if v.get("height"): vitals_lines.append(f"Height: {v['height']}")
+    if v.get("respiratory_rate"): vitals_lines.append(f"RR: {v['respiratory_rate']}")
+    vitals_block = "\nVITALS: " + " | ".join(vitals_lines) if vitals_lines else ""
+
+    # Lab tests block
+    lab_block = ""
+    if prescription.lab_tests:
+        lab_lines = [f"- {t.get('name','')}" + (f" ({t.get('notes')})" if t.get("notes") else "") for t in prescription.lab_tests]
+        lab_block = "\n\nLAB / IMAGING ORDERS:\n" + "\n".join(lab_lines)
+
     prescription_message = f"""
 \U0001f4dc PRESCRIPTION
 
 Patient: {prescription.client_name}
 Doctor: Dr. {current_user['name']}
-Date: {datetime.now().strftime('%d %b %Y')}
+Date: {datetime.now().strftime('%d %b %Y')}{vitals_block}
 
 MEDICATIONS:
-{meds_text}
+{meds_text}{lab_block}
 
 GENERAL INSTRUCTIONS:
 {prescription.instructions}
@@ -368,6 +392,22 @@ For queries, contact: {current_user.get('phone_number', 'clinic')}
         await schedule_reminders_for_prescription(prescription_data)
     except Exception as e:
         logging.warning(f"Failed to schedule medication reminders: {e}")
+
+    # Auto-schedule 2h post-consult feedback trigger
+    if prescription.request_feedback:
+        try:
+            from routes.feedback import _persist_trigger
+            from datetime import timedelta as _td
+            await _persist_trigger(
+                doctor_id=current_user['id'],
+                appointment_id=prescription.appointment_id,
+                prescription_id=prescription_id,
+                client_phone=appointment["client_phone"],
+                client_name=prescription.client_name,
+                scheduled_time=datetime.now(timezone.utc) + _td(hours=2),
+            )
+        except Exception as e:
+            logging.warning(f"Failed to schedule feedback trigger: {e}")
 
     return {**prescription_data, "whatsapp_sent": bool(message_sent)}
 

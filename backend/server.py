@@ -144,6 +144,22 @@ async def lifespan(app: FastAPI):
         id="medication_reminders",
         name="Send due medication reminders"
     )
+    # Feedback triggers — dispatch pending post-consult prompts every 10 min
+    from routes.feedback import dispatch_due_feedback_triggers as _dispatch_feedback
+
+    def _feedback_dispatch_job():
+        try:
+            if main_loop and not main_loop.is_closed():
+                _asyncio.run_coroutine_threadsafe(_dispatch_feedback(), main_loop)
+        except Exception as e:
+            logging.error(f"Feedback dispatch job error: {e}")
+
+    scheduler.add_job(
+        _feedback_dispatch_job,
+        CronTrigger(minute="*/10"),
+        id="feedback_triggers",
+        name="Dispatch due feedback triggers",
+    )
     scheduler.start()
     # Kick off one medication-reminders run on startup so the health endpoint
     # has a fresh timestamp instead of waiting 5 minutes for the first cron tick.
@@ -3586,6 +3602,15 @@ app.include_router(_elevenlabs_router_mod.router, prefix="/api")
 
 from routes import polyclinic as _polyclinic_router_mod
 app.include_router(_polyclinic_router_mod.router, prefix="/api")
+
+from routes import clinical_data as _clinical_data_router_mod
+app.include_router(_clinical_data_router_mod.router, prefix="/api")
+
+from routes import rx_presets as _rx_presets_router_mod
+app.include_router(_rx_presets_router_mod.router, prefix="/api")
+
+from routes import feedback as _feedback_router_mod
+app.include_router(_feedback_router_mod.router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

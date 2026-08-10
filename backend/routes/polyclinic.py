@@ -193,50 +193,63 @@ async def remove_doctor(
 
 
 @router.get("/dashboard")
-async def polyclinic_dashboard(current_user: dict = Depends(require_polyclinic_admin)):
+async def polyclinic_dashboard(
+    doctor_id: Optional[str] = None,
+    current_user: dict = Depends(require_polyclinic_admin),
+):
     """Aggregate stats — total doctors, appointments this month, revenue,
-    and per-doctor breakdown. No PHI (prescriptions/notes) exposed."""
+    and per-doctor breakdown. No PHI (prescriptions/notes) exposed.
+
+    If `doctor_id` is passed, all totals reflect only that doctor.
+    """
     pc = await db.polyclinics.find_one({"admin_user_id": current_user["id"]}, {"_id": 0})
     if not pc:
         raise HTTPException(status_code=404, detail="Polyclinic not found")
 
-    doctors = await db.users.find(
+    all_doctors = await db.users.find(
         {"polyclinic_id": pc["id"], "role": {"$in": ["user", "doctor"]}},
         {"_id": 0, "id": 1, "name": 1, "email": 1, "profession": 1},
     ).to_list(200)
-    doctor_ids = [d["id"] for d in doctors]
+
+    # Apply filter: if doctor_id provided, scope aggregates to that doctor only
+    if doctor_id:
+        scope_ids = [d["id"] for d in all_doctors if d["id"] == doctor_id]
+        if not scope_ids:
+            raise HTTPException(status_code=404, detail="Doctor not in your polyclinic")
+    else:
+        scope_ids = [d["id"] for d in all_doctors]
 
     # Time window: this month
     now = datetime.now(timezone.utc)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
 
     total_appointments = await db.appointments.count_documents(
-        {"professional_id": {"$in": doctor_ids}}
-    ) if doctor_ids else 0
+        {"professional_id": {"$in": scope_ids}}
+    ) if scope_ids else 0
     month_appointments = await db.appointments.count_documents(
-        {"professional_id": {"$in": doctor_ids}, "created_at": {"$gte": month_start}}
-    ) if doctor_ids else 0
+        {"professional_id": {"$in": scope_ids}, "created_at": {"$gte": month_start}}
+    ) if scope_ids else 0
 
     # Revenue from invoices (paid only)
     revenue_total = 0.0
     revenue_month = 0.0
-    if doctor_ids:
+    if scope_ids:
         pipeline_total = [
-            {"$match": {"doctor_id": {"$in": doctor_ids}, "status": "paid"}},
+            {"$match": {"doctor_id": {"$in": scope_ids}, "status": "paid"}},
             {"$group": {"_id": None, "sum": {"$sum": "$total"}}},
         ]
         async for row in db.invoices.aggregate(pipeline_total):
             revenue_total = float(row.get("sum") or 0)
         pipeline_month = [
-            {"$match": {"doctor_id": {"$in": doctor_ids}, "status": "paid", "created_at": {"$gte": month_start}}},
+            {"$match": {"doctor_id": {"$in": scope_ids}, "status": "paid", "created_at": {"$gte": month_start}}},
             {"$group": {"_id": None, "sum": {"$sum": "$total"}}},
         ]
         async for row in db.invoices.aggregate(pipeline_month):
             revenue_month = float(row.get("sum") or 0)
 
-    # Per-doctor breakdown
+    # Per-doctor breakdown (always show ALL doctors so the filter dropdown stays populated)
     per_doctor = []
-    for d in doctors:
+    for d in all_doctors:
         appt_count = await db.appointments.count_documents(
             {"professional_id": d["id"], "created_at": {"$gte": month_start}}
         )
@@ -251,8 +264,9 @@ async def polyclinic_dashboard(current_user: dict = Depends(require_polyclinic_a
 
     return {
         "polyclinic": pc,
+        "filter": {"doctor_id": doctor_id},
         "totals": {
-            "doctors": len(doctors),
+            "doctors": len(scope_ids) if doctor_id else len(all_doctors),
             "appointments_all_time": total_appointments,
             "appointments_this_month": month_appointments,
             "revenue_paid_all_time": round(revenue_total, 2),

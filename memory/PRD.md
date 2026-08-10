@@ -128,6 +128,26 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - Sidebar: new **Invoices** nav item
 - Tests: 13/13 invoice pytest pass; PrescriptionWriter print regression fixed after test-agent flagged missing `primaryClinic` state declaration
 
+### Phase 14 — Smart Prescription + Global Doctor Filter + Post-Consult Feedback (2026-08-10) ✅
+
+**Smart Prescription (Phase C):**
+- **Vitals header** — structured input for BP, Pulse, SpO2, Temp, Weight, Height, Respiratory Rate — persisted on `prescriptions.vitals` and included in WhatsApp Rx message
+- **Indian Drug Database** — 100+ curated brand + generic combos (Crocin, Augmentin, Pan 40, Amlodac, Glycomet, Thyronorm, etc.) with default dose / frequency / duration. Endpoint: `GET /api/clinical/drugs/search?q=`
+  - `DrugAutocomplete` component replaces plain medicine-name Input in `PrescriptionWriter`; picking a drug auto-fills dosage/frequency/duration
+- **Rx Presets** — CRUD via `/api/rx-presets` scoped by `resolve_owner_id`. UI card shows saved presets, one-click "Load", inline delete
+- **Lab / Imaging Orders** — 80+ curated tests (CBC, HbA1c, USG, MRI, CT, etc.) with `/api/clinical/lab-tests/search`; new `LabTestPicker` component adds test rows with per-test notes; included in WhatsApp Rx message
+
+**Global Doctor Filter (Polyclinic Dashboard):**
+- `GET /api/polyclinic/dashboard?doctor_id=<uuid>` now scopes all aggregates
+- Frontend dropdown in the Polyclinic Dashboard header with "All doctors" + individual options; active doctor is highlighted in the performance table
+
+**Post-Consult Feedback + Google Review routing:**
+- New collection `feedback_triggers` — auto-created when a prescription is submitted (2h delay by default)
+- New background scheduler job every 10 minutes dispatches due WhatsApp feedback prompts
+- Endpoints: `POST /api/feedback/schedule`, `GET /api/feedback/triggers`, `GET /api/feedback/summary`, `GET/POST /api/feedback/{token}` + `/submit` (public patient-facing)
+- Ratings 4-5 auto-reply with the doctor's configured Google Business review link; ratings 1-3 send a private "thanks, we'll follow up" note
+- Google Review URL setting card added to `/settings` (top of the page, above Razorpay) with rating summary display (avg + 5-1★ distribution + positive %)
+
 ### Phase 13 — Sidebar Refactor + Logout UX (2026-08-10) ✅
 - Left sidebar reordered into clinical workflow: **Daily Ops → Clinical Care → Finance → Automation → Organization → Settings**
   1. Dashboard  2. Appointments & OPD  3. Patients  4. Consultations & EMR

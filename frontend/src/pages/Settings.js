@@ -6,10 +6,85 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Settings as SettingsIcon, Calendar, Bell, CreditCard } from 'lucide-react';
+import { Settings as SettingsIcon, Calendar, Bell, CreditCard, Star } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
+
+// Post-consult Google Review URL — used by the 2-hour feedback trigger.
+// When patients rate 4-5 stars, our WhatsApp follow-up sends them this link.
+const GoogleReviewSettingCard = () => {
+  const [url, setUrl] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [summary, setSummary] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [cfg, sum] = await Promise.all([
+          axios.get(`${API_URL}/feedback/settings/google-review`),
+          axios.get(`${API_URL}/feedback/summary`),
+        ]);
+        setUrl(cfg.data.google_review_url || '');
+        setSummary(sum.data);
+      } finally { setLoaded(true); }
+    })();
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await axios.put(`${API_URL}/feedback/settings/google-review`, { google_review_url: url });
+      toast.success('Google Review link saved');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Save failed');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <Card className="border-slate-200">
+      <CardHeader>
+        <CardTitle className="font-manrope flex items-center space-x-2">
+          <Star className="h-5 w-5 text-amber-500" />
+          <span>Post-Consult Feedback &amp; Reviews</span>
+        </CardTitle>
+        <CardDescription className="font-inter">
+          When patients rate your visit 4 or 5 stars, we send them this Google review link over WhatsApp.
+          Feedback is auto-triggered 2 hours after each prescription.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label>Your Google Business review link</Label>
+          <Input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://g.page/r/…/review"
+            data-testid="google-review-url-input"
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Grab it from your Google Business Profile → Get more reviews.
+          </p>
+        </div>
+        <Button onClick={save} disabled={saving || !loaded} className="bg-amber-500 hover:bg-amber-600" data-testid="google-review-save-btn">
+          {saving ? 'Saving…' : 'Save review link'}
+        </Button>
+        {summary && summary.count > 0 && (
+          <div className="mt-3 p-3 bg-amber-50 rounded-lg text-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <Star className="h-4 w-4 text-amber-500" />
+              <strong>{summary.average}</strong> avg from {summary.count} rating{summary.count !== 1 ? 's' : ''} · {summary.positive_pct}% positive
+            </div>
+            <div className="text-xs text-slate-600">
+              5★ {summary.distribution['5']} · 4★ {summary.distribution['4']} · 3★ {summary.distribution['3']} · 2★ {summary.distribution['2']} · 1★ {summary.distribution['1']}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 const Settings = () => {
   const [settings, setSettings] = useState({
@@ -259,6 +334,9 @@ const Settings = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Google Review URL — Post-consult feedback routing */}
+        <GoogleReviewSettingCard />
 
         <Card className="border-slate-200">
           <CardHeader>

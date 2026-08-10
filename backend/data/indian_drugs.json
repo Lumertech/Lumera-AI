@@ -1,0 +1,129 @@
+{
+  "drugs": [
+    {"name": "Crocin 500", "generic": "Paracetamol 500mg", "category": "Analgesic/Antipyretic", "default_dose": "500mg", "default_frequency": "1-0-1 after food", "default_duration": "5 days"},
+    {"name": "Dolo 650", "generic": "Paracetamol 650mg", "category": "Analgesic/Antipyretic", "default_dose": "650mg", "default_frequency": "1-1-1 SOS", "default_duration": "3-5 days"},
+    {"name": "Calpol 500", "generic": "Paracetamol 500mg", "category": "Analgesic/Antipyretic", "default_dose": "500mg", "default_frequency": "1-1-1 after food", "default_duration": "5 days"},
+    {"name": "Combiflam", "generic": "Ibuprofen 400mg + Paracetamol 325mg", "category": "NSAID", "default_dose": "1 tab", "default_frequency": "1-0-1 after food", "default_duration": "3-5 days"},
+    {"name": "Brufen 400", "generic": "Ibuprofen 400mg", "category": "NSAID", "default_dose": "400mg", "default_frequency": "1-1-1 after food", "default_duration": "3-5 days"},
+    {"name": "Meftal Spas", "generic": "Mefenamic acid 250mg + Dicyclomine 10mg", "category": "Antispasmodic", "default_dose": "1 tab", "default_frequency": "SOS after food", "default_duration": "3 days"},
+    {"name": "Voveran SR 100", "generic": "Diclofenac Sodium 100mg SR", "category": "NSAID", "default_dose": "100mg", "default_frequency": "0-0-1 after food", "default_duration": "5 days"},
+    {"name": "Aceclo Plus", "generic": "Aceclofenac 100mg + Paracetamol 325mg", "category": "NSAID", "default_dose": "1 tab", "default_frequency": "1-0-1 after food", "default_duration": "5 days"},
+    {"name": "Zerodol SP", "generic": "Aceclofenac 100mg + Paracetamol 325mg + Serratiopeptidase 15mg", "category": "NSAID", "default_dose": "1 tab", "default_frequency": "1-0-1 after food", "default_duration": "5 days"},
+
+    {"name": "Augmentin 625 Duo", "generic": "Amoxicillin 500mg + Clavulanic acid 125mg", "category": "Antibiotic", "default_dose": "625mg", "default_frequency": "1-0-1 after food", "default_duration": "5 days"},
+    {"name": "Clavam 625", "generic": "Amoxicillin 500mg + Clavulanic acid 125mg", "category": "Antibiotic", "default_dose": "625mg", "default_frequency": "1-0-1 after food", "default_duration": "5-7 days"},
+    {"name": "Moxikind CV 625", "generic": "Amoxicillin 500mg + Clavulanic acid 125mg", "category": "Antibiotic", "default_dose": "625mg", "default_frequency": "1-0-1 after food", "default_duration": "5 days"},
+    {"name": "Azithral 500", "generic": "Azithromycin 500mg", "category": "Antibiotic", "default_dose": "500mg", "default_frequency": "1-0-0 before food", "default_duration": "3-5 days"},
+    {"name": "Azee 500", "generic": "Azithromycin 500mg", "category": "Antibiotic", "default_dose": "500mg", "default_frequency": "1-0-0 empty stomach", "default_duration": "3 days"},
+    {"name": "Ciplox 500", "generic": "Ciprofloxacin 500mg", "category": "Antibiotic", "default_dose": "500mg", "default_frequency": "1-0-1 after food", "default_duration": "5 days"},
+    {"name": "Levoflox 500", "generic": "Levofloxacin 500mg", "category": "Antibiotic", "default_dose": "500mg", "default_frequency": "1-0-0 after food", "default_duration": "5 days"},
+    {"name": "Ofmax 200", "generic": "Ofloxacin 200mg", "category": "Antibiotic", "default_dose": "200mg", "default_frequency": "1-0-1 after food", "default_duration": "5 days"},
+    {"name": "Cefixime 200 (Taxim-O)", "generic": "Cefixime 200mg", "category": "Antibiotic", "default_dose": "200mg", "default_frequency": "1-0-1 after food", "default_duration": "5 days"},
+    {"name": "Zifi 200", "generic": "Cefixime 200mg", "category": "Antibiotic", "default_dose": "200mg", "default_frequency": "1-0-1 after food", "default_duration": "5 days"},
+    {"name": "Monocef 1g inj", "generic": "Ceftriaxone 1g IV/IM", "category": "Antibiotic (IV)", "default_dose": "1g", "default_frequency": "1-0-1 IV", "default_duration": "3-5 days"},
+    {"name": "Doxy 100", "generic": "Doxycycline 100mg", "category": "Antibiotic", "default_dose": "100mg", "default_frequency": "1-0-1 after food", "default_duration": "7 days"},
+    {"name": "Flagyl 400", "generic": "Metronidazole 400mg", "category": "Antibiotic", "default_dose": "400mg", "default_frequency": "1-1-1 after food", "default_duration": "5 days"},
+    {"name": "Metrogyl 400", "generic": "Metronidazole 400mg", "category": "Antibiotic", "default_dose": "400mg", "default_frequency": "1-1-1 after food", "default_duration": "5 days"},
+
+    {"name": "Pan 40", "generic": "Pantoprazole 40mg", "category": "PPI", "default_dose": "40mg", "default_frequency": "1-0-0 before breakfast", "default_duration": "14 days"},
+    {"name": "Pantop 40", "generic": "Pantoprazole 40mg", "category": "PPI", "default_dose": "40mg", "default_frequency": "1-0-0 empty stomach", "default_duration": "14 days"},
+    {"name": "Rantac 150", "generic": "Ranitidine 150mg", "category": "H2 Blocker", "default_dose": "150mg", "default_frequency": "1-0-1 before food", "default_duration": "10 days"},
+    {"name": "Omez 20", "generic": "Omeprazole 20mg", "category": "PPI", "default_dose": "20mg", "default_frequency": "1-0-0 before breakfast", "default_duration": "14 days"},
+    {"name": "Razo 20", "generic": "Rabeprazole 20mg", "category": "PPI", "default_dose": "20mg", "default_frequency": "1-0-0 before food", "default_duration": "14 days"},
+    {"name": "Nexpro 40", "generic": "Esomeprazole 40mg", "category": "PPI", "default_dose": "40mg", "default_frequency": "1-0-0 before food", "default_duration": "14 days"},
+    {"name": "Digene", "generic": "Antacid (Aluminium/Magnesium hydroxide)", "category": "Antacid", "default_dose": "10ml", "default_frequency": "1-1-1 after food", "default_duration": "10 days"},
+    {"name": "Gaviscon", "generic": "Sodium alginate + Sodium bicarbonate", "category": "Antacid", "default_dose": "10ml", "default_frequency": "0-0-1 bedtime", "default_duration": "10 days"},
+    {"name": "Perinorm", "generic": "Metoclopramide 10mg", "category": "Antiemetic", "default_dose": "10mg", "default_frequency": "SOS before food", "default_duration": "3 days"},
+    {"name": "Emeset 4", "generic": "Ondansetron 4mg", "category": "Antiemetic", "default_dose": "4mg", "default_frequency": "SOS", "default_duration": "3 days"},
+    {"name": "Vomikind 4", "generic": "Ondansetron 4mg", "category": "Antiemetic", "default_dose": "4mg", "default_frequency": "SOS", "default_duration": "3 days"},
+    {"name": "Buscopan", "generic": "Hyoscine butylbromide 10mg", "category": "Antispasmodic", "default_dose": "10mg", "default_frequency": "1-1-1 after food", "default_duration": "3 days"},
+
+    {"name": "Cetzine 10", "generic": "Cetirizine 10mg", "category": "Antihistamine", "default_dose": "10mg", "default_frequency": "0-0-1 bedtime", "default_duration": "5 days"},
+    {"name": "Alerid 10", "generic": "Cetirizine 10mg", "category": "Antihistamine", "default_dose": "10mg", "default_frequency": "0-0-1 bedtime", "default_duration": "5 days"},
+    {"name": "Allegra 120", "generic": "Fexofenadine 120mg", "category": "Antihistamine", "default_dose": "120mg", "default_frequency": "1-0-0 empty stomach", "default_duration": "5 days"},
+    {"name": "Levocet 5", "generic": "Levocetirizine 5mg", "category": "Antihistamine", "default_dose": "5mg", "default_frequency": "0-0-1 bedtime", "default_duration": "7 days"},
+    {"name": "Montek LC", "generic": "Montelukast 10mg + Levocetirizine 5mg", "category": "Antihistamine", "default_dose": "1 tab", "default_frequency": "0-0-1 bedtime", "default_duration": "15 days"},
+    {"name": "Avil 25", "generic": "Pheniramine maleate 25mg", "category": "Antihistamine", "default_dose": "25mg", "default_frequency": "1-1-1 after food", "default_duration": "3 days"},
+
+    {"name": "Ascoril LS", "generic": "Ambroxol + Guaifenesin + Levosalbutamol", "category": "Cough Expectorant", "default_dose": "10ml", "default_frequency": "1-1-1 after food", "default_duration": "5 days"},
+    {"name": "Grilinctus", "generic": "Chlorpheniramine + Dextromethorphan + Guaifenesin", "category": "Cough Suppressant", "default_dose": "10ml", "default_frequency": "1-1-1", "default_duration": "5 days"},
+    {"name": "Alex Syrup", "generic": "Phenylephrine + Chlorpheniramine + Dextromethorphan", "category": "Cough & Cold", "default_dose": "10ml", "default_frequency": "1-1-1 after food", "default_duration": "5 days"},
+    {"name": "Sinarest", "generic": "Paracetamol + Phenylephrine + Chlorpheniramine", "category": "Cold Combination", "default_dose": "1 tab", "default_frequency": "1-0-1 after food", "default_duration": "3-5 days"},
+    {"name": "Cheston Cold", "generic": "Paracetamol + Phenylephrine + Cetirizine", "category": "Cold Combination", "default_dose": "1 tab", "default_frequency": "1-0-1 after food", "default_duration": "5 days"},
+
+    {"name": "Amlodac 5", "generic": "Amlodipine 5mg", "category": "Antihypertensive (CCB)", "default_dose": "5mg", "default_frequency": "1-0-0 morning", "default_duration": "30 days"},
+    {"name": "Amlong 5", "generic": "Amlodipine 5mg", "category": "Antihypertensive (CCB)", "default_dose": "5mg", "default_frequency": "1-0-0 morning", "default_duration": "30 days"},
+    {"name": "Telma 40", "generic": "Telmisartan 40mg", "category": "Antihypertensive (ARB)", "default_dose": "40mg", "default_frequency": "1-0-0 morning", "default_duration": "30 days"},
+    {"name": "Losar 50", "generic": "Losartan 50mg", "category": "Antihypertensive (ARB)", "default_dose": "50mg", "default_frequency": "1-0-0 morning", "default_duration": "30 days"},
+    {"name": "Concor 5", "generic": "Bisoprolol 5mg", "category": "Beta Blocker", "default_dose": "5mg", "default_frequency": "1-0-0 morning", "default_duration": "30 days"},
+    {"name": "Metolar 25", "generic": "Metoprolol 25mg", "category": "Beta Blocker", "default_dose": "25mg", "default_frequency": "1-0-1 after food", "default_duration": "30 days"},
+    {"name": "Ecosprin 75", "generic": "Aspirin 75mg", "category": "Antiplatelet", "default_dose": "75mg", "default_frequency": "0-1-0 after lunch", "default_duration": "Long-term"},
+    {"name": "Clopilet 75", "generic": "Clopidogrel 75mg", "category": "Antiplatelet", "default_dose": "75mg", "default_frequency": "1-0-0 morning", "default_duration": "Long-term"},
+
+    {"name": "Rosuvas 10", "generic": "Rosuvastatin 10mg", "category": "Statin", "default_dose": "10mg", "default_frequency": "0-0-1 bedtime", "default_duration": "30 days"},
+    {"name": "Atorva 10", "generic": "Atorvastatin 10mg", "category": "Statin", "default_dose": "10mg", "default_frequency": "0-0-1 bedtime", "default_duration": "30 days"},
+    {"name": "Storvas 10", "generic": "Atorvastatin 10mg", "category": "Statin", "default_dose": "10mg", "default_frequency": "0-0-1 bedtime", "default_duration": "30 days"},
+
+    {"name": "Glycomet 500", "generic": "Metformin 500mg", "category": "Antidiabetic", "default_dose": "500mg", "default_frequency": "1-0-1 after food", "default_duration": "30 days"},
+    {"name": "Glucophage 500", "generic": "Metformin 500mg", "category": "Antidiabetic", "default_dose": "500mg", "default_frequency": "1-0-1 after food", "default_duration": "30 days"},
+    {"name": "Amaryl 1", "generic": "Glimepiride 1mg", "category": "Antidiabetic", "default_dose": "1mg", "default_frequency": "1-0-0 before breakfast", "default_duration": "30 days"},
+    {"name": "Janumet 50/500", "generic": "Sitagliptin 50mg + Metformin 500mg", "category": "Antidiabetic (DPP4)", "default_dose": "1 tab", "default_frequency": "1-0-1 after food", "default_duration": "30 days"},
+    {"name": "Jardiance 10", "generic": "Empagliflozin 10mg", "category": "Antidiabetic (SGLT2)", "default_dose": "10mg", "default_frequency": "1-0-0 morning", "default_duration": "30 days"},
+    {"name": "Human Mixtard 30/70", "generic": "Insulin Mixed", "category": "Insulin", "default_dose": "As prescribed units", "default_frequency": "SC 15 min before breakfast & dinner", "default_duration": "Ongoing"},
+
+    {"name": "Thyronorm 50", "generic": "Levothyroxine 50mcg", "category": "Thyroid", "default_dose": "50mcg", "default_frequency": "1-0-0 empty stomach", "default_duration": "30 days"},
+    {"name": "Eltroxin 100", "generic": "Levothyroxine 100mcg", "category": "Thyroid", "default_dose": "100mcg", "default_frequency": "1-0-0 empty stomach", "default_duration": "30 days"},
+
+    {"name": "Vitamin D3 60K (Uprise D3)", "generic": "Cholecalciferol 60000 IU", "category": "Vitamin", "default_dose": "60000 IU", "default_frequency": "Once a week", "default_duration": "8 weeks"},
+    {"name": "Neurobion Forte", "generic": "Vit B1 + B6 + B12", "category": "Vitamin", "default_dose": "1 tab", "default_frequency": "1-0-0 after food", "default_duration": "30 days"},
+    {"name": "Becosules", "generic": "Vit B-complex + C", "category": "Vitamin", "default_dose": "1 cap", "default_frequency": "1-0-0 after food", "default_duration": "30 days"},
+    {"name": "Zincovit", "generic": "Multivitamin + Zinc", "category": "Multivitamin", "default_dose": "1 tab", "default_frequency": "1-0-0 after food", "default_duration": "30 days"},
+    {"name": "Shelcal 500", "generic": "Calcium 500mg + Vit D3 250 IU", "category": "Supplement", "default_dose": "500mg", "default_frequency": "1-0-1 after food", "default_duration": "30 days"},
+    {"name": "Livogen", "generic": "Iron + Folic acid", "category": "Hematinic", "default_dose": "1 tab", "default_frequency": "1-0-0 after food", "default_duration": "30 days"},
+    {"name": "Orofer XT", "generic": "Ferrous ascorbate + Folic acid", "category": "Hematinic", "default_dose": "1 tab", "default_frequency": "1-0-0 after food", "default_duration": "30 days"},
+
+    {"name": "Enzoflam", "generic": "Diclofenac + Paracetamol + Serratiopeptidase", "category": "NSAID Combo", "default_dose": "1 tab", "default_frequency": "1-0-1 after food", "default_duration": "5 days"},
+    {"name": "Ultracet", "generic": "Tramadol 37.5mg + Paracetamol 325mg", "category": "Analgesic", "default_dose": "1 tab", "default_frequency": "1-0-1 after food", "default_duration": "5 days"},
+
+    {"name": "Xanax 0.25", "generic": "Alprazolam 0.25mg", "category": "Anxiolytic", "default_dose": "0.25mg", "default_frequency": "0-0-1 bedtime", "default_duration": "As needed"},
+    {"name": "Restyl 0.25", "generic": "Alprazolam 0.25mg", "category": "Anxiolytic", "default_dose": "0.25mg", "default_frequency": "0-0-1 bedtime", "default_duration": "As needed"},
+    {"name": "Etizola 0.25", "generic": "Etizolam 0.25mg", "category": "Anxiolytic", "default_dose": "0.25mg", "default_frequency": "0-0-1 bedtime", "default_duration": "As needed"},
+
+    {"name": "Betnesol", "generic": "Betamethasone 0.5mg", "category": "Steroid", "default_dose": "0.5mg", "default_frequency": "1-1-1 after food", "default_duration": "3 days (taper)"},
+    {"name": "Wysolone 5", "generic": "Prednisolone 5mg", "category": "Steroid", "default_dose": "5mg", "default_frequency": "1-0-0 after breakfast", "default_duration": "5-7 days (taper)"},
+
+    {"name": "Fluconazole 150", "generic": "Fluconazole 150mg", "category": "Antifungal", "default_dose": "150mg", "default_frequency": "Single dose", "default_duration": "Once weekly"},
+    {"name": "Terbinaforce 250", "generic": "Terbinafine 250mg", "category": "Antifungal", "default_dose": "250mg", "default_frequency": "1-0-0 after food", "default_duration": "2-4 weeks"},
+    {"name": "Itracen 100", "generic": "Itraconazole 100mg", "category": "Antifungal", "default_dose": "100mg", "default_frequency": "1-0-1 after food", "default_duration": "15 days"},
+
+    {"name": "Betadine gargle", "generic": "Povidone iodine 2%", "category": "Antiseptic", "default_dose": "10ml", "default_frequency": "Gargle 2-3 times daily", "default_duration": "5 days"},
+    {"name": "Chlorhexidine mouthwash (Hexidine)", "generic": "Chlorhexidine gluconate 0.2%", "category": "Antiseptic", "default_dose": "10ml", "default_frequency": "Gargle twice daily", "default_duration": "10 days"},
+
+    {"name": "Otek AC drops", "generic": "Ciprofloxacin + Beclomethasone (ear)", "category": "ENT Drops", "default_dose": "2-3 drops", "default_frequency": "1-1-1 in affected ear", "default_duration": "5 days"},
+    {"name": "Nasivion drops", "generic": "Oxymetazoline 0.05% nasal", "category": "Nasal Decongestant", "default_dose": "2 drops", "default_frequency": "1-0-1 in each nostril", "default_duration": "3 days"},
+    {"name": "Nasoflo spray", "generic": "Fluticasone furoate nasal spray", "category": "Nasal Steroid", "default_dose": "1 spray", "default_frequency": "1-0-0 each nostril", "default_duration": "14 days"},
+
+    {"name": "ORS (Electral)", "generic": "Oral Rehydration Salts", "category": "Electrolyte", "default_dose": "1 packet in 1L water", "default_frequency": "After each loose stool", "default_duration": "Until resolved"},
+    {"name": "Enterogermina", "generic": "Bacillus clausii spores", "category": "Probiotic", "default_dose": "5ml", "default_frequency": "1-1-1", "default_duration": "5 days"},
+    {"name": "Vizylac", "generic": "Lactic acid bacillus", "category": "Probiotic", "default_dose": "1 cap", "default_frequency": "1-1-1 after food", "default_duration": "10 days"},
+
+    {"name": "Isotroin 10", "generic": "Isotretinoin 10mg", "category": "Dermatology", "default_dose": "10mg", "default_frequency": "0-0-1 after food", "default_duration": "3-6 months"},
+    {"name": "Erytop cream", "generic": "Erythromycin 4% gel", "category": "Dermatology (Topical)", "default_dose": "Apply thin layer", "default_frequency": "Twice daily", "default_duration": "6-8 weeks"},
+    {"name": "Clop G cream", "generic": "Clobetasol + Gentamicin + Miconazole", "category": "Dermatology (Topical)", "default_dose": "Apply thin layer", "default_frequency": "1-0-1 to affected area", "default_duration": "7-14 days"},
+
+    {"name": "Iodex", "generic": "Methyl salicylate + Menthol", "category": "Topical Analgesic", "default_dose": "Apply", "default_frequency": "1-0-1 to affected area", "default_duration": "5 days"},
+    {"name": "Volini Gel", "generic": "Diclofenac 1.16% + Linseed oil", "category": "Topical Analgesic", "default_dose": "Apply", "default_frequency": "1-1-1 to affected area", "default_duration": "5-7 days"},
+
+    {"name": "Duphaston 10", "generic": "Dydrogesterone 10mg", "category": "Gynecology", "default_dose": "10mg", "default_frequency": "1-0-1 after food", "default_duration": "As advised"},
+    {"name": "Regestrone 5", "generic": "Norethisterone 5mg", "category": "Gynecology", "default_dose": "5mg", "default_frequency": "1-0-1", "default_duration": "As advised"},
+    {"name": "Folvite 5", "generic": "Folic acid 5mg", "category": "Prenatal", "default_dose": "5mg", "default_frequency": "1-0-0", "default_duration": "First trimester"},
+
+    {"name": "Rablet 20", "generic": "Rabeprazole 20mg", "category": "PPI", "default_dose": "20mg", "default_frequency": "1-0-0 before breakfast", "default_duration": "14 days"},
+    {"name": "Cyra 20", "generic": "Rabeprazole 20mg", "category": "PPI", "default_dose": "20mg", "default_frequency": "1-0-0 empty stomach", "default_duration": "14 days"},
+    {"name": "Ascoril D Plus", "generic": "Chlorpheniramine + Dextromethorphan + Phenylephrine", "category": "Cough Suppressant", "default_dose": "10ml", "default_frequency": "1-1-1 after food", "default_duration": "5 days"},
+
+    {"name": "Norflox TZ", "generic": "Norfloxacin + Tinidazole", "category": "Antibiotic", "default_dose": "1 tab", "default_frequency": "1-0-1 after food", "default_duration": "3-5 days"},
+    {"name": "Sporidex 500", "generic": "Cephalexin 500mg", "category": "Antibiotic", "default_dose": "500mg", "default_frequency": "1-0-1 after food", "default_duration": "5 days"},
+    {"name": "Cifran 500", "generic": "Ciprofloxacin 500mg", "category": "Antibiotic", "default_dose": "500mg", "default_frequency": "1-0-1 after food", "default_duration": "5 days"}
+  ]
+}
