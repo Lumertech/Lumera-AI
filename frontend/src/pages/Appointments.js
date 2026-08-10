@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DashboardLayout from '@/components/Layout/DashboardLayout';
+import QueueBoard from '@/components/QueueBoard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -144,6 +145,8 @@ const Appointments = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6" data-testid="appointments-page">
+        {/* Live OPD Queue */}
+        <QueueBoard />
         {/* Header */}
         <Card className="border-slate-200">
           <CardContent className="p-6">

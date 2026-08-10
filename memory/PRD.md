@@ -128,6 +128,27 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - Sidebar: new **Invoices** nav item
 - Tests: 13/13 invoice pytest pass; PrescriptionWriter print regression fixed after test-agent flagged missing `primaryClinic` state declaration
 
+### Phase 16 — OPD Queue Engine + Letterhead + Rx Preset Sharing (2026-08-10) ✅
+
+**Dynamic OPD Queue Engine:**
+- New `routes/queue.py` — full state machine: `scheduled → checked_in → in_consultation → completed`, plus `no_show / cancelled` branches with valid-transition enforcement
+- Token auto-assigned at check-in in format `A-01`, `A-02` per doctor per day
+- Endpoints: `GET /api/queue/today` (with polyclinic-aware doctor scoping), `POST /api/queue/{id}/check-in`, `POST /api/queue/{id}/status`, `POST /api/queue/waiting-room/token`, `GET /api/queue/waiting-room/public/{token}` (no auth)
+- Frontend `QueueBoard` component renders atop the Appointments page with live status pipeline buttons, refreshes every 20s
+- **Waiting Room / Smart TV monitor** — public route `/waiting-room/:token` — dominant "Now Serving" card (huge token), Up-Next list, Waiting/Done counters. Patient names auto-masked to first-initial for privacy (e.g., "A. S."). Refreshes every 8s.
+
+**Custom Print Letterhead:**
+- New `routes/letterhead.py` — GET/PUT text fields + logo/signature image uploads (data URLs, ≤350 KB) + delete endpoints
+- New `/letterhead` page (Practice Tools) with logo + signature upload cards, clinic/doctor detail form, MCI registration, footer note, and one-click print preview
+- `renderPrescriptionHTML` extended to embed the letterhead: top logo + clinic block, doctor qualifications + MCI Reg. No., and signature block above the footer
+- PrescriptionWriter auto-fetches letterhead on mount and passes it to every print job
+- **Practice Tools tab restored** in sidebar (using Wrench icon) linking to the letterhead builder
+
+**Rx Preset Sharing:**
+- `GET /api/rx-presets` now returns own + polyclinic-shared presets, each tagged `is_mine`
+- New `POST /api/rx-presets/{id}/share` toggles polyclinic sharing (only doctors with a `polyclinic_id` can share)
+- UI shows a green "Shared" pill on shared presets and "by <name>" attribution on presets loaded from colleagues; share/delete buttons visible only on own presets
+
 ### Phase 15 — Feedback Widget + Nurse Vitals + Auto-Print (2026-08-10) ✅
 
 **Feedback Widget on Dashboard:**

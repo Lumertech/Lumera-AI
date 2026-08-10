@@ -17,6 +17,7 @@ import {
   User,
   Phone,
   Building2,
+  Wrench,
   Mic,
   Sparkles,
   Receipt,
@@ -67,6 +68,8 @@ const DashboardLayout = ({ children }) => {
     { name: 'Reminders & Retention', href: '/reminders', icon: Bell, roles: ['doctor', 'front_desk'] },
     // Organization
     { name: 'Clinics & Staff', href: '/clinics', icon: Building2, roles: ['doctor'] },
+    // Practice Tools
+    { name: 'Practice Tools', href: '/letterhead', icon: Wrench, roles: ['doctor'] },
     // Settings
     { name: 'Profile', href: '/profile', icon: User, roles: ['doctor', 'front_desk', 'assistant'] },
     { name: 'Settings', href: '/settings', icon: Settings, roles: ['doctor'] },

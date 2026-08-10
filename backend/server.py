@@ -3661,6 +3661,12 @@ app.include_router(_rx_presets_router_mod.router, prefix="/api")
 from routes import feedback as _feedback_router_mod
 app.include_router(_feedback_router_mod.router, prefix="/api")
 
+from routes import queue as _queue_router_mod
+app.include_router(_queue_router_mod.router, prefix="/api")
+
+from routes import letterhead as _letterhead_router_mod
+app.include_router(_letterhead_router_mod.router, prefix="/api")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

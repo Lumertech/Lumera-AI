@@ -35,11 +35,41 @@ class RxPresetUpdate(BaseModel):
 
 @router.get("")
 async def list_presets(current_user: dict = Depends(get_current_user)):
+    """List own presets + presets shared to the polyclinic the user belongs to."""
     owner_id = resolve_owner_id(current_user)
-    presets = await db.rx_presets.find(
-        {"owner_id": owner_id}, {"_id": 0}
-    ).sort("name", 1).to_list(200)
+    me = await db.users.find_one({"id": owner_id}, {"_id": 0, "polyclinic_id": 1}) or {}
+    query = {"$or": [{"owner_id": owner_id}]}
+    if me.get("polyclinic_id"):
+        query["$or"].append({"shared_polyclinic_id": me["polyclinic_id"]})
+    presets = await db.rx_presets.find(query, {"_id": 0}).sort("name", 1).to_list(400)
+    # Annotate presets with is_mine flag for the UI
+    for p in presets:
+        p["is_mine"] = p.get("owner_id") == owner_id
     return presets
+
+
+@router.post("/{preset_id}/share")
+async def toggle_share(preset_id: str, current_user: dict = Depends(get_current_user)):
+    """Toggle sharing this preset with the polyclinic team."""
+    if current_user.get("profession") != "doctor":
+        raise HTTPException(status_code=403, detail="Only doctors can share Rx presets")
+    owner_id = resolve_owner_id(current_user)
+    preset = await db.rx_presets.find_one({"id": preset_id, "owner_id": owner_id}, {"_id": 0})
+    if not preset:
+        raise HTTPException(status_code=404, detail="Preset not found")
+    me = await db.users.find_one({"id": owner_id}, {"_id": 0, "polyclinic_id": 1, "name": 1}) or {}
+    if not me.get("polyclinic_id"):
+        raise HTTPException(status_code=400, detail="You need to belong to a polyclinic to share presets")
+    now_shared = not bool(preset.get("shared_polyclinic_id"))
+    if now_shared:
+        await db.rx_presets.update_one({"id": preset_id}, {"$set": {
+            "shared_polyclinic_id": me["polyclinic_id"],
+            "shared_by_name": me.get("name"),
+            "shared_at": datetime.now(timezone.utc).isoformat(),
+        }})
+    else:
+        await db.rx_presets.update_one({"id": preset_id}, {"$unset": {"shared_polyclinic_id": "", "shared_at": ""}})
+    return {"message": "Sharing updated", "shared": now_shared}
 
 
 @router.post("")

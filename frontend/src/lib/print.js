@@ -71,13 +71,41 @@ const escape = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]));
 
-export function renderPrescriptionHTML({ clinic, doctor, patient, medications = [], instructions = '', date, vitals = null, labTests = [] }) {
+export function renderPrescriptionHTML({ clinic, doctor, patient, medications = [], instructions = '', date, vitals = null, labTests = [], letterhead = null }) {
   const dateStr = date ? new Date(date).toLocaleDateString() : new Date().toLocaleDateString();
-  const clinicBlock = clinic ? `
-    <h1>${escape(clinic.name)}</h1>
-    ${clinic.address ? `<div class="muted">${escape(clinic.address)}</div>` : ''}
-    ${clinic.phone ? `<div class="muted">${escape(clinic.phone)}${clinic.email ? ' · ' + escape(clinic.email) : ''}</div>` : ''}
-  ` : `<h1>${escape(doctor?.name || 'Prescription')}</h1>`;
+
+  // Build letterhead block if provided — takes precedence over `clinic` fallback
+  let clinicBlock;
+  if (letterhead && (letterhead.clinic_name || letterhead.logo_data_url)) {
+    clinicBlock = `
+      <div style="display:flex; align-items:center; gap:14px;">
+        ${letterhead.logo_data_url ? `<img src="${escape(letterhead.logo_data_url)}" alt="logo" style="height:60px; max-width:120px; object-fit:contain;" />` : ''}
+        <div>
+          <h1 style="margin:0;">${escape(letterhead.clinic_name || (doctor?.name ? 'Dr. ' + doctor.name : ''))}</h1>
+          ${letterhead.clinic_address ? `<div class="muted">${escape(letterhead.clinic_address)}</div>` : ''}
+          <div class="muted">
+            ${letterhead.clinic_phone ? escape(letterhead.clinic_phone) : ''}
+            ${letterhead.clinic_phone && letterhead.clinic_email ? ' · ' : ''}
+            ${letterhead.clinic_email ? escape(letterhead.clinic_email) : ''}
+          </div>
+        </div>
+      </div>`;
+  } else if (clinic) {
+    clinicBlock = `
+      <h1>${escape(clinic.name)}</h1>
+      ${clinic.address ? `<div class="muted">${escape(clinic.address)}</div>` : ''}
+      ${clinic.phone ? `<div class="muted">${escape(clinic.phone)}${clinic.email ? ' · ' + escape(clinic.email) : ''}</div>` : ''}
+    `;
+  } else {
+    clinicBlock = `<h1>${escape(doctor?.name || 'Prescription')}</h1>`;
+  }
+
+  const doctorBlock = `
+    <div><strong>Dr. ${escape(letterhead?.doctor_name || doctor?.name || '')}</strong></div>
+    ${letterhead?.doctor_qualifications ? `<div class="muted">${escape(letterhead.doctor_qualifications)}</div>` : ''}
+    ${letterhead?.doctor_specialty ? `<div class="muted">${escape(letterhead.doctor_specialty)}</div>` : (doctor?.profession ? `<div class="muted">${escape(doctor.profession)}</div>` : '')}
+    ${letterhead?.mci_registration ? `<div class="muted">Reg. No. ${escape(letterhead.mci_registration)}</div>` : ''}
+  `;
 
   const medsRows = medications.map((m, i) => {
     const taper = m.is_tapering && (m.taper_schedule || []).length > 0
@@ -96,7 +124,6 @@ export function renderPrescriptionHTML({ clinic, doctor, patient, medications = 
     </tr>`;
   }).join('');
 
-  // Vitals block (only if any value is present)
   const vitalOrder = [
     ['bp', 'BP'], ['pulse', 'Pulse'], ['spo2', 'SpO2'], ['temperature', 'Temp'],
     ['weight', 'Weight'], ['height', 'Height'], ['respiratory_rate', 'RR'],
@@ -110,7 +137,6 @@ export function renderPrescriptionHTML({ clinic, doctor, patient, medications = 
        </table>`
     : '';
 
-  // Lab / Imaging orders
   const labBlock = (labTests && labTests.length > 0)
     ? `<h2>Lab / Imaging Orders</h2>
        <table>
@@ -123,6 +149,16 @@ export function renderPrescriptionHTML({ clinic, doctor, patient, medications = 
            <td>${escape(t.notes || '')}</td>
          </tr>`).join('')}</tbody>
        </table>`
+    : '';
+
+  const signatureBlock = letterhead?.signature_data_url
+    ? `<div style="margin-top:34px; text-align:right;">
+         <img src="${escape(letterhead.signature_data_url)}" alt="signature" style="height:52px; max-width:220px; object-fit:contain;" />
+         <div style="border-top:1px solid #94a3b8; padding-top:4px; margin-top:2px; display:inline-block; min-width:220px;">
+           <strong>Dr. ${escape(letterhead.doctor_name || doctor?.name || '')}</strong>
+           ${letterhead.mci_registration ? `<div class="muted">Reg. No. ${escape(letterhead.mci_registration)}</div>` : ''}
+         </div>
+       </div>`
     : '';
 
   return `
@@ -143,8 +179,7 @@ export function renderPrescriptionHTML({ clinic, doctor, patient, medications = 
       </div>
       <div>
         <h2>Doctor</h2>
-        <div><strong>Dr. ${escape(doctor?.name || '')}</strong></div>
-        ${doctor?.profession ? `<div class="muted">${escape(doctor.profession)}</div>` : ''}
+        ${doctorBlock}
       </div>
     </div>
 
@@ -160,9 +195,11 @@ export function renderPrescriptionHTML({ clinic, doctor, patient, medications = 
 
     ${instructions ? `<h2>General instructions</h2><div>${escape(instructions).replace(/\n/g, '<br/>')}</div>` : ''}
 
+    ${signatureBlock}
+
     <div class="footer">
-      <div>Generated by Lumera · ${escape(dateStr)}</div>
-      <div>Dr. ${escape(doctor?.name || '')}</div>
+      <div>${letterhead?.footer_note ? escape(letterhead.footer_note) + ' · ' : ''}Generated by Lumera · ${escape(dateStr)}</div>
+      <div>Dr. ${escape(letterhead?.doctor_name || doctor?.name || '')}</div>
     </div>
   `;
 }

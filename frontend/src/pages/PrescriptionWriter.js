@@ -91,6 +91,16 @@ const PrescriptionWriter = () => {
   }, [appointment?.client_phone]);
 
   const [vitalsCapturedBy, setVitalsCapturedBy] = useState(null);
+  const [letterhead, setLetterhead] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await axios.get(`${API_URL}/letterhead`);
+        setLetterhead(r.data);
+      } catch (_) { /* non-fatal */ }
+    })();
+  }, []);
 
   const fetchAppointment = async () => {
     try {

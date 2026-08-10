@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Heart, FlaskConical, Search, Bookmark, Plus, Trash2, Save } from 'lucide-react';
+import { Heart, FlaskConical, Search, Bookmark, Plus, Trash2, Save, Share2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
@@ -280,6 +280,16 @@ export const RxPresets = ({ medications, defaultInstructions, onLoad }) => {
     }
   };
 
+  const toggleShare = async (p) => {
+    try {
+      const res = await axios.post(`${API_URL}/rx-presets/${p.id}/share`);
+      toast.success(res.data.shared ? 'Shared with your polyclinic' : 'Sharing removed');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Share failed');
+    }
+  };
+
   return (
     <Card className="border-slate-200">
       <CardHeader className="pb-3">
@@ -318,15 +328,40 @@ export const RxPresets = ({ medications, defaultInstructions, onLoad }) => {
             {presets.map((p) => (
               <div key={p.id} className="p-3 border border-slate-200 rounded-lg hover:border-indigo-300 group" data-testid={`rx-preset-${p.id}`}>
                 <div className="flex items-start justify-between mb-1">
-                  <div className="font-medium text-sm text-slate-900">{p.name}</div>
-                  <button
-                    type="button"
-                    onClick={() => deletePreset(p)}
-                    className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700"
-                    data-testid={`rx-preset-delete-${p.id}`}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm text-slate-900 truncate">{p.name}</div>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      {p.shared_polyclinic_id && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                          <Users className="h-2.5 w-2.5" /> Shared
+                        </span>
+                      )}
+                      {!p.is_mine && (
+                        <span className="text-[10px] text-slate-500 truncate">by {p.shared_by_name || 'colleague'}</span>
+                      )}
+                    </div>
+                  </div>
+                  {p.is_mine && (
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => toggleShare(p)}
+                        className={`p-1 rounded hover:bg-indigo-50 ${p.shared_polyclinic_id ? 'text-emerald-600' : 'text-slate-500 hover:text-indigo-600'}`}
+                        title={p.shared_polyclinic_id ? 'Unshare from polyclinic' : 'Share with polyclinic'}
+                        data-testid={`rx-preset-share-${p.id}`}
+                      >
+                        <Share2 className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deletePreset(p)}
+                        className="p-1 rounded text-red-500 hover:text-red-700 hover:bg-red-50"
+                        data-testid={`rx-preset-delete-${p.id}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <p className="text-xs text-slate-500 mb-2">{p.medications?.length || 0} medicine{p.medications?.length !== 1 ? 's' : ''}</p>
                 <Button
