@@ -57,6 +57,14 @@ async def elevenlabs_status(current_user: dict = Depends(get_current_user)):
     }
 
 
+@router.get("/library")
+async def voice_library():
+    """Public voice gallery — 18 curated premade voices with 5-second preview MP3 URLs.
+    No auth required; served from ElevenLabs' public CDN."""
+    svc = get_elevenlabs_service()
+    return {"voices": svc.list_default_voices(), "count": len(svc.list_default_voices())}
+
+
 @router.get("/voices")
 async def list_voices(current_user: dict = Depends(get_current_user)):
     svc = get_elevenlabs_service()

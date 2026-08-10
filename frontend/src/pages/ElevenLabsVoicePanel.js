@@ -10,6 +10,7 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { PlayCircle, Sparkles, AlertTriangle, CheckCircle2, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
+import VoiceLibraryGallery from './VoiceLibraryGallery';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 

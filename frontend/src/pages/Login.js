@@ -104,11 +104,17 @@ const Login = () => {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-2">
             <p className="font-inter text-sm text-slate-600">
               Don't have an account?{' '}
               <Link to="/register" className="text-indigo-600 hover:text-indigo-700 font-semibold" data-testid="register-link">
                 Sign up
+              </Link>
+            </p>
+            <p className="font-inter text-xs text-slate-500">
+              Running a hospital or polyclinic?{' '}
+              <Link to="/polyclinic/register" className="text-indigo-700 hover:underline font-medium" data-testid="polyclinic-register-link">
+                Create a polyclinic account
               </Link>
             </p>
           </div>

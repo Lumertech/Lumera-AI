@@ -36,9 +36,15 @@ import AdminUsers from '@/pages/AdminUsers';
 import AdminAnalytics from '@/pages/AdminAnalytics';
 import AdminContentEditor from '@/pages/AdminContentEditor';
 import AdminLicenses from '@/pages/AdminLicenses';
+
+// Polyclinic Pages
+import PolyclinicRegister from '@/pages/PolyclinicRegister';
+import PolyclinicDashboard from '@/pages/PolyclinicDashboard';
+import PolyclinicDoctors from '@/pages/PolyclinicDoctors';
+import PolyclinicSettings from '@/pages/PolyclinicSettings';
 import { useLocation } from 'react-router-dom';
 
-const ProtectedRoute = ({ children, adminOnly = false }) => {
+const ProtectedRoute = ({ children, adminOnly = false, polyclinicOnly = false }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -65,8 +71,16 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   if (user.role === 'admin' && !path.startsWith('/admin')) {
     return <Navigate to="/admin/dashboard" replace />;
   }
+  // Polyclinic admins should always be in /polyclinic/*
+  if (user.role === 'polyclinic_admin' && !path.startsWith('/polyclinic')) {
+    return <Navigate to="/polyclinic/dashboard" replace />;
+  }
   // Non-admins cannot access /admin/*
   if (adminOnly && user.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  // Non-polyclinic-admins cannot access /polyclinic/* (except registration which is public)
+  if (polyclinicOnly && user.role !== 'polyclinic_admin') {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -89,6 +103,7 @@ const PublicRoute = ({ children }) => {
 
   if (user) {
     if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+    if (user.role === 'polyclinic_admin') return <Navigate to="/polyclinic/dashboard" replace />;
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -267,6 +282,13 @@ function App() {
           <Route path="/admin/licenses" element={<ProtectedRoute adminOnly><AdminLicenses /></ProtectedRoute>} />
           <Route path="/admin/analytics" element={<ProtectedRoute adminOnly><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/content" element={<ProtectedRoute adminOnly><AdminContentEditor /></ProtectedRoute>} />
+
+          {/* Polyclinic Routes */}
+          <Route path="/polyclinic/register" element={<PublicRoute><PolyclinicRegister /></PublicRoute>} />
+          <Route path="/polyclinic/dashboard" element={<ProtectedRoute polyclinicOnly><PolyclinicDashboard /></ProtectedRoute>} />
+          <Route path="/polyclinic/doctors" element={<ProtectedRoute polyclinicOnly><PolyclinicDoctors /></ProtectedRoute>} />
+          <Route path="/polyclinic/settings" element={<ProtectedRoute polyclinicOnly><PolyclinicSettings /></ProtectedRoute>} />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <Toaster position="top-right" richColors />

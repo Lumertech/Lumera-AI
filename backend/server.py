@@ -3584,6 +3584,9 @@ app.include_router(_admin_licenses_router_mod.router, prefix="/api")
 from routes import elevenlabs as _elevenlabs_router_mod
 app.include_router(_elevenlabs_router_mod.router, prefix="/api")
 
+from routes import polyclinic as _polyclinic_router_mod
+app.include_router(_polyclinic_router_mod.router, prefix="/api")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

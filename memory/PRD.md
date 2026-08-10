@@ -128,8 +128,25 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - Sidebar: new **Invoices** nav item
 - Tests: 13/13 invoice pytest pass; PrescriptionWriter print regression fixed after test-agent flagged missing `primaryClinic` state declaration
 
-### Phase 11 — ElevenLabs Voice Bot Integration (2026-08-10) ✅
-- **Provider-agnostic TTS pipeline** — `elevenlabs_service.py` wraps ElevenLabs SDK; `voice_bot.VoiceCallManager` now prefers ElevenLabs when the user's `elevenlabs_config.enabled=true`, falls back to Azure Speech
+### Phase 12 — Voice Library Gallery + Polyclinic Umbrella (2026-08-10) ✅
+**Voice Library Gallery**
+- Curated 18 premade ElevenLabs voices (9 female + 9 male, spanning American/British/Australian/Southern accents) with public 5-second preview MP3 URLs
+- New public endpoint `GET /api/elevenlabs/library` — no auth required
+- New component `VoiceLibraryGallery.js` — 3-column card grid, gender filter, play/pause per voice, visual "selected" ring, integrated into the AI Voice tab
+
+**Polyclinic Umbrella tier**
+- New role `polyclinic_admin` with dedicated auth flow (`/polyclinic/register` public signup)
+- New `polyclinics` collection: `{id, name, address, phone, email, admin_user_id, created_at}`
+- Doctors get an optional `polyclinic_id` field linking them to a polyclinic
+- Routes under `/api/polyclinic/`:
+  - `POST /register` (public), `GET/PUT /me`, `GET /dashboard` (aggregate stats: doctor count, appts this-month/all-time, revenue this-month/all-time, per-doctor breakdown)
+  - `POST /doctors/invite` (email-based link to existing Lumera doctor), `GET /doctors`, `DELETE /doctors/{id}`
+- Design decision: **owner sees aggregate only — no PHI/prescriptions**. Individual doctors retain full ownership of their patient data (existing RBAC unchanged)
+- Frontend: `PolyclinicLayout` (indigo sidebar), `PolyclinicDashboard`, `PolyclinicDoctors`, `PolyclinicSettings`, `PolyclinicRegister`
+- `ProtectedRoute` + `PublicRoute` now recognize the new role and auto-redirect polyclinic admins to `/polyclinic/dashboard`
+- Login page links to polyclinic sign-up
+
+### Phase 11 — ElevenLabs Voice Bot Integration (2026-08-10) ✅- **Provider-agnostic TTS pipeline** — `elevenlabs_service.py` wraps ElevenLabs SDK; `voice_bot.VoiceCallManager` now prefers ElevenLabs when the user's `elevenlabs_config.enabled=true`, falls back to Azure Speech
 - **Multilingual (eleven_multilingual_v2)** — 12 languages exposed (English + 10 Indian regional + Arabic), auto-detected from text
 - **New backend routes** under `/api/elevenlabs/`:
   - `GET /status`, `GET /languages`, `GET /voices` (account voices with default library fallback)
