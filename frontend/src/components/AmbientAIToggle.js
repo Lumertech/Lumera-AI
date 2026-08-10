@@ -76,6 +76,27 @@ const AmbientAIToggle = ({ onApply, context = '' }) => {
   const listeningRef = useRef(false);
   const pausedRef = useRef(false);
 
+  // ------- Consent chime (soft two-tone via Web Audio) -------
+  const playChime = (kind /* 'start' | 'stop' */) => {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AC();
+      const [f1, f2] = kind === 'start' ? [523.25, 783.99] : [783.99, 523.25]; // C5→G5 or G5→C5
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.45);
+      gain.connect(ctx.destination);
+      const osc1 = ctx.createOscillator();
+      osc1.type = 'sine'; osc1.frequency.value = f1;
+      osc1.connect(gain); osc1.start(ctx.currentTime); osc1.stop(ctx.currentTime + 0.2);
+      const osc2 = ctx.createOscillator();
+      osc2.type = 'sine'; osc2.frequency.value = f2;
+      osc2.connect(gain); osc2.start(ctx.currentTime + 0.18); osc2.stop(ctx.currentTime + 0.42);
+      setTimeout(() => { try { ctx.close(); } catch (_e) { /* noop */ } }, 700);
+    } catch (_e) { /* audio may be blocked pre-user-gesture */ }
+  };
+
   useEffect(() => { listeningRef.current = listening; }, [listening]);
   useEffect(() => { pausedRef.current = paused; }, [paused]);
 
@@ -162,11 +183,13 @@ const AmbientAIToggle = ({ onApply, context = '' }) => {
       toast.info('Live transcription unsupported — using Whisper on Stop');
     }
     setListening(true); setPaused(false);
+    playChime('start');
     toast.info('Ambient AI listening…');
   };
 
   const stopAndExtract = async () => {
     setListening(false); setPaused(false);
+    playChime('stop');
     try { recognitionRef.current?.stop(); } catch (_e) { /* noop */ }
 
     // Wait a beat for MediaRecorder to flush

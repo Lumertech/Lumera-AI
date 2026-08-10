@@ -162,18 +162,41 @@ async def verify_webhook(request: Request):
 
 @router.post("/webhook")
 async def receive_webhook(request: Request):
-    """Inbound messages / status callbacks. Stored raw for now; downstream
-    handlers can subscribe to `db.meta_whatsapp_messages` events."""
+    """Inbound messages / status callbacks. When app_secret is configured for a
+    tenant, we verify Meta's `X-Hub-Signature-256` HMAC before persisting.
+    Unsigned/invalid requests are rejected with 401."""
+    raw = await request.body()
     try:
         body = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    # Signature verification (optional per tenant — only enforced when secret present)
+    sig_hdr = request.headers.get("x-hub-signature-256", "")
+    verified = False
+    if sig_hdr.startswith("sha256="):
+        import hmac, hashlib
+        provided = sig_hdr.split("=", 1)[1]
+        # Try env secret first, then any per-tenant app_secret
+        candidates = [os.environ.get("META_APP_SECRET", "")]
+        async for c in db.meta_whatsapp_configs.find({"app_secret": {"$ne": None}}, {"_id": 0, "app_secret": 1}):
+            if c.get("app_secret"):
+                candidates.append(c["app_secret"])
+        for secret in [s for s in candidates if s]:
+            expected = hmac.new(secret.encode(), raw, hashlib.sha256).hexdigest()
+            if hmac.compare_digest(expected, provided):
+                verified = True
+                break
+    # If any tenant has an app_secret set, we require a valid signature.
+    any_secret = os.environ.get("META_APP_SECRET") or await db.meta_whatsapp_configs.find_one({"app_secret": {"$ne": None}}, {"_id": 0})
+    if any_secret and not verified:
+        raise HTTPException(status_code=401, detail="Invalid or missing X-Hub-Signature-256")
+
     now = datetime.now(timezone.utc).isoformat()
     for entry in body.get("entry", []):
         for ch in entry.get("changes", []):
             value = ch.get("value") or {}
             phone_number_id = (value.get("metadata") or {}).get("phone_number_id")
-            # Match owner by phone_number_id
             cfg = await db.meta_whatsapp_configs.find_one({"phone_number_id": phone_number_id}, {"_id": 0, "owner_id": 1})
             owner_id = cfg["owner_id"] if cfg else None
             for msg in value.get("messages", []) or []:
@@ -185,6 +208,7 @@ async def receive_webhook(request: Request):
                     "text": (msg.get("text") or {}).get("body"),
                     "button_reply": (msg.get("interactive") or {}).get("button_reply"),
                     "raw": msg,
+                    "signature_verified": verified,
                     "created_at": now,
                 })
             for st in value.get("statuses", []) or []:
@@ -193,6 +217,7 @@ async def receive_webhook(request: Request):
                     "direction": "status",
                     "status": st.get("status"),
                     "raw": st,
+                    "signature_verified": verified,
                     "created_at": now,
                 })
-    return {"received": True}
+    return {"received": True, "verified": verified}

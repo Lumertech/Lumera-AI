@@ -10,11 +10,12 @@ import json
 import logging
 import os
 from typing import List, Optional
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field
 
-from shared import get_current_user
+from shared import get_current_user, db, safe_regex
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ambient", tags=["ambient-ai"])
@@ -127,7 +128,37 @@ async def extract_emr(body: ExtractRequest, current_user: dict = Depends(get_cur
         "general_instructions": (data.get("general_instructions") or "").strip(),
         "raw_transcript": body.transcript,
     })
+
+    # Save every ambient session so doctors can revisit or search later
+    try:
+        import uuid as _uuid
+        await db.ambient_sessions.insert_one({
+            "id": str(_uuid.uuid4()),
+            "doctor_id": current_user["id"],
+            "context": body.context or "",
+            "transcript": body.transcript,
+            "extracted": result.model_dump(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception as e:
+        logger.warning(f"ambient session save failed: {e}")
+
     return result
+
+
+@router.get("/sessions")
+async def list_sessions(q: str = "", limit: int = 20, current_user: dict = Depends(get_current_user)):
+    """Recent ambient AI sessions for the current doctor, searchable by keyword."""
+    query: dict = {"doctor_id": current_user["id"]}
+    if q:
+        escaped_q = safe_regex(q)
+        query["$or"] = [
+            {"transcript": {"$regex": escaped_q, "$options": "i"}},
+            {"context": {"$regex": escaped_q, "$options": "i"}},
+            {"extracted.provisional_diagnosis": {"$regex": escaped_q, "$options": "i"}},
+        ]
+    rows = await db.ambient_sessions.find(query, {"_id": 0}).sort("created_at", -1).to_list(max(1, min(limit, 100)))
+    return rows
 
 
 @router.post("/transcribe")

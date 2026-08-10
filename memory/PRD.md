@@ -128,6 +128,14 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - Sidebar: new **Invoices** nav item
 - Tests: 13/13 invoice pytest pass; PrescriptionWriter print regression fixed after test-agent flagged missing `primaryClinic` state declaration
 
+### Phase 19 — Meta Signup UI + Ambient Session Log + Consent Chime + Webhook HMAC (2026-08-10) ✅
+
+- **Meta WhatsApp Signup UI** (`/settings` → new `MetaWhatsAppSetup` card): Connect Facebook Business button (opens Meta Business Manager), inputs for App ID, WABA ID, Phone Number ID, App Secret (masked), System User Token (masked), Webhook Verify Token, and a copy-webhook-URL helper. Green "Connected" badge when phone_number_id + system-user token both present.
+- **Ambient Session Log** — every `/api/ambient/extract` call now inserts a row into `db.ambient_sessions` with transcript + extracted fields + context + timestamp. New `GET /api/ambient/sessions?q=&limit=` endpoint returns doctor-scoped, reverse-chronological, case-insensitive keyword search across transcript / diagnosis / context. New `/ambient-history` page renders searchable card list with expand-to-view details.
+- **Consent Chime** — Web Audio API two-tone chime: C5→G5 sine wave when Ambient AI starts recording, G5→C5 on stop. Zero external assets, plays inline via oscillator + exponential gain ramp for a soft ~0.4s cue.
+- **Meta Webhook HMAC signature verification** — when any tenant has stored `app_secret`, inbound webhook POSTs must include a valid `X-Hub-Signature-256` (HMAC-SHA256 over raw body). Multi-tenant matching tries env secret first then all stored tenant secrets. Unsigned/invalid → 401. When no secret is configured anywhere (i.e. Meta not yet activated), the webhook stays open (dev-friendly).
+- Testing agent Iteration 11: **17/17 backend tests pass**, incl. Meta config masking, missing-config send guard (400), webhook GET verify (200/403), Hinglish extraction, auto-session-save, sessions ordering + search, Whisper RBAC + 24MB size cap, plus queue/letterhead/feedback regressions.
+
 ### Phase 18 — Whisper Fallback + Multi-language + Waveform + Meta WhatsApp Scaffold (2026-08-10) ✅
 
 **Whisper Fallback** (`POST /api/ambient/transcribe`)

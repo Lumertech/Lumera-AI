@@ -1,0 +1,48 @@
+{
+  "summary": "Backend-only verification completed against the public URL. All 17 automated tests pass after an in-scope fix for malformed Ambient session search regexes. Requested flows passed: Meta config masking/persistence, missing-config send guard, webhook GET verification, real Hinglish extraction, automatic session persistence, ordering/search, Ambient/Whisper RBAC and size limit, plus queue/letterhead/feedback regressions. One additional security check failed: the inbound Meta webhook accepts unsigned arbitrary JSON.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/meta-whatsapp/webhook",
+        "issue": "Accepts an unauthenticated request with no X-Hub-Signature-256 and returns 200 {received:true}. A forged payload containing messages/statuses would be persisted as trusted webhook data.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/iteration_11_features.xml"
+  ],
+  "action_items": [
+    "Validate Meta's X-Hub-Signature-256 HMAC against the applicable app secret before parsing or persisting inbound webhook payloads; reject missing/invalid signatures with 403.",
+    "Encrypt Meta app_secret and long-lived system_user_token at rest rather than persisting plaintext credentials.",
+    "Do not silently return a successful Ambient extraction when ambient_sessions persistence fails; make session-log durability observable or transactional/retriable."
+  ],
+  "critical_code_review_comments": [
+    "meta_whatsapp.receive_webhook has no signature-verification dependency or header check, so the public endpoint trusts attacker-controlled message/status payloads.",
+    "Meta config secrets are stored as plaintext MongoDB fields even though the project has an encryption manager; a database read exposes reusable third-party credentials.",
+    "extract_emr catches every ambient_sessions insert error and still returns 200, which can violate the requirement that every successful extraction creates a session row.",
+    "The original sessions search passed q directly to MongoDB $regex; q='[' deterministically caused OperationFailure code 51091 and HTTP 500. The test agent fixed this in scope by using shared.safe_regex, and the regression now passes."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/routes/ambient_ai.py",
+    "/app/test_reports/iteration_11.json"
+  ],
+  "success_rate": {
+    "backend": "94.4% overall (17/17 automated requested/edge tests passed; 1/1 additional unsigned-webhook security check failed). Requested feature acceptance: 100%.",
+    "frontend": "Not tested (backend-only request)"
+  },
+  "seed_data_creation": "Created three isolated TEST doctors, one TEST clinic, assistant/front_desk users, a Meta config, one real LLM Ambient session, and three controlled search rows. All QA users/configs/sessions/clinics were removed; cleanup verification found zero leftovers.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Used the supplied Doctor / Test Professional credentials from /app/memory/test_credentials.md; generated isolated credentials for temporary QA users.",
+  "context_for_next_testing_agent": "Re-run /app/backend/tests/backend_test.py. Add a negative test for missing/invalid X-Hub-Signature-256 and a positive signed webhook test after signature validation is implemented. The current 17-test suite is green and the real gpt-4o-mini Hinglish extraction completed successfully rather than being quota-blocked.",
+  "rca_of_the_issue": "Unsigned webhook RCA: receive_webhook reads request.json() immediately and never validates X-Hub-Signature-256 against app_secret, so any public caller gets 200 and can reach persistence loops. Ambient search RCA (fixed): list_sessions inserted raw q as a MongoDB regex; malformed metacharacters such as '[' caused Mongo OperationFailure and an uncaught 500. Escaping q with shared.safe_regex treats user input literally and resolved the failure."
+}

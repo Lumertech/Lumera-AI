@@ -18,6 +18,7 @@ import PrescriptionWriter from '@/pages/PrescriptionWriter';
 import VitalsEntry from '@/pages/VitalsEntry';
 import WaitingRoom from '@/pages/WaitingRoom';
 import LetterheadBuilder from '@/pages/LetterheadBuilder';
+import AmbientHistory from '@/pages/AmbientHistory';
 import Clients from '@/pages/Clients';
 import WhatsAppConfig from '@/pages/WhatsAppConfig';
 import VoiceBotConfig from '@/pages/VoiceBotConfig';
@@ -254,6 +255,7 @@ function App() {
           <Route path="/p/:token" element={<PatientPortal />} />
           <Route path="/waiting-room/:token" element={<WaitingRoom />} />
           <Route path="/letterhead" element={<ProtectedRoute><LetterheadBuilder /></ProtectedRoute>} />
+          <Route path="/ambient-history" element={<ProtectedRoute><AmbientHistory /></ProtectedRoute>} />
 
           <Route
             path="/invoices"

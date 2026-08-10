@@ -8,11 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Settings as SettingsIcon, Calendar, Bell, CreditCard, Star } from 'lucide-react';
 import { toast } from 'sonner';
+import MetaWhatsAppSetup from './MetaWhatsAppSetup';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
-// Post-consult Google Review URL — used by the 2-hour feedback trigger.
-// When patients rate 4-5 stars, our WhatsApp follow-up sends them this link.
 const GoogleReviewSettingCard = () => {
   const [url, setUrl] = useState('');
   const [saving, setSaving] = useState(false);
@@ -337,6 +336,9 @@ const Settings = () => {
 
         {/* Google Review URL — Post-consult feedback routing */}
         <GoogleReviewSettingCard />
+
+        {/* Meta WhatsApp Business */}
+        <MetaWhatsAppSetup />
 
         <Card className="border-slate-200">
           <CardHeader>
