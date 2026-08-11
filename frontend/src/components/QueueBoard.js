@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, PlayCircle, CheckCircle2, XCircle, LogIn, Copy, Monitor, RefreshCw } from 'lucide-react';
+import { Users, PlayCircle, CheckCircle2, XCircle, LogIn, Copy, Monitor, RefreshCw, CheckCheck, Check, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
@@ -17,15 +17,46 @@ const STATUS_META = {
   cancelled:       { label: 'Cancelled',     color: 'bg-slate-100 text-slate-500 line-through' },
 };
 
+// WhatsApp delivery status tick icon
+const WaTick = ({ status }) => {
+  if (!status || status === 'none') return null;
+  const base = 'h-3.5 w-3.5 flex-shrink-0';
+  if (status === 'read')      return <CheckCheck className={`${base} text-blue-500`} title="Read" />;
+  if (status === 'delivered') return <CheckCheck className={`${base} text-slate-400`} title="Delivered" />;
+  if (status === 'sent')      return <Check      className={`${base} text-slate-400`} title="Sent" />;
+  if (status === 'failed')    return <AlertCircle className={`${base} text-red-400`} title="Failed" />;
+  return null;
+};
+
 const QueueBoard = () => {
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(null);
   const [wrToken, setWrToken] = useState('');
+  const [deliveryStatus, setDeliveryStatus] = useState({}); // phone -> status string
 
   const load = async () => {
     try {
       const res = await axios.get(`${API_URL}/queue/today`);
       setData(res.data);
+      // Fetch delivery status for all patients with phone numbers
+      const phones = (res.data?.appointments || [])
+        .map((a) => a.client_phone)
+        .filter(Boolean)
+        .filter((p, i, arr) => arr.indexOf(p) === i); // unique
+      if (phones.length > 0) {
+        const statuses = await Promise.allSettled(
+          phones.map((p) =>
+            axios.get(`${API_URL}/meta-whatsapp/delivery-status/${encodeURIComponent(p)}`)
+              .then((r) => ({ phone: p, status: r.data.status }))
+              .catch(() => ({ phone: p, status: 'none' }))
+          )
+        );
+        const map = {};
+        statuses.forEach((r) => {
+          if (r.status === 'fulfilled') map[r.value.phone] = r.value.status;
+        });
+        setDeliveryStatus(map);
+      }
     } catch (e) {
       /* silent */
     }
@@ -138,8 +169,17 @@ const QueueBoard = () => {
                 <div className="w-16 shrink-0 font-bold text-slate-900">{a.token_number || a.start_time}</div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-slate-900 truncate">{a.client_name}</div>
-                  <div className="text-xs text-slate-500 truncate">
+                  <div className="text-xs text-slate-500 flex items-center gap-1 truncate">
                     {a.start_time} · {a.client_phone}
+                    {a.client_phone && (
+                      <span
+                        className="inline-flex items-center gap-0.5 ml-1"
+                        title={`WA: ${deliveryStatus[a.client_phone] || 'no message'}`}
+                        data-testid={`wa-tick-${a.id}`}
+                      >
+                        <WaTick status={deliveryStatus[a.client_phone]} />
+                      </span>
+                    )}
                   </div>
                 </div>
                 <span className={`px-2 py-0.5 rounded-full text-xs ${meta.color}`}>{meta.label}</span>

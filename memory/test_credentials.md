@@ -3,6 +3,7 @@
 ## Doctor / Test Professional
 - Email: sarah@test.com
 - Password: test123456
+- Demo WA inbox: seeded 3 conversation threads (+919876543210 Rahul Sharma, +918765432109 Priya Patel, +917654321098 Arun Kumar)
 
 ## Meta App Review Reviewer (seeded via `backend/seed_reviewer.py`)
 - Email: reviewer@lumer.me

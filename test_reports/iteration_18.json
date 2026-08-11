@@ -1,0 +1,44 @@
+{
+  "summary": "Full stack testing of WhatsApp Inbox (Phase C) + Phase A feature verification. Backend: all 12 WhatsApp inbox/conversation/delivery-status endpoint tests passed (100%). Frontend: WhatsApp Inbox page loads at /whatsapp/inbox with 3 conversation threads, unread badge '2 new', conversation messages render correctly (chat bubbles), reply bar + Send button visible. Sidebar nav shows 'WhatsApp Inbox' above 'WhatsApp Bot'. QueueBoard WaTick component exists in code but no today's appointments to test live (all appointments are dated in past). AmbientAI 'Listening in English (India)...' label is implemented in code and visible when recording active - cannot be automated without mic permission. Cash Calculator exists in CollectPaymentDialog.js with amount-tendered field but shows only when payment method is 'cash' (sarah@test.com defaults to UPI so QR modal shows). 'Test Gateway' button label is actually 'Verify Connection' in the UI (only visible when a gateway is saved).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "WhatsApp Inbox - thread list",
+        "issues": ["Patient name lookup for +917654321098 shows phone number instead of 'Arun' - appointment phone tail match may not align if seeded phone differs from appointment phone format"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration18_phase_c.py",
+    "/app/test_reports/pytest/iteration_18.xml"
+  ],
+  "action_items": [
+    "Minor: patient name for +917654321098 (Arun) shows as phone number instead of name in thread list header - the seeded appointment phone tail may not match the stored WA phone. Verify seed data phone format matches appointments.client_phone",
+    "The Settings page 'Test Gateway' button mentioned in requirements is actually labeled 'Verify Connection' in PaymentGatewaySettingsCard - confirm this is intentional or rename for consistency with requirements",
+    "QueueBoard WA ticks can only be verified with today's appointments; recommend creating a today-dated test appointment to verify the tick icons render for the demo"
+  ],
+  "critical_code_review_comments": [
+    "AmbientAIToggle has 'Listening in {language}...' label implemented correctly in the recording strip (data-testid=ambient-recording-strip) - works as expected from code review",
+    "CollectPaymentDialog cash calculator (data-testid=cash-tendered-input) correctly conditionally renders only when method==='cash' - appropriate behavior",
+    "WhatsApp Inbox backend conversations API correctly excludes _id via projection {_id: 0, raw: 0} and marks inbound messages as read on fetch"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration18_phase_c.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 passed)",
+    "frontend": "90% - all major flows working; minor patient name display issue in WA inbox thread, QueueBoard WA ticks untestable without today's appointments"
+  },
+  "seed_data_creation": "Used existing seeded demo WA messages for sarah@test.com (owner_id=803dfcae-8e07-4cce-9611-79fec383721e) with 3 conversation threads. No new seed data created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "WhatsApp Inbox fully functional. Seeded WA threads for sarah@test.com show as +919876543210 (Test Patient Updated), +918765432109 (phone only, unread badge=2), +917654321098 (phone only). The expected names Rahul/Priya/Arun don't show because the appointment client_phone lookup via tail-match doesn't find matching appointments for these seeded phones. AmbientAI waveform strip with 'Listening in English (India)...' label exists in code - needs manual browser test with mic access. QueueBoard WA tick feature is implemented in QueueBoard.js but requires today's appointments to be visible. 'Test Gateway' is 'Verify Connection' in UI (only shows when gateway.provider is saved in settings).",
+  "test_credentials": "sarah@test.com / test123456 (Doctor)",
+  "rca_of_the_issue": "Patient name not showing for seeded WA phones (+919876543210, +918765432109, +917654321098) in thread list: The /conversations endpoint does tail-match (last 10 digits) on appointments.client_phone. The seeded WA demo messages use phones that may not have matching appointments for sarah@test.com. Only 'Test Patient Updated' has a matching appointment showing the name."
+}

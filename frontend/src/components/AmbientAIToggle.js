@@ -314,10 +314,12 @@ const AmbientAIToggle = ({ onApply, context = '' }) => {
             </div>
           </div>
 
-          {listening && analyser && !paused && (
+          {listening && !paused && (
             <div className="flex items-center gap-3 px-2" data-testid="ambient-recording-strip">
               <Waveform analyser={analyser} active />
-              <span className="text-xs text-purple-700 font-medium">Recording… patient can see this indicator</span>
+              <span className="text-xs text-purple-700 font-medium">
+                Listening in {LANGUAGES.find((l) => l.code === langCode)?.label || langCode}…
+              </span>
             </div>
           )}
 

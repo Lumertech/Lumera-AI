@@ -296,3 +296,134 @@ async def receive_webhook(request: Request):
                     "created_at": now,
                 })
     return {"received": True, "verified": verified}
+
+
+# ---------- Inbox / Conversations ----------
+
+@router.get("/conversations")
+async def list_conversations(current_user: dict = Depends(get_current_user)):
+    """Return all WhatsApp conversation threads grouped by patient phone number,
+    sorted by latest message first. Unread count = inbound msgs not yet read."""
+    owner_id = resolve_owner_id(current_user)
+
+    pipeline = [
+        {"$match": {"owner_id": owner_id, "direction": {"$in": ["inbound", "outbound"]}}},
+        {"$project": {
+            "phone": {"$cond": [{"$eq": ["$direction", "inbound"]}, "$from", "$to"]},
+            "text": {"$ifNull": ["$text", "(media/button)"]},
+            "direction": 1,
+            "created_at": 1,
+            "is_read": {"$ifNull": ["$is_read", False]},
+        }},
+        {"$sort": {"created_at": -1}},
+        {"$group": {
+            "_id": "$phone",
+            "last_message": {"$first": "$text"},
+            "last_direction": {"$first": "$direction"},
+            "last_at": {"$first": "$created_at"},
+            "unread_count": {
+                "$sum": {
+                    "$cond": [
+                        {"$and": [{"$eq": ["$direction", "inbound"]}, {"$not": "$is_read"}]},
+                        1, 0
+                    ]
+                }
+            },
+        }},
+        {"$sort": {"last_at": -1}},
+        {"$limit": 100},
+    ]
+
+    threads = []
+    async for doc in db.meta_whatsapp_messages.aggregate(pipeline):
+        phone = doc["_id"]
+        if not phone:
+            continue
+        # Look up patient name from appointments (tail-match last 10 digits for +91 prefix)
+        tail = phone[-10:] if len(phone) >= 10 else phone
+        appt = await db.appointments.find_one(
+            {"client_phone": {"$regex": tail + "$", "$options": "i"}, "professional_id": owner_id},
+            {"client_name": 1, "_id": 0},
+        )
+        threads.append({
+            "phone": phone,
+            "patient_name": appt["client_name"] if appt else phone,
+            "last_message": doc.get("last_message") or "(media)",
+            "last_direction": doc.get("last_direction"),
+            "last_at": doc.get("last_at"),
+            "unread_count": int(doc.get("unread_count", 0)),
+        })
+
+    return threads
+
+
+@router.get("/conversations/{phone}")
+async def get_conversation(phone: str, current_user: dict = Depends(get_current_user)):
+    """Return all messages in a thread with a patient, oldest-first.
+    Marks all inbound messages as read on fetch."""
+    from urllib.parse import unquote
+    phone = unquote(phone)
+    owner_id = resolve_owner_id(current_user)
+
+    query = {
+        "owner_id": owner_id,
+        "direction": {"$in": ["inbound", "outbound"]},
+        "$or": [{"from": phone}, {"to": phone}],
+    }
+    msgs: List[Dict[str, Any]] = []
+    async for m in db.meta_whatsapp_messages.find(query, {"_id": 0, "raw": 0}).sort("created_at", 1):
+        msgs.append(m)
+
+    # Mark inbound as read
+    await db.meta_whatsapp_messages.update_many(
+        {"owner_id": owner_id, "direction": "inbound", "from": phone, "is_read": {"$ne": True}},
+        {"$set": {"is_read": True}},
+    )
+
+    tail = phone[-10:] if len(phone) >= 10 else phone
+    appt = await db.appointments.find_one(
+        {"client_phone": {"$regex": tail + "$", "$options": "i"}, "professional_id": owner_id},
+        {"client_name": 1, "_id": 0},
+    )
+    return {
+        "phone": phone,
+        "patient_name": appt["client_name"] if appt else phone,
+        "messages": msgs,
+    }
+
+
+@router.get("/delivery-status/{phone}")
+async def get_delivery_status(phone: str, current_user: dict = Depends(get_current_user)):
+    """Latest WhatsApp delivery status for a patient phone — used by OPD queue ticks.
+    Returns: none | sent | delivered | read | failed"""
+    from urllib.parse import unquote
+    phone = unquote(phone)
+    owner_id = resolve_owner_id(current_user)
+
+    tail = phone[-10:] if len(phone) >= 10 else phone
+    # Check if any outbound message exists first
+    last_out = await db.meta_whatsapp_messages.find_one(
+        {"owner_id": owner_id, "direction": "outbound", "to": {"$regex": tail + "$"}},
+        {"_id": 0, "created_at": 1},
+        sort=[("created_at", -1)],
+    )
+    if not last_out:
+        return {"phone": phone, "status": "none"}
+
+    # Latest status callback matching this phone
+    last_status = await db.meta_whatsapp_messages.find_one(
+        {
+            "owner_id": owner_id,
+            "direction": "status",
+            "$or": [
+                {"raw.recipient_id": {"$regex": tail + "$"}},
+                {"raw.to": {"$regex": tail + "$"}},
+            ],
+        },
+        {"_id": 0, "status": 1, "created_at": 1},
+        sort=[("created_at", -1)],
+    )
+    if last_status:
+        return {"phone": phone, "status": last_status.get("status", "sent"), "updated_at": last_status.get("created_at")}
+
+    return {"phone": phone, "status": "sent", "updated_at": last_out.get("created_at")}

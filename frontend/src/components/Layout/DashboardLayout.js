@@ -64,6 +64,7 @@ const DashboardLayout = ({ children }) => {
     { name: 'Payments', href: '/payments', icon: CreditCard, roles: ['doctor'] },
     // Automation
     { name: 'AI Voice & WhatsApp', href: '/voice-bot', icon: Phone, roles: ['doctor'] },
+    { name: 'WhatsApp Inbox', href: '/whatsapp/inbox', icon: MessageSquare, roles: ['doctor', 'front_desk'] },
     { name: 'WhatsApp Bot', href: '/whatsapp', icon: MessageSquare, roles: ['doctor'] },
     { name: 'Reminders & Retention', href: '/reminders', icon: Bell, roles: ['doctor', 'front_desk'] },
     // Organization

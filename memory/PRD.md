@@ -264,6 +264,38 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 - **Friendly error surfacing** — "Unusual activity" (VPN/proxy on free tier), missing scopes, and unknown voice IDs all surface a clear user-facing message
 - Env: `ELEVENLABS_API_KEY` in `backend/.env`; SDK `elevenlabs==2.62.0`
 
+## Phase 20 — POC Priority UX & Clinical Interactions (2026-02-11) ✅
+
+### 1. Real-Time Patient WhatsApp Inbox
+- New `GET /api/meta-whatsapp/conversations` — aggregates all message threads grouped by patient phone, with unread count, last message snippet, direction, and patient name lookup from appointments (tail-match last 10 digits).
+- New `GET /api/meta-whatsapp/conversations/{phone}` — returns full chronological message thread + marks inbound messages as read.
+- New `GET /api/meta-whatsapp/delivery-status/{phone}` — returns latest WA delivery status (none/sent/delivered/read/failed) for OPD queue ticks.
+- New **`WhatsAppInbox.js`** page at `/whatsapp/inbox`:
+  - Left panel: conversation threads sorted by latest, unread badge, patient name + phone, last message snippet + timestamp.
+  - Right panel: WhatsApp-style chat bubbles (inbound left, outbound right) with timestamps.
+  - Live reply bar: front-desk can type and send manual direct replies via the Meta Cloud API.
+  - 10s thread poll + 6s active conversation poll for near-real-time updates.
+  - Empty state with setup guidance when Meta not yet configured.
+- Sidebar nav updated with **"WhatsApp Inbox"** item (available to doctor + front_desk roles).
+- Demo seed: 3 conversation threads seeded for sarah@test.com with Rahul Sharma, Priya Patel, Arun Kumar.
+
+### 2. Enhanced Ambient AI Recording Strip
+- Updated `AmbientAIToggle.js` recording strip label to show **"Listening in {Language name}…"** (e.g. "Listening in English (India)…", "Listening in हिन्दी (Hindi)…") instead of the generic "patient can see this indicator".
+
+### 3. WhatsApp Notification Status Ticks in OPD Queue
+- Updated `QueueBoard.js` with new `WaTick` component (Check/CheckCheck/AlertCircle icons) for sent/delivered/read/failed states.
+- Queue loads delivery status for all unique patient phones via `/api/meta-whatsapp/delivery-status/{phone}` in parallel.
+- Tick icons render inline next to each patient's phone number in the queue row.
+
+### Already Verified from Phase A (confirmed working):
+- Import Last Rx (1-click Repeat Past Rx)
+- Quick Vitals bar + BMI + Follow-up chips (+3D/+1W/+2W/+1M)
+- Counter Cash Calculator in CollectPaymentDialog
+- Auto Digital WhatsApp Receipt on Mark Paid
+- Verify UPI + Verify Gateway Connection buttons in PaymentGatewaySettingsCard
+
+**Testing: 12/12 backend pass, 90% frontend pass (minor: patient name lookup depends on matching appointment).**
+
 ## P1 Backlog (next)
 
 ### Phase 2 — AI Documentation Engine

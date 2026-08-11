@@ -23,6 +23,7 @@ import LetterheadBuilder from '@/pages/LetterheadBuilder';
 import AmbientHistory from '@/pages/AmbientHistory';
 import Clients from '@/pages/Clients';
 import WhatsAppConfig from '@/pages/WhatsAppConfig';
+import WhatsAppInbox from '@/pages/WhatsAppInbox';
 import VoiceBotConfig from '@/pages/VoiceBotConfig';
 import Payments from '@/pages/Payments';
 import Reminders from '@/pages/Reminders';
@@ -173,6 +174,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Clients />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/whatsapp/inbox"
+            element={
+              <ProtectedRoute>
+                <WhatsAppInbox />
               </ProtectedRoute>
             }
           />
