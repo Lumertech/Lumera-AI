@@ -30,6 +30,89 @@ router = APIRouter(prefix="/meta-whatsapp", tags=["meta-whatsapp"])
 GRAPH_VERSION = "v20.0"
 GRAPH_BASE = f"https://graph.facebook.com/{GRAPH_VERSION}"
 
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "").strip()
+
+# ─── Intake parser ───────────────────────────────────────────────────────────
+
+_INTAKE_SYSTEM_PROMPT = (
+    "You are a medical receptionist assistant. A patient replied to a WhatsApp "
+    "pre-consultation intake message asking: (1) their main symptoms, "
+    "(2) how long they have had them, and (3) any current medications or allergies.\n"
+    "Extract the three fields from the patient's reply.\n"
+    'Return ONLY valid JSON: {"symptoms": "...", "duration": "...", "medications_allergies": "..."}\n'
+    "If the patient wrote everything in one sentence, split it best-effort. "
+    "Keep values concise. Return ONLY the JSON object, no prose or fences."
+)
+
+
+async def _maybe_parse_intake(owner_id: str, sender_phone: str, message_text: str) -> None:
+    """Best-effort background task: when a patient replies to the pre-intake
+    WhatsApp prompt, parse their text and auto-populate the appointment record."""
+    import asyncio, json as _json
+    if not (message_text and owner_id):
+        return
+    tail = sender_phone[-10:] if len(sender_phone) >= 10 else sender_phone
+    # Find the most recent appointment for this phone awaiting intake capture
+    appt = await db.appointments.find_one(
+        {
+            "professional_id": owner_id,
+            "client_phone": {"$regex": tail + "$", "$options": "i"},
+            "pre_intake_status": "sent",
+        },
+        {"_id": 0, "id": 1, "client_name": 1},
+        sort=[("created_at", -1)],
+    )
+    if not appt:
+        return
+
+    fallback_intake = {
+        "symptoms": message_text.strip(),
+        "duration": "",
+        "medications_allergies": "",
+        "captured_at": datetime.now(timezone.utc).isoformat(),
+        "captured_by": "WhatsApp auto-capture",
+        "source_message": message_text,
+    }
+
+    parsed = None
+    if EMERGENT_LLM_KEY:
+        try:
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            chat = (
+                LlmChat(
+                    api_key=EMERGENT_LLM_KEY,
+                    session_id=f"intake-{owner_id}-{tail}",
+                    system_message=_INTAKE_SYSTEM_PROMPT,
+                )
+                .with_model("openai", "gpt-4o-mini")
+            )
+            raw_out = await chat.send_message(UserMessage(text=f"Patient reply:\n\"\"\"\n{message_text}\n\"\"\"\n\nReturn JSON only."))
+            text = str(raw_out).strip().strip("`").lstrip("json").strip()
+            try:
+                data = _json.loads(text)
+            except Exception:
+                s, e2 = text.find("{"), text.rfind("}")
+                data = _json.loads(text[s : e2 + 1]) if s >= 0 else {}
+            parsed = {
+                "symptoms": (data.get("symptoms") or message_text).strip(),
+                "duration": (data.get("duration") or "").strip(),
+                "medications_allergies": (data.get("medications_allergies") or "").strip(),
+                "captured_at": datetime.now(timezone.utc).isoformat(),
+                "captured_by": "WhatsApp auto-capture (AI parsed)",
+                "source_message": message_text,
+            }
+        except Exception as exc:
+            logger.warning(f"Intake LLM parse failed for {appt['id']}: {exc}")
+
+    await db.appointments.update_one(
+        {"id": appt["id"]},
+        {"$set": {
+            "pre_intake": parsed or fallback_intake,
+            "pre_intake_status": "auto_captured",
+        }},
+    )
+    logger.info(f"Pre-intake auto-captured for appointment {appt['id']} ({appt.get('client_name', '?')})")
+
 
 class MetaConfig(BaseModel):
     app_id: Optional[str] = None
@@ -275,17 +358,23 @@ async def receive_webhook(request: Request):
             cfg = await db.meta_whatsapp_configs.find_one({"phone_number_id": phone_number_id}, {"_id": 0, "owner_id": 1})
             owner_id = cfg["owner_id"] if cfg else None
             for msg in value.get("messages", []) or []:
+                text_body = (msg.get("text") or {}).get("body")
+                sender = msg.get("from")
                 await db.meta_whatsapp_messages.insert_one({
                     "owner_id": owner_id,
                     "direction": "inbound",
-                    "from": msg.get("from"),
+                    "from": sender,
                     "type": msg.get("type"),
-                    "text": (msg.get("text") or {}).get("body"),
+                    "text": text_body,
                     "button_reply": (msg.get("interactive") or {}).get("button_reply"),
                     "raw": msg,
                     "signature_verified": verified,
                     "created_at": now,
                 })
+                # Auto-parse intake reply (best-effort, non-blocking)
+                if text_body and owner_id and sender:
+                    import asyncio as _aio
+                    _aio.create_task(_maybe_parse_intake(owner_id, sender, text_body))
             for st in value.get("statuses", []) or []:
                 await db.meta_whatsapp_messages.insert_one({
                     "owner_id": owner_id,

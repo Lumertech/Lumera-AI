@@ -276,6 +276,7 @@ class HealthRecordUpload(BaseModel):
     file_base64: str
     file_name: str
     notes: Optional[str] = None
+    appointment_id: Optional[str] = None   # tie record to a specific visit
 
 class SubscriptionCreate(BaseModel):
     razorpay_payment_method_id: Optional[str] = None
@@ -1939,6 +1940,7 @@ async def upload_health_record(
             "file_base64": record.file_base64,
             "file_name": record.file_name,
             "notes": record.notes,
+            "appointment_id": record.appointment_id,
             "source": "manual_upload",
             "created_at": datetime.now(timezone.utc).isoformat()
         }

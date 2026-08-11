@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, User, FileText, Save, CreditCard, FolderOpen, ShieldCheck, Heart } from 'lucide-react';
+import { Calendar, User, FileText, Save, CreditCard, FolderOpen, ShieldCheck, Heart, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { formatDate, formatTime } from '@/lib/utils';
 import RequestPaymentModalV2 from '@/components/RequestPaymentModalV2';
@@ -180,6 +181,29 @@ const AppointmentDetails = () => {
                 </Button>
               </div>
             </div>
+            {/* Pre-intake banner */}
+            {appointment.pre_intake_status === 'auto_captured' && appointment.pre_intake && (
+              <div className="mt-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-start gap-3" data-testid="pre-intake-banner">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
+                    Pre-Consultation Intake Received
+                    <Badge className="bg-emerald-100 text-emerald-700 text-[10px] border-emerald-200">via WhatsApp AI</Badge>
+                  </p>
+                  <div className="mt-1 text-xs text-emerald-700 space-y-0.5">
+                    {appointment.pre_intake.symptoms && <p><span className="font-medium">Symptoms:</span> {appointment.pre_intake.symptoms}</p>}
+                    {appointment.pre_intake.duration && <p><span className="font-medium">Since:</span> {appointment.pre_intake.duration}</p>}
+                    {appointment.pre_intake.medications_allergies && <p><span className="font-medium">Medications / Allergies:</span> {appointment.pre_intake.medications_allergies}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+            {appointment.pre_intake_status === 'sent' && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2" data-testid="pre-intake-pending">
+                <MessageSquare className="h-4 w-4 flex-shrink-0" />
+                Pre-consultation intake sent via WhatsApp — waiting for patient reply…
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -366,7 +390,10 @@ const AppointmentDetails = () => {
               <TabsContent value="records">
                 {appointment && (
                   <div className="space-y-4">
-                    <HealthRecordsTab clientPhone={appointment.client_phone} />
+                    <HealthRecordsTab
+                      clientPhone={appointment.client_phone}
+                      appointmentId={id}
+                    />
                     <IssuePortalLinkCard clientPhone={appointment.client_phone} clientName={appointment.client_name} />
                   </div>
                 )}

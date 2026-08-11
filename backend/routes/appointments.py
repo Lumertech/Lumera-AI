@@ -135,6 +135,22 @@ async def save_pre_intake(
     return {"message": "Pre-intake saved", "pre_intake": updates["pre_intake"]}
 
 
+@router.get("/appointments/{appointment_id}/pre-intake")
+async def get_pre_intake(appointment_id: str, current_user: dict = Depends(get_current_user)):
+    """Return the pre-intake snapshot for an appointment (or null if not yet captured)."""
+    owner_id = resolve_owner_id(current_user)
+    appt = await db.appointments.find_one(
+        {"id": appointment_id, "professional_id": owner_id},
+        {"_id": 0, "id": 1, "pre_intake": 1, "pre_intake_status": 1},
+    )
+    if appt is None:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    return {
+        "pre_intake": appt.get("pre_intake"),
+        "pre_intake_status": appt.get("pre_intake_status", "none"),
+    }
+
+
 @router.get("/appointments")
 async def get_appointments(current_user: dict = Depends(get_current_user)):
     owner_id = resolve_owner_id(current_user)

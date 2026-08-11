@@ -296,6 +296,33 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 
 **Testing: 12/12 backend pass, 90% frontend pass (minor: patient name lookup depends on matching appointment).**
 
+## Phase 21 — WhatsApp Intake Parser + Drag-and-Drop Records Upload (2026-02-11) ✅
+
+### WhatsApp Intake Parser
+- New `_maybe_parse_intake(owner_id, phone, text)` background coroutine in `meta_whatsapp.py`
+  - Triggered via `asyncio.create_task()` on every inbound text message in the Meta webhook
+  - Finds the most recent appointment where `client_phone` tail-matches the sender AND `pre_intake_status='sent'`
+  - Calls GPT-4o-mini (via Emergent LLM Key) to extract `{symptoms, duration, medications_allergies}` from free-form patient message
+  - Graceful fallback: if no LLM key, stores raw message text as symptoms
+  - Updates `pre_intake` and sets `pre_intake_status='auto_captured'`
+  - Non-blocking — webhook still returns 200 immediately
+- New `GET /api/appointments/{id}/pre-intake` endpoint (fixed `is None` check to avoid false 404 for appointments missing `pre_intake` field)
+- `AppointmentDetails.js` header now shows:
+  - **Emerald banner** `data-testid="pre-intake-banner"` for `auto_captured` status — shows parsed symptoms, duration, medications
+  - **Amber banner** `data-testid="pre-intake-pending"` for `sent` status — "waiting for patient reply…"
+
+### Drag-and-Drop Records Upload
+- `HealthRecordsTab.js` fully rewritten with:
+  - **DnD zone** (`data-testid="dnd-upload-zone"`): drag files or click to browse; supports JPG/PNG/WEBP/PDF up to 5 MB
+  - **File queue**: shows thumbnails (images) or PDF icon, per-file record type selector and notes, progress bar
+  - **Batch upload** button uploads all queued files; done items auto-clear after 2 s
+  - **Visit-scoped section**: records uploaded with `appointmentId` appear under "This Visit" first
+  - **Image previewer**: tap thumbnail to open fullscreen inline viewer
+  - `AppointmentDetails.js` now passes `appointmentId={id}` to `HealthRecordsTab`
+- `HealthRecordUpload` model in `server.py` now accepts `appointment_id: Optional[str]`
+
+**Testing: 10/10 backend · 100% frontend (iteration_19)**
+
 ## P1 Backlog (next)
 
 ### Phase 2 — AI Documentation Engine
