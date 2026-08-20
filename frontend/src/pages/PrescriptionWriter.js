@@ -75,6 +75,7 @@ const PrescriptionWriter = () => {
   // Mic / Whisper
   const [recordingTarget, setRecordingTarget] = useState(null); // 'symptoms' | 'private' | `med-<idx>-instructions`
   const [transcribing, setTranscribing] = useState(false);
+  const [intakePrefilled, setIntakePrefilled] = useState(false); // true when symptoms auto-filled from WA intake
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
@@ -135,7 +136,22 @@ const PrescriptionWriter = () => {
     try {
       const response = await axios.get(`${API_URL}/appointments/${id}`);
       setAppointment(response.data);
-      if (response.data.notes) setSymptoms(response.data.notes);
+      // Populate chief complaint:
+      // Priority 1 — existing saved notes; Priority 2 — WA AI-parsed pre-intake
+      if (response.data.notes) {
+        setSymptoms(response.data.notes);
+      } else if (
+        response.data.pre_intake_status === 'auto_captured' &&
+        response.data.pre_intake?.symptoms
+      ) {
+        const parts = [response.data.pre_intake.symptoms];
+        if (response.data.pre_intake.duration)
+          parts.push(`Duration: ${response.data.pre_intake.duration}`);
+        if (response.data.pre_intake.medications_allergies)
+          parts.push(`Medications/Allergies: ${response.data.pre_intake.medications_allergies}`);
+        setSymptoms(parts.join('\n'));
+        setIntakePrefilled(true);
+      }
       // Load pre-populated vitals recorded by nurse/assistant
       try {
         const v = await axios.get(`${API_URL}/appointments/${id}/vitals`);
@@ -620,6 +636,23 @@ const PrescriptionWriter = () => {
             <CardTitle className="font-manrope">Symptoms & AI Assistant</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Intake prefill notice */}
+            {intakePrefilled && (
+              <div
+                className="flex items-center gap-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2"
+                data-testid="intake-prefill-banner"
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                Chief complaint pre-filled from WhatsApp intake · AI-parsed · Edit freely
+                <button
+                  className="ml-auto text-emerald-500 hover:text-emerald-700 font-medium"
+                  onClick={() => setIntakePrefilled(false)}
+                  data-testid="dismiss-intake-prefill"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="font-manrope font-semibold">Patient Symptoms</Label>

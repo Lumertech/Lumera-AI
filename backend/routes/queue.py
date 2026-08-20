@@ -54,6 +54,32 @@ def _today_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
+async def _avg_consult_minutes(owner_id: str) -> float:
+    """Mean consultation duration (minutes) from the last 20 completed appointments.
+    Falls back to 10 min if insufficient data."""
+    rows = await db.appointments.find(
+        {
+            "professional_id": owner_id,
+            "status": "completed",
+            "consultation_started_at": {"$exists": True},
+            "completed_at": {"$exists": True},
+        },
+        {"_id": 0, "consultation_started_at": 1, "completed_at": 1},
+    ).sort("completed_at", -1).to_list(20)
+
+    durations: List[float] = []
+    for r in rows:
+        try:
+            start = datetime.fromisoformat(r["consultation_started_at"].replace("Z", "+00:00"))
+            end = datetime.fromisoformat(r["completed_at"].replace("Z", "+00:00"))
+            mins = (end - start).total_seconds() / 60
+            if 1 <= mins <= 120:
+                durations.append(mins)
+        except Exception:
+            pass
+    return round(sum(durations) / len(durations), 1) if durations else 10.0
+
+
 @router.get("/today")
 async def today_queue(
     doctor_id: Optional[str] = None,
@@ -100,12 +126,44 @@ async def today_queue(
         counts[s] = counts.get(s, 0) + 1
 
     now_serving = next((a for a in rows if a.get("status") == "in_consultation"), None)
+
+    # ── Wait-time estimation ──────────────────────────────────────────────────
+    # Only compute for the primary doctor's queue (not polyclinic aggregates)
+    try:
+        calc_owner = owner_id if role != "polyclinic_admin" else (doctor_id or None)
+        if calc_owner:
+            avg_mins = await _avg_consult_minutes(calc_owner)
+            # How long the current in_consultation patient has been going
+            in_consult = next((a for a in rows if a.get("status") == "in_consultation"), None)
+            elapsed_mins = 0.0
+            if in_consult and in_consult.get("consultation_started_at"):
+                try:
+                    started = datetime.fromisoformat(
+                        in_consult["consultation_started_at"].replace("Z", "+00:00")
+                    )
+                    elapsed_mins = (datetime.now(timezone.utc) - started).total_seconds() / 60
+                except Exception:
+                    pass
+            remaining_for_current = max(avg_mins - elapsed_mins, 1.0) if in_consult else 0.0
+
+            ci_pos = 0
+            for a in rows:
+                if a.get("status") == "checked_in":
+                    ci_pos += 1
+                    wait = round(remaining_for_current + (ci_pos - 1) * avg_mins + avg_mins)
+                    a["estimated_wait_minutes"] = max(1, int(wait))
+        else:
+            avg_mins = 10.0
+    except Exception:
+        avg_mins = 10.0
+
     return {
         "date": _today_iso(),
         "appointments": rows,
         "counts": counts,
         "now_serving": now_serving,
         "total": len(rows),
+        "avg_consult_minutes": avg_mins,
     }
 
 
@@ -237,4 +295,47 @@ async def waiting_room_feed(token: str) -> dict:
         "completed_count": sum(1 for r in rows if r.get("status") == "completed"),
         "total_waiting": len([r for r in rows if r.get("status") == "checked_in"]),
         "server_time": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------- Day-End Summary --------
+
+@router.get("/day-end-summary")
+async def day_end_summary(current_user: dict = Depends(get_current_user)) -> dict:
+    """Daily wrap-up stats — called after the last patient is marked complete."""
+    owner_id = resolve_owner_id(current_user)
+    today = _today_iso()
+
+    rows = await db.appointments.find(
+        {"professional_id": owner_id, "appointment_date": today},
+        {"_id": 0, "status": 1, "consultation_started_at": 1, "completed_at": 1},
+    ).to_list(500)
+
+    completed = [r for r in rows if r.get("status") == "completed"]
+    no_shows  = [r for r in rows if r.get("status") == "no_show"]
+    all_done  = all(
+        r.get("status") in {"completed", "no_show", "cancelled"}
+        for r in rows
+    )
+
+    avg_mins = await _avg_consult_minutes(owner_id)
+
+    # Revenue from today's invoices
+    invoices = await db.invoices.find(
+        {"professional_id": owner_id, "invoice_date": today},
+        {"_id": 0, "total_amount": 1, "status": 1},
+    ).to_list(500)
+
+    revenue   = sum(float(i.get("total_amount") or 0) for i in invoices if i.get("status") == "paid")
+    pending   = sum(float(i.get("total_amount") or 0) for i in invoices if i.get("status") != "paid")
+
+    return {
+        "date": today,
+        "patients_seen": len(completed),
+        "no_shows": len(no_shows),
+        "total_scheduled": len(rows),
+        "avg_consult_minutes": avg_mins,
+        "revenue_collected": round(revenue, 2),
+        "outstanding_dues": round(pending, 2),
+        "all_done": all_done,
     }

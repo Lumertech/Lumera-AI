@@ -323,6 +323,34 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 
 **Testing: 10/10 backend · 100% frontend (iteration_19)**
 
+## Phase 22 — Intake Auto-Fill, Day-End Modal, Wait Time Estimator (2026-02-11) ✅
+
+### Intake Auto-Fill in Prescription Writer
+- `fetchAppointment` in `PrescriptionWriter.js` now checks `pre_intake_status === 'auto_captured'` before setting symptoms
+- Priority: existing `notes` field > WhatsApp AI-parsed pre_intake > empty
+- Populates chief complaint with: symptoms + "Duration: X" + "Medications/Allergies: Y" (newline-joined)
+- New `intakePrefilled` state controls a dismissible emerald chip: _"Chief complaint pre-filled from WhatsApp intake · AI-parsed · Edit freely"_ (`data-testid="intake-prefill-banner"`)
+
+### Day-End Closing Modal
+- New `GET /api/queue/day-end-summary` endpoint in `queue.py`:
+  - Counts completed, no_shows, total scheduled
+  - Sums `revenue_collected` and `outstanding_dues` from today's invoices
+  - Returns `all_done: bool` (all appointments in terminal state) and `avg_consult_minutes`
+- `act()` in `QueueBoard.js` calls the summary after every `completed` transition
+- If `all_done && patients_seen > 0`: shows `DayEndModal` with party popper, patients seen, revenue, no-shows, avg consult time (`data-testid="day-end-modal"`)
+
+### Wait Time Estimator
+- New `_avg_consult_minutes(owner_id)` helper in `queue.py` — computes mean from last 20 completed appointments with `consultation_started_at` and `completed_at` (falls back to 10 min)
+- `today_queue` response now includes:
+  - `avg_consult_minutes` at the root
+  - `estimated_wait_minutes` on each `checked_in` appointment row (accounts for current in-consultation patient's elapsed time)
+- QueueBoard shows a blue pill badge _"~N min wait"_ on `checked_in` rows (`data-testid="wait-time-{id}"`)
+
+### Bonus bug fix (found by testing agent)
+- `formatTime()` in `utils.js` had no null guard — calling `.split(':')` on `undefined` crashed Appointments page when `end_time` was null. Fixed with early `if (!timeString) return ''`.
+
+**Testing: 9/9 backend · 100% frontend (iteration_20)**
+
 ## P1 Backlog (next)
 
 ### Phase 2 — AI Documentation Engine

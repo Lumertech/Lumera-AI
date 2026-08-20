@@ -3,7 +3,11 @@ import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, PlayCircle, CheckCircle2, XCircle, LogIn, Copy, Monitor, RefreshCw, CheckCheck, Check, AlertCircle } from 'lucide-react';
+import {
+  Users, PlayCircle, CheckCircle2, XCircle, LogIn, Copy, Monitor,
+  RefreshCw, CheckCheck, Check, AlertCircle, Clock, TrendingUp,
+  Banknote, CalendarCheck, PartyPopper, X as XIcon,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
@@ -21,28 +25,80 @@ const STATUS_META = {
 const WaTick = ({ status }) => {
   if (!status || status === 'none') return null;
   const base = 'h-3.5 w-3.5 flex-shrink-0';
-  if (status === 'read')      return <CheckCheck className={`${base} text-blue-500`} title="Read" />;
-  if (status === 'delivered') return <CheckCheck className={`${base} text-slate-400`} title="Delivered" />;
-  if (status === 'sent')      return <Check      className={`${base} text-slate-400`} title="Sent" />;
-  if (status === 'failed')    return <AlertCircle className={`${base} text-red-400`} title="Failed" />;
+  if (status === 'read')      return <CheckCheck className={`${base} text-blue-500`}   title="Read" />;
+  if (status === 'delivered') return <CheckCheck className={`${base} text-slate-400`}  title="Delivered" />;
+  if (status === 'sent')      return <Check      className={`${base} text-slate-400`}  title="Sent" />;
+  if (status === 'failed')    return <AlertCircle className={`${base} text-red-400`}   title="Failed" />;
   return null;
 };
+
+// ── Day-End Modal ──────────────────────────────────────────────────────────────
+const DayEndModal = ({ summary, onClose }) => (
+  <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" data-testid="day-end-modal">
+    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
+      {/* Hero */}
+      <div className="text-center mb-5">
+        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <PartyPopper className="h-8 w-8 text-emerald-600" />
+        </div>
+        <h2 className="font-manrope font-bold text-xl text-slate-900">Day's Work Done!</h2>
+        <p className="text-sm text-slate-500 mt-1">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+      </div>
+
+      {/* Stats grid */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl">
+          <span className="flex items-center gap-2 text-sm text-slate-600"><CalendarCheck className="h-4 w-4 text-indigo-500" />Patients Seen</span>
+          <span className="font-bold text-xl text-slate-900" data-testid="dend-patients-seen">{summary.patients_seen}</span>
+        </div>
+        {summary.no_shows > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 bg-red-50 rounded-xl">
+            <span className="flex items-center gap-2 text-sm text-slate-600"><XIcon className="h-4 w-4 text-red-400" />No-Shows</span>
+            <span className="font-bold text-red-600" data-testid="dend-no-shows">{summary.no_shows}</span>
+          </div>
+        )}
+        <div className="flex items-center justify-between px-4 py-3 bg-emerald-50 rounded-xl">
+          <span className="flex items-center gap-2 text-sm text-slate-600"><Banknote className="h-4 w-4 text-emerald-500" />Revenue Collected</span>
+          <span className="font-bold text-emerald-700 text-lg" data-testid="dend-revenue">₹{Number(summary.revenue_collected).toLocaleString('en-IN')}</span>
+        </div>
+        {summary.outstanding_dues > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 bg-amber-50 rounded-xl">
+            <span className="flex items-center gap-2 text-sm text-slate-600"><AlertCircle className="h-4 w-4 text-amber-500" />Outstanding Dues</span>
+            <span className="font-bold text-amber-700" data-testid="dend-outstanding">₹{Number(summary.outstanding_dues).toLocaleString('en-IN')}</span>
+          </div>
+        )}
+        <div className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl">
+          <span className="flex items-center gap-2 text-sm text-slate-600"><TrendingUp className="h-4 w-4 text-purple-500" />Avg Consult Time</span>
+          <span className="font-bold text-slate-900">{summary.avg_consult_minutes} min</span>
+        </div>
+      </div>
+
+      <Button
+        className="w-full mt-5 bg-indigo-600 hover:bg-indigo-700"
+        onClick={onClose}
+        data-testid="dend-close-btn"
+      >
+        Close
+      </Button>
+    </div>
+  </div>
+);
 
 const QueueBoard = () => {
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(null);
   const [wrToken, setWrToken] = useState('');
-  const [deliveryStatus, setDeliveryStatus] = useState({}); // phone -> status string
+  const [deliveryStatus, setDeliveryStatus] = useState({});
+  const [dayEndSummary, setDayEndSummary] = useState(null); // non-null → show modal
 
   const load = async () => {
     try {
       const res = await axios.get(`${API_URL}/queue/today`);
       setData(res.data);
-      // Fetch delivery status for all patients with phone numbers
+      // Fetch WA delivery status for unique phones
       const phones = (res.data?.appointments || [])
-        .map((a) => a.client_phone)
-        .filter(Boolean)
-        .filter((p, i, arr) => arr.indexOf(p) === i); // unique
+        .map((a) => a.client_phone).filter(Boolean)
+        .filter((p, i, arr) => arr.indexOf(p) === i);
       if (phones.length > 0) {
         const statuses = await Promise.allSettled(
           phones.map((p) =>
@@ -52,14 +108,10 @@ const QueueBoard = () => {
           )
         );
         const map = {};
-        statuses.forEach((r) => {
-          if (r.status === 'fulfilled') map[r.value.phone] = r.value.status;
-        });
+        statuses.forEach((r) => { if (r.status === 'fulfilled') map[r.value.phone] = r.value.status; });
         setDeliveryStatus(map);
       }
-    } catch (e) {
-      /* silent */
-    }
+    } catch { /* silent */ }
   };
 
   useEffect(() => {
@@ -77,6 +129,13 @@ const QueueBoard = () => {
         await axios.post(`${API_URL}${endpoint}`);
       }
       await load();
+      // After marking any patient completed, check if the day is done
+      if (body?.status === 'completed') {
+        try {
+          const res = await axios.get(`${API_URL}/queue/day-end-summary`);
+          if (res.data.all_done && res.data.patients_seen > 0) setDayEndSummary(res.data);
+        } catch { /* non-blocking */ }
+      }
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Action failed');
     } finally { setBusy(null); }
@@ -112,6 +171,7 @@ const QueueBoard = () => {
   if (total === 0) return null;
 
   return (
+  <>
     <Card className="border-slate-200 mb-6" data-testid="queue-board">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -181,6 +241,16 @@ const QueueBoard = () => {
                       </span>
                     )}
                   </div>
+                  {/* Wait time chip — only for patients in the waiting queue */}
+                  {a.status === 'checked_in' && a.estimated_wait_minutes && (
+                    <span
+                      className="inline-flex items-center gap-1 mt-0.5 text-[11px] text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-2 py-0.5"
+                      data-testid={`wait-time-${a.id}`}
+                    >
+                      <Clock className="h-3 w-3" />
+                      ~{a.estimated_wait_minutes} min wait
+                    </span>
+                  )}
                 </div>
                 <span className={`px-2 py-0.5 rounded-full text-xs ${meta.color}`}>{meta.label}</span>
                 <div className="flex items-center gap-1">
@@ -218,6 +288,12 @@ const QueueBoard = () => {
         </div>
       </CardContent>
     </Card>
+
+    {/* Day-End Summary Modal */}
+    {dayEndSummary && (
+      <DayEndModal summary={dayEndSummary} onClose={() => setDayEndSummary(null)} />
+    )}
+  </>
   );
 };
 
