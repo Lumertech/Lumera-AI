@@ -2803,7 +2803,7 @@ async def exotel_incoming_call_webhook(
         )
         
         # Return WebSocket URL for AgentStream
-        backend_url = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001')
+        backend_url = os.environ['PUBLIC_APP_URL']
         ws_url = backend_url.replace('http', 'ws') + f"/api/voice/stream/{CallSid}"
         
         return {

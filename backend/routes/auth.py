@@ -234,7 +234,7 @@ async def google_callback(code: str, current_user: dict = Depends(get_current_us
             {"id": current_user["id"]},
             {"$set": {"google_tokens": token_resp}},
         )
-        return RedirectResponse("/dashboard?google_connected=true")
+        return RedirectResponse(f"{os.environ['PUBLIC_APP_URL']}/dashboard?google_connected=true")
     except Exception as e:
         logging.error(f"Google auth failed: {e}")
         raise HTTPException(status_code=400, detail="Failed to connect Google Calendar")
