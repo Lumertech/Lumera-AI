@@ -549,6 +549,23 @@ Shipped 6 high-impact features from the 30+ UX list:
 - **Route alias**: added `/appointments/:appointmentId/vitals` alongside `/vitals/:appointmentId`.
 - Backend testing agent: 9/9 pass on safety endpoints incl. `+` regression, 4-source aggregation, and Penicillin conflict.
 
+## Phase 29 — Enterprise Security, Password Management & Admin Governance (2026-08-25) ✅
+
+### Backend
+- `routes/security.py` — `POST /auth/change-password` (bcrypt verify, session_version increment), `POST /auth/logout-all`, `GET /auth/sessions`, `POST /auth/2fa/setup`, `POST /auth/2fa/verify-setup`, `POST /auth/2fa/disable`; Hostinger SMTP email helper (`send_security_email`); `log_security_event()` audit helper
+- `routes/admin_security.py` — `POST /admin/users/{id}/reset-password-trigger` (sends real email via Hostinger SMTP + returns URL), `POST /admin/users/{id}/suspend` (immediate session revocation), `/unsuspend`, `/set-role`, `GET /admin/security-audit-logs`; `POST /auth/reset-password` (token consumption)
+- `shared.py` — `get_current_user` now validates `session_version` (token < db → 401); also checks `is_suspended`
+- `routes/auth.py` — `session_version` included in JWT on login & register; login events logged to `security_audit_logs`
+- `server.py` — both new routers wired
+- SMTP verified working: Hostinger smtp.hostinger.com:465 SSL, ravee@lumer.me
+
+### Frontend
+- `Profile.js` — 2-tab layout (Profile | Security & Auth); Security tab has: Change Password with strength bar + show/hide, Active Sessions list, 2FA setup (QR code via Google Charts, 6-digit verify, disable)
+- `AdminUsers.js` — 2-tab layout (Users | Security Audit Log); per-row action buttons: Key (reset pw → email + URL modal), Lock/Unlock (suspend modal with reason), UserCog (role modal); Audit Log tab shows all security events with color-coded badges
+- `ResetPassword.js` — standalone `/reset-password?token=xxx` page with strength bar and success state
+
+**Testing: 100% backend (19/19) + 100% frontend (iteration_27)**
+
 ## Phase 28 — Specialty Intake Rules & Triage Matrix (2026-08-25) ✅
 
 ### Specialty Picker in Registration

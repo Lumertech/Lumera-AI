@@ -50,6 +50,14 @@ async def get_current_user(authorization: str = Header(None)):
     user = await db.users.find_one({"id": payload.get("user_id")}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    # Session-version check — invalidate tokens issued before a password change / logout-all
+    token_sv = payload.get("session_version", 0) or 0
+    db_sv = user.get("session_version", 0) or 0
+    if token_sv < db_sv:
+        raise HTTPException(status_code=401, detail="Session expired. Please log in again.")
+    # Suspended accounts
+    if user.get("is_suspended"):
+        raise HTTPException(status_code=403, detail="Account suspended. Contact support.")
     return user
 
 

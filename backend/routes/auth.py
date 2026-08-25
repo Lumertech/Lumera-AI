@@ -66,7 +66,7 @@ async def register(user_data: UserCreate):
     await db.users.insert_one(user)
     system_metrics.increment("users_created")
 
-    token = create_access_token({"user_id": user_id, "email": user_data.email})
+    token = create_access_token({"user_id": user_id, "email": user_data.email, "session_version": 0})
     return {"token": token, "user": {k: v for k, v in user.items() if k not in ["hashed_password", "_id"]}}
 
 
@@ -125,7 +125,17 @@ async def login(request: Request, credentials: UserLogin):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     await db.login_attempts.delete_one({"email": credentials.email})
-    token = create_access_token({"user_id": user["id"], "email": user["email"]})
+    session_version = user.get("session_version", 0) or 0
+    token = create_access_token({
+        "user_id": user["id"],
+        "email": user["email"],
+        "session_version": session_version,
+    })
+    # Log login event for sessions list
+    from routes.security import log_security_event
+    fwd = request.headers.get("x-forwarded-for") or request.headers.get("x-real-ip")
+    client_ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "")
+    await log_security_event("login", user["id"], user["id"], {"email": user["email"]}, client_ip)
     user_data = {k: v for k, v in user.items() if k not in ["hashed_password", "_id"]}
     return {"token": token, "user": user_data}
 

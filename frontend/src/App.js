@@ -44,6 +44,7 @@ import AdminAnalytics from '@/pages/AdminAnalytics';
 import AdminContentEditor from '@/pages/AdminContentEditor';
 import AdminLicenses from '@/pages/AdminLicenses';
 import AdminWhatsAppConfig from '@/pages/AdminWhatsAppConfig';
+import ResetPassword from '@/pages/ResetPassword';
 import WhatsAppTemplates from '@/pages/WhatsAppTemplates';
 
 // Polyclinic Pages
@@ -317,6 +318,7 @@ function App() {
           
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
           <Route path="/admin/licenses" element={<ProtectedRoute adminOnly><AdminLicenses /></ProtectedRoute>} />
