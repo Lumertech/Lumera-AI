@@ -1776,6 +1776,39 @@ async def get_all_users(admin: dict = Depends(get_admin_user)):
     ).to_list(1000)
     return users
 
+
+@api_router.get("/admin/whatsapp-config")
+async def get_admin_whatsapp_config(admin: dict = Depends(get_admin_user)):
+    """Get global Meta WhatsApp config (admin only). Secrets are masked."""
+    cfg = await db.system_config.find_one({"key": "whatsapp_global"}, {"_id": 0}) or {}
+    public_url = os.environ.get("PUBLIC_APP_URL", "")
+    return {
+        "app_id": cfg.get("app_id") or "",
+        "waba_id": cfg.get("waba_id") or "",
+        "phone_number_id": cfg.get("phone_number_id") or "",
+        "webhook_verify_token": cfg.get("webhook_verify_token") or "",
+        "has_app_secret": bool(cfg.get("app_secret")),
+        "has_system_user_token": bool(cfg.get("system_user_token")),
+        "configured": bool(cfg.get("phone_number_id") and cfg.get("system_user_token")),
+        "webhook_url": f"{public_url}/api/meta-whatsapp/webhook",
+    }
+
+
+@api_router.put("/admin/whatsapp-config")
+async def update_admin_whatsapp_config(body: dict, admin: dict = Depends(get_admin_user)):
+    """Save global Meta WhatsApp config (admin only). Persists to system_config collection."""
+    update: dict = {"key": "whatsapp_global", "updated_at": datetime.now(timezone.utc).isoformat()}
+    for field in ("app_id", "waba_id", "phone_number_id", "webhook_verify_token"):
+        if field in body and body[field] is not None:
+            update[field] = body[field]
+    # Store secrets as-is (plain) — add Fernet encryption if desired later
+    if body.get("app_secret"):
+        update["app_secret"] = body["app_secret"]
+    if body.get("system_user_token"):
+        update["system_user_token"] = body["system_user_token"]
+    await db.system_config.update_one({"key": "whatsapp_global"}, {"$set": update}, upsert=True)
+    return {"message": "Global WhatsApp config saved"}
+
 @api_router.get("/admin/analytics")
 async def get_admin_analytics(admin: dict = Depends(get_admin_user)):
     """Get analytics for admin dashboard"""

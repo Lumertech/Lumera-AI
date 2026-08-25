@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Shield, Users, BarChart3, FileText, LogOut, Home, KeyRound } from 'lucide-react';
+import { Shield, Users, BarChart3, FileText, LogOut, Home, KeyRound, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -20,6 +20,7 @@ const AdminLayout = ({ children }) => {
     { path: '/admin/licenses', icon: KeyRound, label: 'License Management' },
     { path: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/admin/content', icon: FileText, label: 'Content Editor' },
+    { path: '/admin/whatsapp-config', icon: MessageSquare, label: 'WhatsApp Config' },
   ];
 
   return (

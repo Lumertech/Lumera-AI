@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Settings as SettingsIcon, Calendar, Bell, CreditCard, Star } from 'lucide-react';
 import { toast } from 'sonner';
-import MetaWhatsAppSetup from './MetaWhatsAppSetup';
+import MetaWhatsAppSetup from './MetaWhatsAppSetup'; // moved to Admin Panel — kept for future use
 import PaymentGatewaySettingsCard from '@/components/PaymentGatewaySettingsCard';
 import ReviewLoopSettingsCard from '@/components/ReviewLoopSettingsCard';
 
@@ -339,8 +339,7 @@ const Settings = () => {
         {/* Google Review URL — Post-consult feedback routing */}
         <GoogleReviewSettingCard />
 
-        {/* Meta WhatsApp Business */}
-        <MetaWhatsAppSetup />
+        {/* Meta WhatsApp Business — moved to Admin Panel (/admin/whatsapp-config) */}
 
         {/* Payment & Gateway Settings (UPI / Gateway / Cash) */}
         <PaymentGatewaySettingsCard />

@@ -299,19 +299,23 @@ async def send_message(body: SendMessage, current_user: dict = Depends(get_curre
 # ---------- Webhook ----------
 @router.get("/webhook")
 async def verify_webhook(request: Request):
-    """Meta hub.challenge verification. Uses any doctor's webhook_verify_token
-    (first match) — for multi-tenant we recommend one central verify token via env."""
+    """Meta hub.challenge verification.
+    Priority: 1) global admin config in system_config DB  2) META_WEBHOOK_VERIFY_TOKEN env  3) any doctor's stored token."""
     params = request.query_params
     mode = params.get("hub.mode")
     token = params.get("hub.verify_token")
     challenge = params.get("hub.challenge")
     if mode != "subscribe" or not token:
         raise HTTPException(status_code=403, detail="Invalid verification request")
-    # Try env first
+    # 1. Global admin config in DB (highest priority — works across all deployments)
+    global_cfg = await db.system_config.find_one({"key": "whatsapp_global"}, {"_id": 0})
+    if global_cfg and global_cfg.get("webhook_verify_token") and token == global_cfg["webhook_verify_token"]:
+        return PlainTextResponse(challenge or "")
+    # 2. Env var fallback
     env_token = os.environ.get("META_WEBHOOK_VERIFY_TOKEN")
     if env_token and token == env_token:
         return PlainTextResponse(challenge or "")
-    # Fallback: any user has this token
+    # 3. Per-doctor stored config
     match = await db.meta_whatsapp_configs.find_one({"webhook_verify_token": token}, {"_id": 0, "owner_id": 1})
     if not match:
         raise HTTPException(status_code=403, detail="Verify token mismatch")
