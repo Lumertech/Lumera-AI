@@ -359,8 +359,23 @@ async def receive_webhook(request: Request):
         for ch in entry.get("changes", []):
             value = ch.get("value") or {}
             phone_number_id = (value.get("metadata") or {}).get("phone_number_id")
-            cfg = await db.meta_whatsapp_configs.find_one({"phone_number_id": phone_number_id}, {"_id": 0, "owner_id": 1})
-            owner_id = cfg["owner_id"] if cfg else None
+
+            # Multi-tenant routing: check system_config first, then users.whatsapp, then meta_whatsapp_configs
+            owner_id = None
+            if phone_number_id:
+                # 1. Check users collection (new multi-tenant onboarding)
+                user_doc = await db.users.find_one(
+                    {"whatsapp.phone_number_id": phone_number_id},
+                    {"_id": 0, "id": 1}
+                )
+                if user_doc:
+                    owner_id = user_doc["id"]
+                else:
+                    # 2. Legacy: check meta_whatsapp_configs per-doctor configs
+                    cfg = await db.meta_whatsapp_configs.find_one(
+                        {"phone_number_id": phone_number_id}, {"_id": 0, "owner_id": 1}
+                    )
+                    owner_id = cfg["owner_id"] if cfg else None
             for msg in value.get("messages", []) or []:
                 text_body = (msg.get("text") or {}).get("body")
                 sender = msg.get("from")

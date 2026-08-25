@@ -44,6 +44,7 @@ import AdminAnalytics from '@/pages/AdminAnalytics';
 import AdminContentEditor from '@/pages/AdminContentEditor';
 import AdminLicenses from '@/pages/AdminLicenses';
 import AdminWhatsAppConfig from '@/pages/AdminWhatsAppConfig';
+import WhatsAppTemplates from '@/pages/WhatsAppTemplates';
 
 // Polyclinic Pages
 import PolyclinicRegister from '@/pages/PolyclinicRegister';
@@ -322,6 +323,7 @@ function App() {
           <Route path="/admin/analytics" element={<ProtectedRoute adminOnly><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/content" element={<ProtectedRoute adminOnly><AdminContentEditor /></ProtectedRoute>} />
           <Route path="/admin/whatsapp-config" element={<ProtectedRoute adminOnly><AdminWhatsAppConfig /></ProtectedRoute>} />
+          <Route path="/whatsapp-templates" element={<ProtectedRoute><WhatsAppTemplates /></ProtectedRoute>} />
 
           {/* Polyclinic Routes */}
           <Route path="/polyclinic/register" element={<PublicRoute><PolyclinicRegister /></PublicRoute>} />

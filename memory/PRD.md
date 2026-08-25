@@ -549,6 +549,17 @@ Shipped 6 high-impact features from the 30+ UX list:
 - **Route alias**: added `/appointments/:appointmentId/vitals` alongside `/vitals/:appointmentId`.
 - Backend testing agent: 9/9 pass on safety endpoints incl. `+` regression, 4-source aggregation, and Penicillin conflict.
 
+## Phase 24 — Full Landing Page CMS + Domain/Email Cleanup (2026-08-25) ✅
+- `AdminContentEditor.js` rebuilt as 6-tab CMS (Hero/Stats/Languages, Pain Points, Features, Professions, Testimonials, CTA & Footer). `Landing.js` fully CMS-driven. Backend `LandingPageContent` model expanded to 77+ Optional fields.
+- Email cleanup: `support@lumera.ai` → `ravee@lumer.me`, `admin@lumer.com` → `admin@lumer.me` across all files + MongoDB migration. Admin panel WhatsApp Config added to sidebar.
+- Testing: 8/8 backend + 100% frontend (iteration_21)
+
+## Phase 25 — Multi-Tenant WhatsApp Onboarding + Template Management (2026-08-25) ✅
+- New `routes/whatsapp_onboarding.py`: `/platform-config` (public), `/embedded-signup`, `/status`, `/disconnect`, `/templates` (CRUD with Meta sync). Access tokens encrypted with Fernet at rest.
+- Multi-tenant webhook routing updated: checks `users.whatsapp.phone_number_id` first, then legacy `meta_whatsapp_configs`.
+- Admin config extended with `config_id` field + secret encryption. `WhatsAppConnectCard` in doctor Settings. `/whatsapp-templates` page with variable insertion UI.
+- Testing: 10/10 backend + 100% frontend (iteration_22)
+
 
 ## Test Credentials
 See `/app/memory/test_credentials.md`

@@ -1784,6 +1784,7 @@ async def get_admin_whatsapp_config(admin: dict = Depends(get_admin_user)):
     public_url = os.environ.get("PUBLIC_APP_URL", "")
     return {
         "app_id": cfg.get("app_id") or "",
+        "config_id": cfg.get("config_id") or "",
         "waba_id": cfg.get("waba_id") or "",
         "phone_number_id": cfg.get("phone_number_id") or "",
         "webhook_verify_token": cfg.get("webhook_verify_token") or "",
@@ -1798,14 +1799,15 @@ async def get_admin_whatsapp_config(admin: dict = Depends(get_admin_user)):
 async def update_admin_whatsapp_config(body: dict, admin: dict = Depends(get_admin_user)):
     """Save global Meta WhatsApp config (admin only). Persists to system_config collection."""
     update: dict = {"key": "whatsapp_global", "updated_at": datetime.now(timezone.utc).isoformat()}
-    for field in ("app_id", "waba_id", "phone_number_id", "webhook_verify_token"):
+    for field in ("app_id", "config_id", "waba_id", "phone_number_id", "webhook_verify_token"):
         if field in body and body[field] is not None:
             update[field] = body[field]
-    # Store secrets as-is (plain) — add Fernet encryption if desired later
+    # Encrypt sensitive fields
+    from security import encryption_manager as _enc
     if body.get("app_secret"):
-        update["app_secret"] = body["app_secret"]
+        update["app_secret"] = _enc.encrypt(body["app_secret"])
     if body.get("system_user_token"):
-        update["system_user_token"] = body["system_user_token"]
+        update["system_user_token"] = _enc.encrypt(body["system_user_token"])
     await db.system_config.update_one({"key": "whatsapp_global"}, {"$set": update}, upsert=True)
     return {"message": "Global WhatsApp config saved"}
 
@@ -3356,6 +3358,9 @@ app.include_router(_safety_router_mod.router, prefix="/api")
 
 from routes import data_deletion as _data_deletion_router_mod
 app.include_router(_data_deletion_router_mod.router, prefix="/api")
+
+from routes import whatsapp_onboarding as _wa_onboarding_router_mod
+app.include_router(_wa_onboarding_router_mod.router, prefix="/api/whatsapp")
 
 # Auth routes — must come AFTER all shared symbols (limiter, PasswordValidator,
 # InputSanitizer, system_metrics, create_access_token, models) are defined.

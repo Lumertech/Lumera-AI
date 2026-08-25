@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Settings as SettingsIcon, Calendar, Bell, CreditCard, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import MetaWhatsAppSetup from './MetaWhatsAppSetup'; // moved to Admin Panel — kept for future use
+import WhatsAppConnectCard from '@/components/WhatsAppConnectCard';
 import PaymentGatewaySettingsCard from '@/components/PaymentGatewaySettingsCard';
 import ReviewLoopSettingsCard from '@/components/ReviewLoopSettingsCard';
 
@@ -340,6 +341,7 @@ const Settings = () => {
         <GoogleReviewSettingCard />
 
         {/* Meta WhatsApp Business — moved to Admin Panel (/admin/whatsapp-config) */}
+        <WhatsAppConnectCard />
 
         {/* Payment & Gateway Settings (UPI / Gateway / Cash) */}
         <PaymentGatewaySettingsCard />

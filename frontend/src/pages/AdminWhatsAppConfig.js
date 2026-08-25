@@ -16,7 +16,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
 const AdminWhatsAppConfig = () => {
   const [cfg, setCfg] = useState({
-    app_id: '', waba_id: '', phone_number_id: '',
+    app_id: '', config_id: '', waba_id: '', phone_number_id: '',
     webhook_verify_token: 'lumera-verify-2026',
     app_secret: '', system_user_token: '',
     has_app_secret: false, has_system_user_token: false,
@@ -46,7 +46,7 @@ const AdminWhatsAppConfig = () => {
     setSaving(true);
     try {
       const payload = {};
-      for (const k of ['app_id', 'waba_id', 'phone_number_id', 'webhook_verify_token']) {
+      for (const k of ['app_id', 'config_id', 'waba_id', 'phone_number_id', 'webhook_verify_token']) {
         if (cfg[k] !== undefined) payload[k] = cfg[k];
       }
       if (cfg.app_secret) payload.app_secret = cfg.app_secret;
@@ -162,6 +162,14 @@ const AdminWhatsAppConfig = () => {
                 <Label htmlFor="app_id">App ID</Label>
                 <Input id="app_id" value={cfg.app_id} onChange={set('app_id')}
                   placeholder="1234567890" data-testid="meta-app-id" />
+              </div>
+              <div>
+                <Label htmlFor="config_id">Facebook Login Config ID</Label>
+                <Input id="config_id" value={cfg.config_id} onChange={set('config_id')}
+                  placeholder="Configuration ID for Embedded Signup" data-testid="meta-config-id" />
+                <p className="text-xs text-slate-400 mt-1">
+                  From Meta App → Facebook Login → Configurations
+                </p>
               </div>
               <div>
                 <Label htmlFor="waba_id">WABA ID (WhatsApp Business Account ID)</Label>
