@@ -30,7 +30,7 @@ const Dashboard = () => {
         try {
           const opdRes = await axios.get(`${API_URL}/analytics/opd`);
           setOpd(opdRes.data);
-        } catch (e) { /* non-blocking */ }
+        } catch (e) { console.warn('[Dashboard] OPD analytics load failed (non-fatal):', e); }
       }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);

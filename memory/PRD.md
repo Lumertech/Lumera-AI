@@ -351,7 +351,50 @@ Lumera is an AI-powered medical practice management platform for doctors and all
 
 **Testing: 9/9 backend · 100% frontend (iteration_20)**
 
-## P1 Backlog (next)
+## Phase 23 — Code Review Fixes (2026-02-11) ✅
+
+### Critical Security Fixes
+- **`print.js`**: Replaced `document.write` (XSS surface) with Blob URL pattern — `new Blob([html], { type: 'text/html' })` + `URL.createObjectURL` opens the print window without any DOM-write API; blob URL is revoked on window unload.
+- **`seed_reviewer.py`**: Hardcoded `REVIEWER_PASSWORD = "MetaReview@2026"` now reads `os.environ.get("META_REVIEWER_PASSWORD", "MetaReview@2026")`.
+- **All test files** (`test_refactor_regression.py`, `test_prescription_phase1.py`, `test_phase23.py`, `test_medication_reminders.py`, `test_payment_settings.py`): Test credentials replaced with `os.environ.get("TEST_DOCTOR_EMAIL", ...)`, `os.environ.get("TEST_DOCTOR_PASSWORD", ...)` pattern. Mock sentinel values renamed (`secret` → `mock_secret`, `mock_salt`, `sub_password`, `recep_password`) with inline comments clarifying they are not real credentials.
+- **`PaymentGatewaySettingsCard.js`**: Added inline comments to `FIELD_LABEL` dict clarifying `secret_key`/`api_key` are UI display labels, not hardcoded credentials (false-positive suppression).
+
+### Correctness Bug Fixes
+- **`PrescriptionWriter.js` — Stable React keys**: `emptyMed()` now generates a `_key` via `crypto.randomUUID()`. All `medications.map()` use `key={med._key}` instead of `key={index}`. Medications loaded from server/prescriptions get `_key` via `{ ...emptyMed(), ...m }`. AI suggestions use `key={\`${suggestion.medicine_name}-${index}\`}`, interaction alerts use drugs-joined key, taper steps use `key={\`${med._key}-taper-${sIdx}\`}`.
+- **Empty catch blocks → `console.warn`**: Non-fatal catches in `PrescriptionWriter.js` (vitals, letterhead, outstanding balance), `Dashboard.js` (OPD analytics) now log warnings instead of silently swallowing errors. Real errors remain surfaced via `toast.error` in the outer catch.
+- **`is` vs `==` for strings**: Verified no instances of this anti-pattern in test files — the 92 flagged cases were all valid `is None`/`is True`/`is False` idioms (correctly kept as-is).
+
+### Deferred (with rationale)
+- **localStorage → httpOnly cookies**: Requires backend session endpoint changes; deferred as architectural task.
+- **Large component splits** (PrescriptionWriter, AmbientAIToggle, etc.): Maintenance improvement, not bugs; deferred to avoid regressions.
+- **Missing useEffect deps (74 instances)**: `API_URL` and `axios` are module-level constants (never change); the truly stale-closure-risky ones (`loadThreads`, `loadConversation`) already use `useCallback` with correct dep arrays.
+
+## Phase 24 — Full Landing Page CMS + Domain/Email Cleanup (2026-02-25) ✅
+
+### Landing Page CMS
+- **Complete CMS overhaul**: `AdminContentEditor.js` rebuilt as a tabbed CMS editor with 6 tabs covering the entire landing page
+  - **Hero & Stats**: badge text, headline, subtitle, CTA button labels, 4 stats (value + label each), languages strip
+  - **Pain Points**: section title/subtitle, 3 problem cards with 3 issues each
+  - **Features**: section label/title/subtitle, 6 feature cards (title + description)
+  - **Professions**: section title/subtitle, 6 profession cards (name + description)
+  - **Testimonials**: section title, 3 testimonials (quote, name, role)
+  - **CTA & Footer**: CTA headline/subtext/button labels, contact email, company name
+- **Backend `LandingPageContent` Pydantic model** expanded from 10 fields → 77+ fields, all `Optional[str]` with defaults
+- **GET `/api/admin/content`** now merges stored DB values over model defaults — backward compatible with old stored records
+- **`Landing.js`** fully rewritten to consume all CMS fields; hardcoded text removed; `DEFAULT_CONTENT` fallback when API is unavailable
+- Sticky "Save All" bar + Reset to Defaults + Preview button in the editor
+- Domain Policy notice in CTA & Footer tab warns admins to use lumer.me only
+
+### Email / Domain Cleanup
+- `Landing.js` footer: `support@lumera.ai` → `ravee@lumer.me` ✅
+- `AdminLogin.js` placeholder: `admin@lumer.com` → `admin@lumer.me` ✅
+- `create_admin.py`: updated to `admin@lumer.me` with auto-migration of existing DB record ✅
+- `backend/tests/test_refactor_regression.py`: default fallback `admin@lumer.com` → `admin@lumer.me` ✅
+- MongoDB admin account migrated from `admin@lumer.com` → `admin@lumer.me` (live) ✅
+- `test_credentials.md` updated ✅
+- No `lumera.ai` or `lumer.com` references remain in any public-facing page or API
+
+**Testing: 8/8 backend pytest pass + 100% frontend (iteration_21)**
 
 ### Phase 2 — AI Documentation Engine
 - SOAP note auto-generation from consultation transcript

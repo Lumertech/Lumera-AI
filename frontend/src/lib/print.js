@@ -8,18 +8,12 @@
 // CSS (A4 width, hides nav, sane margins, Inter font fallback).
 
 export function printDocument({ title, html, autoPrint = true }) {
-  const w = window.open('', '_blank', 'width=900,height=900');
-  if (!w) {
-    // popup blocked
-    alert('Please allow popups for this site to print.');
-    return false;
-  }
-  w.document.open();
-  w.document.write(`<!doctype html>
+  const safeTitle = (title || 'Document').replace(/</g, '&lt;');
+  const fullHtml = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>${(title || 'Document').replace(/</g, '&lt;')}</title>
+<title>${safeTitle}</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #f7f7f8; }
@@ -53,15 +47,32 @@ export function printDocument({ title, html, autoPrint = true }) {
     .no-print { display: none !important; }
   }
 </style>
+${autoPrint ? '<script>window.onload = function() { setTimeout(function() { window.print(); }, 250); };<\/script>' : ''}
 </head>
 <body>
 <div class="page">${html}</div>
-<script>
-  ${autoPrint ? 'window.onload = () => { setTimeout(() => window.print(), 250); };' : ''}
-</script>
 </body>
-</html>`);
-  w.document.close();
+</html>`;
+
+  // Use Blob URL instead of document.write to avoid XSS surface.
+  let blobUrl;
+  try {
+    const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+    blobUrl = URL.createObjectURL(blob);
+  } catch {
+    // Blob API unavailable — nothing to do
+    return false;
+  }
+
+  const w = window.open(blobUrl, '_blank', 'width=900,height=900');
+  if (!w) {
+    alert('Please allow popups for this site to print.');
+    URL.revokeObjectURL(blobUrl);
+    return false;
+  }
+
+  // Revoke the object URL once the window is no longer needed
+  w.addEventListener('unload', () => URL.revokeObjectURL(blobUrl));
   return true;
 }
 

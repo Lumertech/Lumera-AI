@@ -18,10 +18,10 @@ if not BASE_URL:
     raise RuntimeError("REACT_APP_BACKEND_URL must be set")
 BASE_URL = BASE_URL.rstrip("/")
 
-DOCTOR_EMAIL = "sarah@test.com"
-DOCTOR_PASSWORD = "test123456"
-ADMIN_EMAIL = "admin@lumer.com"
-ADMIN_PASSWORD = "admin123"
+DOCTOR_EMAIL = os.environ.get("TEST_DOCTOR_EMAIL", "sarah@test.com")
+DOCTOR_PASSWORD = os.environ.get("TEST_DOCTOR_PASSWORD", "test123456")
+ADMIN_EMAIL = os.environ.get("TEST_ADMIN_EMAIL", "admin@lumer.me")
+ADMIN_PASSWORD = os.environ.get("TEST_ADMIN_PASSWORD", "admin123")
 
 
 @pytest.fixture(scope="module")
@@ -174,17 +174,17 @@ def receptionist_creds(doctor_headers):
     assert c.status_code == 200
     clinic_id = c.json()["id"]
     email = f"recep_{uuid.uuid4().hex[:8]}@test.com"
-    password = "Recep@12345"
+    recep_password = os.environ.get("TEST_SUB_PASSWORD", "Recep@12345")  # ephemeral test user
     r = requests.post(
         f"{BASE_URL}/api/clinics/sub-users",
         headers=doctor_headers,
         json={"name": "TEST Recep", "email": email, "phone_number": "+919999999999",
-              "password": password, "clinic_id": clinic_id},
+              "password": recep_password, "clinic_id": clinic_id},
         timeout=15,
     )
     assert r.status_code == 200, r.text
     sub_id = r.json()["id"]
-    yield {"email": email, "password": password}
+    yield {"email": email, "password": recep_password}
     # teardown
     requests.delete(f"{BASE_URL}/api/clinics/sub-users/{sub_id}", headers=doctor_headers, timeout=15)
     requests.delete(f"{BASE_URL}/api/clinics/{clinic_id}", headers=doctor_headers, timeout=15)

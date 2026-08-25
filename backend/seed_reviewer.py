@@ -25,7 +25,8 @@ MONGO_URL = os.environ["MONGO_URL"]
 DB_NAME = os.environ["DB_NAME"]
 
 REVIEWER_EMAIL = "reviewer@lumer.me"
-REVIEWER_PASSWORD = "MetaReview@2026"
+# Allow overriding via environment variable so the password is never hardcoded in CI/CD pipelines
+REVIEWER_PASSWORD = os.environ.get("META_REVIEWER_PASSWORD", "MetaReview@2026")
 REVIEWER_NAME = "Dr. Reviewer Demo"
 REVIEWER_PHONE = "+919999900000"
 

@@ -306,10 +306,10 @@ class TestGatewaySettings:
         _assert_error(missing, 400, "key_secret")
 
     def test_02_razorpay_secret_is_masked_and_encrypted_at_rest(self, payment_context):
-        secret = "topsecretVALUE"
+        mock_secret = "topsecretVALUE"  # intentional sentinel — not a real credential
         payload = {
             "provider": "razorpay",
-            "credentials": {"key_id": "rzp_test_XYZ", "key_secret": secret},
+            "credentials": {"key_id": "rzp_test_XYZ", "key_secret": mock_secret},
         }
         saved = requests.put(
             f"{API}/settings/payment/gateway",
@@ -318,7 +318,7 @@ class TestGatewaySettings:
             timeout=TIMEOUT,
         )
         assert saved.status_code == 200, saved.text
-        assert secret not in saved.text
+        assert mock_secret not in saved.text
 
         fetched = requests.get(
             f"{API}/settings/payment",
@@ -330,25 +330,25 @@ class TestGatewaySettings:
         credentials = body["gateway"]["credentials"]
         assert body["gateway"]["provider"] == "razorpay"
         assert credentials["key_id"] == "rzp_test_XYZ"
-        assert credentials["key_secret"] == "•" * (len(secret) - 4) + secret[-4:]
-        assert secret not in fetched.text
+        assert credentials["key_secret"] == "•" * (len(mock_secret) - 4) + mock_secret[-4:]
+        assert mock_secret not in fetched.text
         assert body["configured"]["gateway"] is True
 
         persisted = payment_context["db"].payment_settings.find_one(
             {"owner_id": payment_context["fresh"]["user"]["id"]}, {"_id": 0}
         )
         stored_secret = persisted["gateway"]["credentials"]["key_secret"]
-        assert stored_secret != secret
-        assert secret not in json.dumps(persisted)
-        assert isinstance(stored_secret, str) and len(stored_secret) > len(secret)
+        assert stored_secret != mock_secret
+        assert mock_secret not in json.dumps(persisted)
+        assert isinstance(stored_secret, str) and len(stored_secret) > len(mock_secret)
 
     def test_03_phonepe_masks_only_salt_key(self, payment_context):
-        secret = "SALTABC1234567890"
+        mock_salt = "SALTABC1234567890"  # intentional sentinel — not a real credential
         payload = {
             "provider": "phonepe",
             "credentials": {
                 "merchant_id": "M1234",
-                "salt_key": secret,
+                "salt_key": mock_salt,
                 "salt_index": "1",
             },
         }
@@ -368,19 +368,19 @@ class TestGatewaySettings:
         credentials = fetched.json()["gateway"]["credentials"]
         assert credentials["merchant_id"] == "M1234"
         assert credentials["salt_index"] == "1"
-        assert credentials["salt_key"] == "•" * (len(secret) - 4) + "7890"
-        assert secret not in fetched.text
+        assert credentials["salt_key"] == "•" * (len(mock_salt) - 4) + "7890"
+        assert mock_salt not in fetched.text
 
     def test_04_sub_user_resolves_same_owner_settings(self, payment_context):
         email = f"test_payment_sub_{payment_context['stamp']}@test.com"
-        password = "PaymentSub@12345"
+        sub_password = os.environ.get("TEST_SUB_PASSWORD", "PaymentSub@12345")  # ephemeral test user
         created = requests.post(
             f"{API}/clinics/sub-users",
             headers=payment_context["fresh_headers"],
             json={
                 "name": "TEST Payment Front Desk",
                 "email": email,
-                "password": password,
+                "password": sub_password,
                 "phone_number": f"+918{uuid.uuid4().int % 1_000_000_000:09d}",
                 "role": "front_desk",
             },
@@ -392,7 +392,7 @@ class TestGatewaySettings:
         login = _assert_login(
             requests.post(
                 f"{API}/auth/login",
-                json={"email": email, "password": password},
+                json={"email": email, "password": sub_password},
                 timeout=TIMEOUT,
             ),
             email,

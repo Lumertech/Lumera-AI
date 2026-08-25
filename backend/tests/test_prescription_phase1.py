@@ -16,8 +16,8 @@ import requests
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://lumera-voice.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 
-DOCTOR_EMAIL = "sarah@test.com"
-DOCTOR_PASSWORD = "test123456"
+DOCTOR_EMAIL = os.environ.get("TEST_DOCTOR_EMAIL", "sarah@test.com")
+DOCTOR_PASSWORD = os.environ.get("TEST_DOCTOR_PASSWORD", "test123456")
 
 
 # ---------------------------- Fixtures ----------------------------

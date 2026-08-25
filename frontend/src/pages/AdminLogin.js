@@ -56,7 +56,7 @@ const AdminLogin = () => {
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <Input
                   type="email"
-                  placeholder="admin@lumer.com"
+                  placeholder="admin@lumer.me"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required

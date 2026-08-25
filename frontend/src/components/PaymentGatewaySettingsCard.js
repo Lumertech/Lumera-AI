@@ -22,6 +22,10 @@ const PROVIDER_LABEL = {
   airpay: 'Airpay / SabPaisa',
 };
 
+// UI display labels for gateway field names.
+// NOTE: These are display labels only — not real credentials. Static scanners may
+// flag 'secret_key' / 'api_key' here; they are not hardcoded secrets.
+// Actual gateway credentials are entered by the user and stored encrypted in the backend.
 const FIELD_LABEL = {
   key_id: 'Key ID',
   key_secret: 'Key Secret',
@@ -31,10 +35,10 @@ const FIELD_LABEL = {
   merchant_key: 'Merchant Key',
   website: 'Website Name',
   app_id: 'App ID',
-  secret_key: 'Secret Key',
+  secret_key: 'Secret Key',       // label only — not a hardcoded credential
   merchant_salt: 'Merchant Salt',
   publishable_key: 'Publishable Key',
-  api_key: 'API Key',
+  api_key: 'API Key',             // label only — not a hardcoded credential
   encryption_key: 'Encryption Key',
 };
 

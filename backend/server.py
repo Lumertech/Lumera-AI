@@ -252,16 +252,93 @@ class AdminLogin(BaseModel):
     password: str
 
 class LandingPageContent(BaseModel):
-    hero_title: str
-    hero_subtitle: str
-    hero_image_url: str
-    tagline: str
-    feature_1_title: str
-    feature_1_description: str
-    feature_2_title: str
-    feature_2_description: str
-    feature_3_title: str
-    feature_3_description: str
+    # Hero
+    hero_badge_text: Optional[str] = "AI-Powered Practice Management for Healthcare Professionals"
+    hero_title: Optional[str] = "Your AI Receptionist for 24/7 Appointment Booking"
+    hero_subtitle: Optional[str] = "Let Lumera AI answer calls, book appointments via WhatsApp, and manage your practice automatically — in Hindi, Tamil, Telugu, Marathi, Bengali & English."
+    hero_cta_primary: Optional[str] = "Get Started Free"
+    hero_cta_secondary: Optional[str] = "See Demo"
+    # Stats
+    stat_1_value: Optional[str] = "50K+"
+    stat_1_label: Optional[str] = "Appointments Booked"
+    stat_2_value: Optional[str] = "10K+"
+    stat_2_label: Optional[str] = "Hours Saved Monthly"
+    stat_3_value: Optional[str] = "95%"
+    stat_3_label: Optional[str] = "No-Show Reduction"
+    stat_4_value: Optional[str] = "24/7"
+    stat_4_label: Optional[str] = "AI Availability"
+    # Problems
+    problems_title: Optional[str] = "Sound Familiar? You're Not Alone."
+    problems_subtitle: Optional[str] = "Healthcare professionals struggle with three inefficient ways to handle patient calls:"
+    problem_1_title: Optional[str] = "Handle every call yourself"
+    problem_1_issue_1: Optional[str] = "Constant interruptions during consultations"
+    problem_1_issue_2: Optional[str] = "Missed calls = missed patients"
+    problem_1_issue_3: Optional[str] = "No time for actual patient care"
+    problem_2_title: Optional[str] = "Let calls go unanswered"
+    problem_2_issue_1: Optional[str] = "Patients hang up and call competitors"
+    problem_2_issue_2: Optional[str] = "No way to reconnect with lost leads"
+    problem_2_issue_3: Optional[str] = "Poor first impression of your practice"
+    problem_3_title: Optional[str] = "Hire expensive receptionists"
+    problem_3_issue_1: Optional[str] = "High salary costs that add up fast"
+    problem_3_issue_2: Optional[str] = "Staff unavailable nights & weekends"
+    problem_3_issue_3: Optional[str] = "Inconsistent patient experience"
+    # Features / Solution
+    features_section_label: Optional[str] = "The Lumera Solution"
+    features_title: Optional[str] = "Lumera AI Never Misses a Call"
+    features_subtitle: Optional[str] = "Trained on your practice, Lumera delivers accurate responses every time. Available 24/7/365, it handles calls and WhatsApp messages whenever you can't."
+    feature_1_title: Optional[str] = "AI Voice Assistant"
+    feature_1_description: Optional[str] = "Human-like AI answers calls in Hindi, Tamil, Telugu, Marathi & more. Never miss a patient call again."
+    feature_2_title: Optional[str] = "WhatsApp Integration"
+    feature_2_description: Optional[str] = "Patients book appointments through WhatsApp. AI chatbot handles queries 24/7."
+    feature_3_title: Optional[str] = "Smart Scheduling"
+    feature_3_description: Optional[str] = "AI manages your calendar, prevents double-bookings, and optimizes appointment slots."
+    feature_4_title: Optional[str] = "Automated Reminders"
+    feature_4_description: Optional[str] = "WhatsApp & voice reminders reduce no-shows by up to 95%. Smart follow-ups included."
+    feature_5_title: Optional[str] = "Instant Payments"
+    feature_5_description: Optional[str] = "Send payment links via WhatsApp. Accept UPI, cards, or Razorpay. Get paid faster."
+    feature_6_title: Optional[str] = "ABDM Compliant"
+    feature_6_description: Optional[str] = "ABHA ID integration, digital consent management, and secure health records."
+    # Languages
+    languages_title: Optional[str] = "Multi-Language AI Voice"
+    languages_subtitle: Optional[str] = "Natural conversations in your patients' preferred language"
+    languages_list: Optional[str] = "Hindi,Tamil,Telugu,Marathi,Bengali,English"
+    # Professions
+    professions_title: Optional[str] = "Built for Healthcare Professionals Like You"
+    professions_subtitle: Optional[str] = "Join thousands of doctors, dentists, therapists, and wellness professionals using Lumera."
+    profession_1_name: Optional[str] = "Doctors & Clinics"
+    profession_1_description: Optional[str] = "AI prescriptions, patient records, ABDM compliance"
+    profession_2_name: Optional[str] = "Dentists"
+    profession_2_description: Optional[str] = "Treatment plans, follow-up reminders, payment tracking"
+    profession_3_name: Optional[str] = "Therapists"
+    profession_3_description: Optional[str] = "Session notes, secure storage, appointment reminders"
+    profession_4_name: Optional[str] = "Wellness & Spas"
+    profession_4_description: Optional[str] = "Service catalog, packages, loyalty management"
+    profession_5_name: Optional[str] = "Physiotherapists"
+    profession_5_description: Optional[str] = "Treatment tracking, exercise reminders, progress notes"
+    profession_6_name: Optional[str] = "Consultants"
+    profession_6_description: Optional[str] = "Meeting scheduling, document sharing, invoicing"
+    # Testimonials
+    testimonials_title: Optional[str] = "What Doctors Are Saying"
+    testimonial_1_quote: Optional[str] = "Lumera AI answers calls instantly and sounds natural. Patients think they're speaking to my receptionist."
+    testimonial_1_name: Optional[str] = "Dr. Priya Sharma"
+    testimonial_1_role: Optional[str] = "Cardiologist, Mumbai"
+    testimonial_2_quote: Optional[str] = "Since switching to Lumera, we don't miss after-hours calls anymore. Revenue is up 30%."
+    testimonial_2_name: Optional[str] = "Dr. Rajesh Kumar"
+    testimonial_2_role: Optional[str] = "Dental Clinic, Bangalore"
+    testimonial_3_quote: Optional[str] = "The WhatsApp booking is a game-changer. My patients love how easy it is to schedule appointments."
+    testimonial_3_name: Optional[str] = "Dr. Meera Patel"
+    testimonial_3_role: Optional[str] = "Physiotherapist, Delhi"
+    # CTA
+    cta_title: Optional[str] = "Ready to Transform Your Practice?"
+    cta_subtitle: Optional[str] = "Start your free trial today. No credit card required. Set up in under 5 minutes."
+    cta_primary_text: Optional[str] = "Start Free Trial"
+    cta_secondary_text: Optional[str] = "Schedule Demo Call"
+    # Footer
+    contact_email: Optional[str] = "ravee@lumer.me"
+    footer_company: Optional[str] = "Lumera Solutions LLP"
+    # Legacy fields kept for backward compatibility
+    hero_image_url: Optional[str] = ""
+    tagline: Optional[str] = ""
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -1763,30 +1840,21 @@ async def delete_user(user_id: str, admin: dict = Depends(get_admin_user)):
 
 @api_router.get("/admin/content")
 async def get_landing_content():
-    """Get landing page content"""
-    content = await db.landing_content.find_one({}, {"_id": 0})
-    if not content:
-        # Return default content
-        return {
-            "hero_title": "Smart Booking, Happy Clients",
-            "hero_subtitle": "Transform your practice with WhatsApp booking, automated reminders, and an all-in-one CRM. Perfect for doctors, therapists, spas, lawyers, and wellness professionals.",
-            "hero_image_url": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800",
-            "tagline": "WhatsApp-Powered Appointments",
-            "feature_1_title": "WhatsApp Integration",
-            "feature_1_description": "Book appointments via WhatsApp with automated reminders",
-            "feature_2_title": "Smart CRM",
-            "feature_2_description": "Manage clients, prescriptions, and payments in one place",
-            "feature_3_title": "Automated Reminders",
-            "feature_3_description": "24h and 4h reminders sent automatically via WhatsApp"
-        }
-    return content
+    """Get landing page content — merges stored values over model defaults"""
+    defaults = LandingPageContent().dict()
+    stored = await db.landing_content.find_one({}, {"_id": 0})
+    if stored:
+        # Overlay non-None stored values on top of defaults so new fields always have a value
+        merged = {**defaults, **{k: v for k, v in stored.items() if v is not None and k != "_id"}}
+        return merged
+    return defaults
 
 @api_router.put("/admin/content")
 async def update_landing_content(content: LandingPageContent, admin: dict = Depends(get_admin_user)):
     """Update landing page content (admin only)"""
     await db.landing_content.update_one(
         {},
-        {"$set": content.dict()},
+        {"$set": content.dict(exclude_none=True)},
         upsert=True
     )
     return {"message": "Content updated successfully"}

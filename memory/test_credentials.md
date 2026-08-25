@@ -13,7 +13,7 @@
 - Re-run `python /app/backend/seed_reviewer.py` any time to reset password / refresh seeds
 
 ## Admin
-- Email: admin@lumer.com
+- Email: admin@lumer.me
 - Password: admin123
 
 ## Receptionist (sub-user, dynamically created in tests)

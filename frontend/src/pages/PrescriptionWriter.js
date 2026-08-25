@@ -25,6 +25,9 @@ const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
 const emptyTaperStep = () => ({ dosage: '', frequency: '', duration: '', notes: '' });
 const emptyMed = () => ({
+  _key: (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : `med-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   medicine_name: '',
   dosage: '',
   frequency: '',
@@ -128,7 +131,7 @@ const PrescriptionWriter = () => {
       try {
         const r = await axios.get(`${API_URL}/letterhead`);
         setLetterhead(r.data);
-      } catch (_) { /* non-fatal */ }
+      } catch (_) { console.warn('[PrescriptionWriter] Letterhead load failed (non-fatal):', _); }
     })();
   }, []);
 
@@ -161,13 +164,13 @@ const PrescriptionWriter = () => {
             setVitalsCapturedBy({ by: v.data.captured_by, at: v.data.captured_at });
           }
         }
-      } catch (_) { /* non-fatal */ }
+      } catch (_) { console.warn('[PrescriptionWriter] Vitals load failed (non-fatal):', _); }
       // Outstanding balance chip
       if (response.data.client_phone) {
         try {
           const ob = await axios.get(`${API_URL}/prescriptions/outstanding-balance/${encodeURIComponent(response.data.client_phone)}`);
           if (ob.data?.outstanding > 0) setOutstanding(ob.data);
-        } catch (_) { /* non-fatal */ }
+        } catch (_) { console.warn('[PrescriptionWriter] Outstanding balance load failed (non-fatal):', _); }
       }
     } catch (error) {
       console.error('Failed to fetch appointment:', error);
@@ -197,7 +200,9 @@ const PrescriptionWriter = () => {
         toast.info('No previous prescriptions for this patient');
         return;
       }
-      const meds = (res.data.medications || []).filter((m) => m?.medicine_name);
+      const meds = (res.data.medications || [])
+        .filter((m) => m?.medicine_name)
+        .map((m) => ({ ...emptyMed(), ...m })); // ensure each has a stable _key
       if (meds.length === 0) {
         toast.info('Previous prescription had no medications');
         return;
@@ -550,6 +555,7 @@ const PrescriptionWriter = () => {
             if (e.vitals) setVitals((v) => ({ ...v, ...Object.fromEntries(Object.entries(e.vitals).filter(([, val]) => val)) }));
             if (e.medications && e.medications.length > 0) {
               const cleaned = e.medications.map((m) => ({
+                ...emptyMed(),
                 medicine_name: m.medicine_name || '',
                 dosage: m.dosage || '',
                 frequency: m.frequency || '',
@@ -617,6 +623,7 @@ const PrescriptionWriter = () => {
           defaultInstructions={generalInstructions}
           onLoad={(meds, defInstr) => {
             const cleaned = meds.map((m) => ({
+              ...emptyMed(),
               medicine_name: m.medicine_name || '',
               dosage: m.dosage || '',
               frequency: m.frequency || '',
@@ -678,7 +685,7 @@ const PrescriptionWriter = () => {
                   <p className="font-manrope font-semibold text-purple-900 mb-3">AI Suggested Medications:</p>
                   <div className="space-y-2">
                     {aiSuggestions.map((suggestion, index) => (
-                      <div key={index} className="flex items-start justify-between p-3 bg-white rounded-lg border border-purple-200">
+                      <div key={`${suggestion.medicine_name}-${index}`} className="flex items-start justify-between p-3 bg-white rounded-lg border border-purple-200">
                         <div className="flex-1">
                           <p className="font-manrope font-semibold text-slate-900">{suggestion.medicine_name}</p>
                           <p className="text-sm text-slate-600">{suggestion.dosage} | {suggestion.frequency} | {suggestion.duration}</p>
@@ -726,7 +733,7 @@ const PrescriptionWriter = () => {
                   {interactions.summary && <p className="text-sm text-slate-700 mb-3">{interactions.summary}</p>}
                   <div className="space-y-2">
                     {(interactions.alerts || []).map((al, i) => (
-                      <div key={i} className={`p-3 rounded-lg border ${SEVERITY_COLORS[al.severity] || SEVERITY_COLORS.low}`}>
+                      <div key={`${(al.drugs_involved || []).join('-')}-${i}`} className={`p-3 rounded-lg border ${SEVERITY_COLORS[al.severity] || SEVERITY_COLORS.low}`}>
                         <div className="flex items-center gap-2 mb-1">
                           <Badge className="uppercase text-[10px]">{al.severity}</Badge>
                           <span className="text-sm font-semibold">{(al.drugs_involved || []).join(' + ')}</span>
@@ -741,7 +748,7 @@ const PrescriptionWriter = () => {
             )}
 
             {medications.map((med, index) => (
-              <Card key={index} className="bg-slate-50 border-slate-200" data-testid={`medication-${index}`}>
+              <Card key={med._key} className="bg-slate-50 border-slate-200" data-testid={`medication-${index}`}>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-manrope font-semibold text-sm text-slate-700">Medication {index + 1}</span>
@@ -816,7 +823,7 @@ const PrescriptionWriter = () => {
                     {med.is_tapering && (med.taper_schedule || []).length > 0 && (
                       <div className="mt-3 space-y-2">
                         {(med.taper_schedule || []).map((step, sIdx) => (
-                          <div key={sIdx} className="bg-white p-3 rounded-lg border border-slate-200" data-testid={`taper-step-${index}-${sIdx}`}>
+                          <div key={`${med._key}-taper-${sIdx}`} className="bg-white p-3 rounded-lg border border-slate-200" data-testid={`taper-step-${index}-${sIdx}`}>
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-xs font-semibold text-indigo-700">Step {sIdx + 1}</span>
                               <Button size="sm" variant="ghost" onClick={() => removeTaperStep(index, sIdx)} data-testid={`remove-taper-step-${index}-${sIdx}`}>
