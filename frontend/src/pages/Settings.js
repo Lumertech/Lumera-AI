@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import DashboardLayout from '@/components/Layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Settings as SettingsIcon, Calendar, Bell, CreditCard, Star,
   Bot, Eye, Stethoscope, MessageSquare, Wallet,
+  Plus, Trash2, AlertTriangle, ChevronDown, ChevronUp, ClipboardList,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import WhatsAppConnectCard from '@/components/WhatsAppConnectCard';
@@ -231,6 +233,313 @@ const AIConfigCard = () => {
 };
 
 /* ─────────────────────────────────────────────────────────────────────────── */
+/*  Specialty & Intake                                                         */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+const DOCTOR_SPECIALTIES = [
+  "General Physician","Cardiologist","Dermatologist","Pediatrician","Orthopedic Surgeon",
+  "Neurologist","Gynecologist","ENT Specialist","Ophthalmologist","Psychiatrist",
+  "Diabetologist","Endocrinologist","Gastroenterologist","Pulmonologist","Urologist",
+  "Oncologist","Rheumatologist","Dentist","Physiotherapist","Other",
+];
+
+const SEVERITY_COLORS = {
+  High:   'bg-red-100 text-red-700 border-red-200',
+  Medium: 'bg-amber-100 text-amber-700 border-amber-200',
+  Low:    'bg-blue-100 text-blue-700 border-blue-200',
+};
+
+const newService = () => ({ id: '', name: '', enable_photo_upload: false, enable_document_upload: false, custom_questions: [] });
+const newKeyword = () => ({ id: '', keyword: '', severity: 'High', emergency_number: '' });
+
+const SpecialtyIntakeTab = ({ currentUser }) => {
+  const [specialty, setSpecialty] = useState(currentUser?.specialty || '');
+  const [services, setServices] = useState([]);
+  const [keywords, setKeywords] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [savingSpecialty, setSavingSpecialty] = useState(false);
+  const [expandedSvc, setExpandedSvc] = useState(null);
+  const [isDefault, setIsDefault] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await axios.get(`${API_URL}/workspace/specialty-rules`);
+      setServices(r.data.services || []);
+      setKeywords(r.data.triage_keywords || []);
+      setIsDefault(r.data.is_default || false);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const loadDefaults = async (spec) => {
+    if (!spec) return;
+    try {
+      const r = await axios.get(`${API_URL}/workspace/specialty-defaults/${encodeURIComponent(spec)}`);
+      setServices(r.data.services || []);
+      setKeywords(r.data.triage_keywords || []);
+      toast.success(`Defaults loaded for ${spec}`);
+    } catch { toast.error('Could not load defaults'); }
+  };
+
+  const saveSpecialty = async () => {
+    setSavingSpecialty(true);
+    try {
+      await axios.put(`${API_URL}/auth/specialty`, { specialty });
+      toast.success('Specialty saved');
+      if (specialty) await loadDefaults(specialty);
+    } catch { toast.error('Failed to save specialty'); } finally { setSavingSpecialty(false); }
+  };
+
+  const saveRules = async () => {
+    setSaving(true);
+    try {
+      await axios.put(`${API_URL}/workspace/specialty-rules`, { services, triage_keywords: keywords });
+      toast.success('Intake rules saved');
+      setIsDefault(false);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Save failed');
+    } finally { setSaving(false); }
+  };
+
+  // ── Services helpers ──
+  const addService = () => setServices(prev => [...prev, newService()]);
+  const removeService = (i) => setServices(prev => prev.filter((_, idx) => idx !== i));
+  const updateService = (i, key, val) => setServices(prev => prev.map((s, idx) => idx === i ? { ...s, [key]: val } : s));
+  const addQuestion = (i) => updateService(i, 'custom_questions', [...(services[i].custom_questions || []), '']);
+  const updateQuestion = (svcIdx, qIdx, val) =>
+    setServices(prev => prev.map((s, i) => i === svcIdx
+      ? { ...s, custom_questions: s.custom_questions.map((q, qi) => qi === qIdx ? val : q) }
+      : s));
+  const removeQuestion = (svcIdx, qIdx) =>
+    setServices(prev => prev.map((s, i) => i === svcIdx
+      ? { ...s, custom_questions: s.custom_questions.filter((_, qi) => qi !== qIdx) }
+      : s));
+
+  // ── Keyword helpers ──
+  const addKeyword = () => setKeywords(prev => [...prev, newKeyword()]);
+  const removeKeyword = (i) => setKeywords(prev => prev.filter((_, idx) => idx !== i));
+  const updateKeyword = (i, key, val) => setKeywords(prev => prev.map((k, idx) => idx === i ? { ...k, [key]: val } : k));
+
+  return (
+    <div className="space-y-6">
+      {/* Specialty selector */}
+      <Card className="border-slate-200" data-testid="specialty-card">
+        <CardHeader>
+          <CardTitle className="font-manrope flex items-center gap-2">
+            <Stethoscope className="h-5 w-5 text-teal-500" />
+            Your Medical Specialty
+          </CardTitle>
+          <CardDescription>
+            Your specialty determines which default intake services and triage keywords are pre-loaded.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-3 items-end">
+            <div className="flex-1 space-y-2">
+              <Label className="font-manrope font-semibold">Specialty</Label>
+              <Select value={specialty} onValueChange={setSpecialty}>
+                <SelectTrigger data-testid="specialty-select-settings" className="font-inter">
+                  <SelectValue placeholder="Select your specialty…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DOCTOR_SPECIALTIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={saveSpecialty}
+              disabled={savingSpecialty || !specialty}
+              className="bg-teal-600 hover:bg-teal-700"
+              data-testid="save-specialty-btn"
+            >
+              {savingSpecialty ? 'Saving…' : 'Save & Load Defaults'}
+            </Button>
+          </div>
+          {isDefault && specialty && (
+            <div className="p-3 bg-teal-50 border border-teal-200 rounded-lg text-xs text-teal-800 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              Showing default rules for <strong>{specialty}</strong>. Save to make them yours.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Service-Level Intake Questions */}
+      <Card className="border-slate-200" data-testid="services-intake-card">
+        <CardHeader>
+          <CardTitle className="font-manrope flex items-center gap-2">
+            <ClipboardList className="h-5 w-5 text-indigo-500" />
+            Service-Level Intake Questions
+          </CardTitle>
+          <CardDescription>
+            Configure what additional info or uploads are collected per service type when a patient books.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {services.map((svc, i) => (
+            <div key={i} className="border border-slate-200 rounded-xl overflow-hidden" data-testid={`service-row-${i}`}>
+              {/* Service header */}
+              <div className="flex items-center gap-2 px-4 py-3 bg-slate-50">
+                <Input
+                  value={svc.name}
+                  onChange={(e) => updateService(i, 'name', e.target.value)}
+                  placeholder="Service name…"
+                  className="flex-1 h-8 text-sm font-medium border-0 bg-transparent shadow-none focus-visible:ring-0 p-0"
+                  data-testid={`service-name-${i}`}
+                />
+                <button
+                  onClick={() => setExpandedSvc(expandedSvc === i ? null : i)}
+                  className="p-1 text-slate-400 hover:text-slate-700 transition"
+                  data-testid={`service-expand-${i}`}
+                >
+                  {expandedSvc === i ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+                <button
+                  onClick={() => removeService(i)}
+                  className="p-1 text-red-400 hover:text-red-600 transition"
+                  data-testid={`service-remove-${i}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+
+              {expandedSvc === i && (
+                <div className="px-4 py-3 space-y-3 border-t border-slate-100">
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                      <Switch
+                        checked={svc.enable_photo_upload}
+                        onCheckedChange={(v) => updateService(i, 'enable_photo_upload', v)}
+                        data-testid={`service-photo-${i}`}
+                      />
+                      Photo Upload
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                      <Switch
+                        checked={svc.enable_document_upload}
+                        onCheckedChange={(v) => updateService(i, 'enable_document_upload', v)}
+                        data-testid={`service-doc-${i}`}
+                      />
+                      Document Upload
+                    </label>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wide">Custom Questions</Label>
+                    {(svc.custom_questions || []).map((q, qi) => (
+                      <div key={qi} className="flex items-center gap-2">
+                        <Input
+                          value={q}
+                          onChange={(e) => updateQuestion(i, qi, e.target.value)}
+                          placeholder="e.g. Any previous surgeries?"
+                          className="text-sm"
+                          data-testid={`service-question-${i}-${qi}`}
+                        />
+                        <button onClick={() => removeQuestion(i, qi)} className="text-red-400 hover:text-red-600">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <Button variant="ghost" size="sm" onClick={() => addQuestion(i)} className="text-indigo-600 h-7 px-2" data-testid={`add-question-${i}`}>
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Add question
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          <Button variant="outline" onClick={addService} className="w-full border-dashed" data-testid="add-service-btn">
+            <Plus className="h-4 w-4 mr-2" /> Add Service
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Triage Keywords */}
+      <Card className="border-slate-200" data-testid="triage-keywords-card">
+        <CardHeader>
+          <CardTitle className="font-manrope flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            Triage &amp; Emergency Keywords
+          </CardTitle>
+          <CardDescription>
+            When an incoming patient WhatsApp message contains any of these keywords, the system automatically flags it as
+            an emergency, pauses AI booking, and sends the patient a direct reply with your emergency contact number.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-800 flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <span>
+              Keyword matching is <strong>case-insensitive substring</strong> search.
+              When triggered: appointment is set to <code className="bg-red-100 px-1 rounded">emergency_escalated</code>,
+              automated booking is paused, and the patient receives an auto-reply with the emergency number.
+            </span>
+          </div>
+
+          {/* Table header */}
+          <div className="grid grid-cols-12 gap-2 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            <div className="col-span-4">Keyword / Phrase</div>
+            <div className="col-span-2">Severity</div>
+            <div className="col-span-5">Emergency Contact</div>
+            <div className="col-span-1"></div>
+          </div>
+
+          {keywords.map((kw, i) => (
+            <div key={i} className="grid grid-cols-12 gap-2 items-center" data-testid={`keyword-row-${i}`}>
+              <Input
+                value={kw.keyword}
+                onChange={(e) => updateKeyword(i, 'keyword', e.target.value)}
+                placeholder="e.g. chest pain"
+                className="col-span-4 text-sm"
+                data-testid={`keyword-text-${i}`}
+              />
+              <div className="col-span-2">
+                <Select value={kw.severity} onValueChange={(v) => updateKeyword(i, 'severity', v)}>
+                  <SelectTrigger className={`h-9 text-xs font-medium border ${SEVERITY_COLORS[kw.severity] || ''}`} data-testid={`keyword-severity-${i}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="High">High</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Input
+                value={kw.emergency_number}
+                onChange={(e) => updateKeyword(i, 'emergency_number', e.target.value)}
+                placeholder="+91 98765 43210 or iCall: 9152987821"
+                className="col-span-5 text-sm"
+                data-testid={`keyword-emergency-${i}`}
+              />
+              <button
+                onClick={() => removeKeyword(i)}
+                className="col-span-1 flex justify-center text-red-400 hover:text-red-600 transition"
+                data-testid={`keyword-remove-${i}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+
+          <Button variant="outline" onClick={addKeyword} className="w-full border-dashed" data-testid="add-keyword-btn">
+            <Plus className="h-4 w-4 mr-2" /> Add Keyword
+          </Button>
+
+          <div className="pt-2">
+            <Button onClick={saveRules} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700" data-testid="save-specialty-rules-btn">
+              {saving ? 'Saving…' : 'Save Intake Rules'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────────────────────────────────── */
 /*  Google Review card (unchanged logic)                                       */
 /* ─────────────────────────────────────────────────────────────────────────── */
 
@@ -316,6 +625,7 @@ const Settings = () => {
     reminder_hours: 24,
     google_calendar_sync: false,
   });
+  const [currentUser, setCurrentUser] = useState(null);
   const [razorpayConfig, setRazorpayConfig] = useState({ razorpay_key_id: '', razorpay_key_secret: '' });
   const [twilioConfig, setTwilioConfig] = useState({ twilio_account_sid: '', twilio_auth_token: '', whatsapp_number: '' });
   const [paymentFees, setPaymentFees] = useState({ consultation_fee: 500, followup_fee: 300, full_checkup_fee: 1000 });
@@ -335,6 +645,8 @@ const Settings = () => {
     loadBotInstructions();
     loadTabConfig();
     loadPatientPaymentSetup();
+    // Load current user for specialty
+    axios.get(`${API_URL}/auth/me`).then(r => setCurrentUser(r.data)).catch(() => {});
   }, []);
 
   const checkRazorpayConfig = async () => {
@@ -438,6 +750,10 @@ const Settings = () => {
             <TabsTrigger value="payments" className="flex items-center gap-1.5 flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="settings-tab-payments">
               <Wallet className="h-4 w-4" />
               <span className="hidden sm:inline">Payments</span>
+            </TabsTrigger>
+            <TabsTrigger value="specialty" className="flex items-center gap-1.5 flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="settings-tab-specialty">
+              <Stethoscope className="h-4 w-4" />
+              <span className="hidden sm:inline">Specialty &amp; Intake</span>
             </TabsTrigger>
           </TabsList>
 
@@ -765,6 +1081,11 @@ const Settings = () => {
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ── SPECIALTY & INTAKE TAB ──────────────────────────────────────── */}
+          <TabsContent value="specialty" className="mt-4">
+            <SpecialtyIntakeTab currentUser={currentUser} />
           </TabsContent>
         </Tabs>
       </div>

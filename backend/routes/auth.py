@@ -58,6 +58,7 @@ async def register(user_data: UserCreate):
         "hashed_password": pwd_context.hash(user_data.password),
         "phone_number": user_data.phone_number,
         "profession": user_data.profession,
+        "specialty": (user_data.specialty or "").strip() or None,
         "role": "user",
         "whatsapp_verified": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -196,6 +197,17 @@ async def complete_registration(name: str, profession: str, phone_number: str):
 
     token = create_access_token({"user_id": user_id, "phone": phone_number})
     return {"token": token, "user": {k: v for k, v in user.items() if k != "_id"}}
+
+
+@router.put("/auth/specialty")
+async def update_specialty(body: dict, current_user: dict = Depends(get_current_user)):
+    """Allow a logged-in doctor to set or update their specialty."""
+    specialty = (body.get("specialty") or "").strip()
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"specialty": specialty or None}},
+    )
+    return {"message": "Specialty updated", "specialty": specialty or None}
 
 
 # ---------- Google Calendar OAuth ----------

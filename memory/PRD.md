@@ -549,6 +549,32 @@ Shipped 6 high-impact features from the 30+ UX list:
 - **Route alias**: added `/appointments/:appointmentId/vitals` alongside `/vitals/:appointmentId`.
 - Backend testing agent: 9/9 pass on safety endpoints incl. `+` regression, 4-source aggregation, and Penicillin conflict.
 
+## Phase 28 — Specialty Intake Rules & Triage Matrix (2026-08-25) ✅
+
+### Specialty Picker in Registration
+- `Register.js` shows a Medical Specialty dropdown (20 options) conditionally when `profession = doctor`
+- `AuthContext.register()` passes `specialty` to `POST /api/auth/register`
+- Backend `UserCreate` model extended with optional `specialty` field; saved on user document
+
+### New Backend Endpoints
+- `PUT /api/auth/specialty` — update logged-in doctor's specialty post-onboarding
+- `GET /api/workspace/specialty-rules` — returns saved rules or auto-seeded defaults based on doctor's specialty
+- `PUT /api/workspace/specialty-rules` — saves per-doctor services + triage keywords
+- `GET /api/workspace/specialty-defaults/{specialty}` — returns seeded defaults for any specialty without saving
+- `SPECIALTY_DEFAULTS` map covers all 20 specialties with specialty-appropriate services and triage keywords
+
+### Triage Escalation in WhatsApp Intake
+- `_maybe_parse_intake()` in `meta_whatsapp.py` now checks triage keywords before AI parse
+- On keyword match: sets appointment `pre_intake_status = emergency_escalated`, records `triage_keyword_matched`, `triage_severity`, `triage_escalated_at`
+- Auto-replies to patient via `_send_wa_reply()` (Meta Cloud API → Twilio fallback) with emergency contact number
+- Pauses automated AI booking parse entirely
+
+### Settings UI — 5th Tab
+- Settings.js now has 5 tabs: General · AI & Rules · WhatsApp · Payments · Specialty & Intake
+- `SpecialtyIntakeTab` component: specialty selector + "Save & Load Defaults" · Services card (expand/collapse, photo/doc toggles, custom questions) · Triage keywords table (keyword, severity, emergency number)
+
+**Testing: 100% backend (10/10) + 100% frontend (iteration_26)**
+
 ## Phase 27 — AI Assistant & Rules Settings Tab (2026-08-25) ✅
 
 ### Settings Page Restructured into Tabs

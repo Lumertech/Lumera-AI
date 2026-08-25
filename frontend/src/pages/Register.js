@@ -10,6 +10,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Home } from 'lucide-react';
 
+const DOCTOR_SPECIALTIES = [
+  "General Physician",
+  "Cardiologist",
+  "Dermatologist",
+  "Pediatrician",
+  "Orthopedic Surgeon",
+  "Neurologist",
+  "Gynecologist",
+  "ENT Specialist",
+  "Ophthalmologist",
+  "Psychiatrist",
+  "Diabetologist",
+  "Endocrinologist",
+  "Gastroenterologist",
+  "Pulmonologist",
+  "Urologist",
+  "Oncologist",
+  "Rheumatologist",
+  "Dentist",
+  "Physiotherapist",
+  "Other",
+];
+
 const Register = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -19,6 +42,7 @@ const Register = () => {
     password: '',
     phone_number: '',
     profession: 'doctor',
+    specialty: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,7 +64,8 @@ const Register = () => {
       formData.email,
       formData.password,
       formData.phone_number,
-      formData.profession
+      formData.profession,
+      formData.specialty || undefined
     );
 
     if (result.success) {
@@ -133,7 +158,7 @@ const Register = () => {
               <Label htmlFor="profession" className="font-manrope font-semibold">Profession</Label>
               <Select
                 value={formData.profession}
-                onValueChange={(value) => setFormData({ ...formData, profession: value })}
+                onValueChange={(value) => setFormData({ ...formData, profession: value, specialty: '' })}
               >
                 <SelectTrigger data-testid="profession-select" className="font-inter">
                   <SelectValue />
@@ -147,6 +172,28 @@ const Register = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {formData.profession === 'doctor' && (
+              <div className="space-y-2">
+                <Label htmlFor="specialty" className="font-manrope font-semibold">
+                  Medical Specialty
+                  <span className="ml-1 text-slate-400 font-normal text-xs">(helps us set up your intake defaults)</span>
+                </Label>
+                <Select
+                  value={formData.specialty}
+                  onValueChange={(value) => setFormData({ ...formData, specialty: value })}
+                >
+                  <SelectTrigger data-testid="specialty-select" className="font-inter">
+                    <SelectValue placeholder="Select your specialty…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DOCTOR_SPECIALTIES.map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="password" className="font-manrope font-semibold">Password</Label>

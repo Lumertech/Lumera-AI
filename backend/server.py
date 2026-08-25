@@ -190,6 +190,7 @@ class UserCreate(BaseModel):
     password: str
     phone_number: str
     profession: str = "doctor"
+    specialty: Optional[str] = None  # e.g. "Cardiologist", "Dermatologist"
 
 class RazorpayConfig(BaseModel):
     razorpay_key_id: str

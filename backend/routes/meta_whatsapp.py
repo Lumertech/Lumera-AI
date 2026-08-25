@@ -45,6 +45,34 @@ _INTAKE_SYSTEM_PROMPT = (
 )
 
 
+async def _send_wa_reply(owner_id: str, to: str, text: str) -> None:
+    """Send a WhatsApp reply: try Meta Cloud API first, fall back to Twilio."""
+    from shared import send_whatsapp_message as _twilio_send
+    cfg = await _get_config(owner_id)
+    phone_number_id = cfg.get("phone_number_id")
+    token = cfg.get("system_user_token")
+    if phone_number_id and token:
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": to.lstrip("+"),
+            "type": "text",
+            "text": {"body": text},
+        }
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                r = await client.post(f"{GRAPH_BASE}/{phone_number_id}/messages", json=payload, headers=headers)
+            if r.status_code < 400:
+                return
+        except Exception as exc:
+            logger.warning("Meta reply failed, trying Twilio: %s", exc)
+    # Twilio fallback
+    try:
+        await _twilio_send(to, text)
+    except Exception as exc:
+        logger.warning("Twilio fallback also failed: %s", exc)
+
+
 async def _maybe_parse_intake(owner_id: str, sender_phone: str, message_text: str) -> None:
     """Best-effort background task: when a patient replies to the pre-intake
     WhatsApp prompt, parse their text and auto-populate the appointment record."""
@@ -65,6 +93,47 @@ async def _maybe_parse_intake(owner_id: str, sender_phone: str, message_text: st
     if not appt:
         return
 
+    # ── Triage keyword check ───────────────────────────────────────────────
+    specialty_rules = await db.workspace_specialty_rules.find_one({"owner_id": owner_id}, {"_id": 0}) or {}
+    triage_keywords = specialty_rules.get("triage_keywords") or []
+    msg_lower = message_text.lower()
+    triggered_kw = None
+    for kw in triage_keywords:
+        if kw.get("keyword", "").lower() and kw["keyword"].lower() in msg_lower:
+            triggered_kw = kw
+            break
+
+    if triggered_kw:
+        await db.appointments.update_one(
+            {"id": appt["id"]},
+            {"$set": {
+                "pre_intake_status": "emergency_escalated",
+                "triage_keyword_matched": triggered_kw["keyword"],
+                "triage_severity": triggered_kw.get("severity", "High"),
+                "triage_escalated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        )
+        emergency_number = (triggered_kw.get("emergency_number") or "").strip()
+        if emergency_number:
+            reply_text = (
+                f"⚠️ Your message has been flagged as urgent by our system.\n"
+                f"Please contact our emergency line immediately: *{emergency_number}*\n"
+                f"If this is a life-threatening emergency, call 112 now."
+            )
+        else:
+            reply_text = (
+                "⚠️ Your message has been flagged as urgent.\n"
+                "Please call us immediately or visit the nearest emergency room.\n"
+                "For life-threatening emergencies, call 112."
+            )
+        await _send_wa_reply(owner_id, sender_phone, reply_text)
+        logger.warning(
+            "TRIAGE ESCALATED appt=%s keyword='%s' severity=%s phone=%s",
+            appt["id"], triggered_kw["keyword"], triggered_kw.get("severity"), sender_phone,
+        )
+        return  # Stop — do NOT run AI intake parsing (booking paused)
+
+    # ── Normal AI intake parse ─────────────────────────────────────────────
     fallback_intake = {
         "symptoms": message_text.strip(),
         "duration": "",

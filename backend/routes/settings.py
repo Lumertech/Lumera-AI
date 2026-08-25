@@ -561,6 +561,352 @@ async def save_ai_config(body: AIConfigPayload, current_user: dict = Depends(get
     return {"message": "AI config saved"}
 
 
+# --------------------------------------------------------------------------- #
+# Workspace Specialty Rules                                                     #
+# --------------------------------------------------------------------------- #
+
+import uuid as _uuid_mod
+
+# Per-specialty seed defaults — used when a doctor hasn't customised yet.
+SPECIALTY_DEFAULTS: Dict[str, Any] = {
+    "General Physician": {
+        "services": [
+            {"id": "svc-gp-1", "name": "General Consultation", "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": ["Any recent test reports to share?"]},
+            {"id": "svc-gp-2", "name": "Follow-up Visit",      "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+            {"id": "svc-gp-3", "name": "Preventive Health Check","enable_photo_upload": False, "enable_document_upload": True, "custom_questions": ["Family history of chronic illness?"]},
+        ],
+        "triage_keywords": [
+            {"id": "tk-gp-1", "keyword": "chest pain",          "severity": "High",   "emergency_number": ""},
+            {"id": "tk-gp-2", "keyword": "difficulty breathing", "severity": "High",   "emergency_number": ""},
+            {"id": "tk-gp-3", "keyword": "unconscious",          "severity": "High",   "emergency_number": ""},
+            {"id": "tk-gp-4", "keyword": "stroke symptoms",      "severity": "High",   "emergency_number": ""},
+        ],
+    },
+    "Cardiologist": {
+        "services": [
+            {"id": "svc-card-1", "name": "Cardiac Consultation", "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": ["Previous ECG or echo reports?", "Current heart medications?"]},
+            {"id": "svc-card-2", "name": "ECG / Stress Test",    "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-card-3", "name": "Follow-up",            "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-card-1", "keyword": "chest pain",         "severity": "High",   "emergency_number": ""},
+            {"id": "tk-card-2", "keyword": "heart attack",        "severity": "High",   "emergency_number": ""},
+            {"id": "tk-card-3", "keyword": "crushing pressure",   "severity": "High",   "emergency_number": ""},
+            {"id": "tk-card-4", "keyword": "left arm pain",       "severity": "High",   "emergency_number": ""},
+            {"id": "tk-card-5", "keyword": "irregular heartbeat", "severity": "Medium", "emergency_number": ""},
+        ],
+    },
+    "Dermatologist": {
+        "services": [
+            {"id": "svc-derm-1", "name": "Skin Consultation",  "enable_photo_upload": True,  "enable_document_upload": False, "custom_questions": ["How long have you had this condition?"]},
+            {"id": "svc-derm-2", "name": "Skin Biopsy",        "enable_photo_upload": True,  "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-derm-3", "name": "Laser Treatment",    "enable_photo_upload": True,  "enable_document_upload": False, "custom_questions": ["Any previous skin procedures?"]},
+        ],
+        "triage_keywords": [
+            {"id": "tk-derm-1", "keyword": "severe allergic reaction", "severity": "High",   "emergency_number": ""},
+            {"id": "tk-derm-2", "keyword": "anaphylaxis",              "severity": "High",   "emergency_number": ""},
+            {"id": "tk-derm-3", "keyword": "spreading rash",           "severity": "Medium", "emergency_number": ""},
+        ],
+    },
+    "Pediatrician": {
+        "services": [
+            {"id": "svc-ped-1", "name": "Child Consultation",     "enable_photo_upload": True,  "enable_document_upload": True,  "custom_questions": ["Child's age and weight?", "Vaccination history up to date?"]},
+            {"id": "svc-ped-2", "name": "Vaccination",            "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+            {"id": "svc-ped-3", "name": "Growth Assessment",      "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-ped-1", "keyword": "high fever",   "severity": "High",   "emergency_number": ""},
+            {"id": "tk-ped-2", "keyword": "not breathing", "severity": "High",   "emergency_number": ""},
+            {"id": "tk-ped-3", "keyword": "blue lips",    "severity": "High",   "emergency_number": ""},
+            {"id": "tk-ped-4", "keyword": "seizure",      "severity": "High",   "emergency_number": ""},
+            {"id": "tk-ped-5", "keyword": "unconscious",  "severity": "High",   "emergency_number": ""},
+        ],
+    },
+    "Orthopedic Surgeon": {
+        "services": [
+            {"id": "svc-orth-1", "name": "Orthopedic Consultation", "enable_photo_upload": True,  "enable_document_upload": True,  "custom_questions": ["Any X-ray or MRI reports?", "Which joints or bones are affected?"]},
+            {"id": "svc-orth-2", "name": "Post-Surgery Follow-up",  "enable_photo_upload": True,  "enable_document_upload": True,  "custom_questions": []},
+            {"id": "svc-orth-3", "name": "Physiotherapy Referral",  "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-orth-1", "keyword": "can't move",        "severity": "High",   "emergency_number": ""},
+            {"id": "tk-orth-2", "keyword": "suspected fracture","severity": "High",   "emergency_number": ""},
+            {"id": "tk-orth-3", "keyword": "severe pain",       "severity": "Medium", "emergency_number": ""},
+        ],
+    },
+    "Neurologist": {
+        "services": [
+            {"id": "svc-neuro-1", "name": "Neurology Consultation", "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": ["Any MRI or CT scan reports?", "Duration of symptoms?"]},
+            {"id": "svc-neuro-2", "name": "EEG / NCV Test",         "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-neuro-3", "name": "Follow-up",              "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-neuro-1", "keyword": "stroke",             "severity": "High",   "emergency_number": ""},
+            {"id": "tk-neuro-2", "keyword": "seizure",            "severity": "High",   "emergency_number": ""},
+            {"id": "tk-neuro-3", "keyword": "sudden vision loss", "severity": "High",   "emergency_number": ""},
+            {"id": "tk-neuro-4", "keyword": "paralysis",          "severity": "High",   "emergency_number": ""},
+        ],
+    },
+    "Gynecologist": {
+        "services": [
+            {"id": "svc-gyn-1", "name": "OB/GYN Consultation", "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": ["Last menstrual period date?", "Any previous pregnancies?"]},
+            {"id": "svc-gyn-2", "name": "Prenatal Check-up",   "enable_photo_upload": True,  "enable_document_upload": True,  "custom_questions": []},
+            {"id": "svc-gyn-3", "name": "Follow-up",           "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-gyn-1", "keyword": "heavy bleeding",  "severity": "High",   "emergency_number": ""},
+            {"id": "tk-gyn-2", "keyword": "severe cramps",   "severity": "Medium", "emergency_number": ""},
+            {"id": "tk-gyn-3", "keyword": "labor pain",      "severity": "High",   "emergency_number": ""},
+        ],
+    },
+    "ENT Specialist": {
+        "services": [
+            {"id": "svc-ent-1", "name": "ENT Consultation", "enable_photo_upload": True,  "enable_document_upload": True,  "custom_questions": ["Hearing, nose or throat issue?"]},
+            {"id": "svc-ent-2", "name": "Audiometry Test",  "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-ent-3", "name": "Follow-up",        "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-ent-1", "keyword": "sudden hearing loss", "severity": "High",   "emergency_number": ""},
+            {"id": "tk-ent-2", "keyword": "choking",             "severity": "High",   "emergency_number": ""},
+            {"id": "tk-ent-3", "keyword": "severe nosebleed",    "severity": "Medium", "emergency_number": ""},
+        ],
+    },
+    "Psychiatrist": {
+        "services": [
+            {"id": "svc-psy-1", "name": "Initial Psychiatric Evaluation", "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": ["Are you currently on any psychiatric medication?"]},
+            {"id": "svc-psy-2", "name": "Therapy Session",                "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-psy-3", "name": "Medication Review",              "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-psy-1", "keyword": "suicidal",        "severity": "High",   "emergency_number": "iCall: 9152987821"},
+            {"id": "tk-psy-2", "keyword": "want to die",     "severity": "High",   "emergency_number": "iCall: 9152987821"},
+            {"id": "tk-psy-3", "keyword": "harming myself",  "severity": "High",   "emergency_number": "iCall: 9152987821"},
+            {"id": "tk-psy-4", "keyword": "panic attack",    "severity": "Medium", "emergency_number": ""},
+        ],
+    },
+    "Diabetologist": {
+        "services": [
+            {"id": "svc-diab-1", "name": "Diabetes Consultation", "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": ["Latest HbA1c reading?", "Current diabetes medications?"]},
+            {"id": "svc-diab-2", "name": "Diet Counselling",      "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-diab-3", "name": "Follow-up",             "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-diab-1", "keyword": "diabetic emergency",    "severity": "High",   "emergency_number": ""},
+            {"id": "tk-diab-2", "keyword": "very low sugar",        "severity": "High",   "emergency_number": ""},
+            {"id": "tk-diab-3", "keyword": "hypoglycemia",          "severity": "High",   "emergency_number": ""},
+            {"id": "tk-diab-4", "keyword": "unconscious diabetic",  "severity": "High",   "emergency_number": ""},
+        ],
+    },
+    "Ophthalmologist": {
+        "services": [
+            {"id": "svc-eye-1", "name": "Eye Consultation",    "enable_photo_upload": True,  "enable_document_upload": True,  "custom_questions": ["Are you wearing glasses or contact lenses?", "Any family history of glaucoma?"]},
+            {"id": "svc-eye-2", "name": "Vision Test",         "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-eye-3", "name": "Follow-up",           "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-eye-1", "keyword": "sudden vision loss", "severity": "High",   "emergency_number": ""},
+            {"id": "tk-eye-2", "keyword": "eye injury",         "severity": "High",   "emergency_number": ""},
+            {"id": "tk-eye-3", "keyword": "chemical in eye",    "severity": "High",   "emergency_number": ""},
+        ],
+    },
+    "Endocrinologist": {
+        "services": [
+            {"id": "svc-endo-1", "name": "Endocrinology Consultation", "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": ["Any thyroid or hormone test reports?", "Current medications?"]},
+            {"id": "svc-endo-2", "name": "Thyroid Function Test",      "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-endo-3", "name": "Follow-up",                  "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-endo-1", "keyword": "thyroid storm",   "severity": "High",   "emergency_number": ""},
+            {"id": "tk-endo-2", "keyword": "adrenal crisis",  "severity": "High",   "emergency_number": ""},
+            {"id": "tk-endo-3", "keyword": "severe fatigue",  "severity": "Medium", "emergency_number": ""},
+        ],
+    },
+    "Gastroenterologist": {
+        "services": [
+            {"id": "svc-gi-1", "name": "GI Consultation",   "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": ["Any endoscopy or colonoscopy reports?", "Current GI medications?"]},
+            {"id": "svc-gi-2", "name": "Endoscopy",         "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-gi-3", "name": "Follow-up",         "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-gi-1", "keyword": "vomiting blood",    "severity": "High",   "emergency_number": ""},
+            {"id": "tk-gi-2", "keyword": "blood in stool",    "severity": "High",   "emergency_number": ""},
+            {"id": "tk-gi-3", "keyword": "severe abdominal",  "severity": "High",   "emergency_number": ""},
+            {"id": "tk-gi-4", "keyword": "perforation",       "severity": "High",   "emergency_number": ""},
+        ],
+    },
+    "Pulmonologist": {
+        "services": [
+            {"id": "svc-pul-1", "name": "Lung Consultation",  "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": ["Any chest X-ray or spirometry reports?", "Smoking history?"]},
+            {"id": "svc-pul-2", "name": "Spirometry",         "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-pul-3", "name": "Follow-up",          "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-pul-1", "keyword": "can't breathe",    "severity": "High",   "emergency_number": ""},
+            {"id": "tk-pul-2", "keyword": "breathing attack",  "severity": "High",   "emergency_number": ""},
+            {"id": "tk-pul-3", "keyword": "coughing blood",    "severity": "High",   "emergency_number": ""},
+            {"id": "tk-pul-4", "keyword": "oxygen low",        "severity": "High",   "emergency_number": ""},
+        ],
+    },
+    "Urologist": {
+        "services": [
+            {"id": "svc-uro-1", "name": "Urology Consultation", "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": ["Any ultrasound or urine test reports?"]},
+            {"id": "svc-uro-2", "name": "Kidney Stone Treatment","enable_photo_upload": False,"enable_document_upload": True,  "custom_questions": []},
+            {"id": "svc-uro-3", "name": "Follow-up",            "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-uro-1", "keyword": "severe kidney pain",    "severity": "High",   "emergency_number": ""},
+            {"id": "tk-uro-2", "keyword": "unable to urinate",     "severity": "High",   "emergency_number": ""},
+            {"id": "tk-uro-3", "keyword": "blood in urine",        "severity": "Medium", "emergency_number": ""},
+        ],
+    },
+    "Oncologist": {
+        "services": [
+            {"id": "svc-onc-1", "name": "Oncology Consultation", "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": ["Any biopsy or pathology reports?", "Current chemotherapy/radiotherapy?"]},
+            {"id": "svc-onc-2", "name": "Chemo Review",          "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+            {"id": "svc-onc-3", "name": "Palliative Care",       "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-onc-1", "keyword": "severe pain",         "severity": "High",   "emergency_number": ""},
+            {"id": "tk-onc-2", "keyword": "high fever chemo",    "severity": "High",   "emergency_number": ""},
+            {"id": "tk-onc-3", "keyword": "can't breathe",       "severity": "High",   "emergency_number": ""},
+        ],
+    },
+    "Rheumatologist": {
+        "services": [
+            {"id": "svc-rhe-1", "name": "Rheumatology Consultation", "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": ["Any ANA or RF test reports?", "Joints affected?"]},
+            {"id": "svc-rhe-2", "name": "Joint Injection",           "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-rhe-3", "name": "Follow-up",                 "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-rhe-1", "keyword": "sudden joint swelling",  "severity": "High",   "emergency_number": ""},
+            {"id": "tk-rhe-2", "keyword": "can't walk",             "severity": "High",   "emergency_number": ""},
+            {"id": "tk-rhe-3", "keyword": "severe joint pain",      "severity": "Medium", "emergency_number": ""},
+        ],
+    },
+    "Dentist": {
+        "services": [
+            {"id": "svc-den-1", "name": "Dental Consultation",  "enable_photo_upload": True,  "enable_document_upload": False, "custom_questions": ["Last dental visit?", "Any dental X-rays?"]},
+            {"id": "svc-den-2", "name": "Root Canal Treatment",  "enable_photo_upload": True,  "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-den-3", "name": "Teeth Cleaning",        "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-den-1", "keyword": "severe toothache",       "severity": "High",   "emergency_number": ""},
+            {"id": "tk-den-2", "keyword": "swollen jaw",            "severity": "High",   "emergency_number": ""},
+            {"id": "tk-den-3", "keyword": "knocked out tooth",      "severity": "High",   "emergency_number": ""},
+        ],
+    },
+    "Physiotherapist": {
+        "services": [
+            {"id": "svc-phy-1", "name": "Physio Assessment",        "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": ["Area of pain or injury?", "Any X-ray or MRI done?"]},
+            {"id": "svc-phy-2", "name": "Rehabilitation Session",   "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-phy-3", "name": "Post-Surgery Physio",      "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-phy-1", "keyword": "can't move arm",    "severity": "High",   "emergency_number": ""},
+            {"id": "tk-phy-2", "keyword": "can't walk",        "severity": "High",   "emergency_number": ""},
+            {"id": "tk-phy-3", "keyword": "severe pain",       "severity": "Medium", "emergency_number": ""},
+        ],
+    },
+    "Other": {
+        "services": [
+            {"id": "svc-def-1", "name": "General Consultation", "enable_photo_upload": False, "enable_document_upload": True,  "custom_questions": []},
+            {"id": "svc-def-2", "name": "Follow-up Visit",      "enable_photo_upload": False, "enable_document_upload": False, "custom_questions": []},
+            {"id": "svc-def-3", "name": "Emergency / Urgent",   "enable_photo_upload": True,  "enable_document_upload": True,  "custom_questions": []},
+        ],
+        "triage_keywords": [
+            {"id": "tk-def-1", "keyword": "chest pain",           "severity": "High",   "emergency_number": ""},
+            {"id": "tk-def-2", "keyword": "difficulty breathing",  "severity": "High",   "emergency_number": ""},
+            {"id": "tk-def-3", "keyword": "unconscious",           "severity": "High",   "emergency_number": ""},
+        ],
+    },
+}
+
+_DEFAULT_SPECIALTY_RULES = SPECIALTY_DEFAULTS["Other"]
+
+
+class SpecialtyService(BaseModel):
+    id: Optional[str] = None
+    name: str
+    enable_photo_upload: bool = False
+    enable_document_upload: bool = False
+    custom_questions: List[str] = Field(default_factory=list)
+
+
+class TriageKeyword(BaseModel):
+    id: Optional[str] = None
+    keyword: str
+    severity: str = "High"  # High | Medium | Low
+    emergency_number: Optional[str] = ""
+
+
+class SpecialtyRulesPayload(BaseModel):
+    services: List[SpecialtyService] = Field(default_factory=list)
+    triage_keywords: List[TriageKeyword] = Field(default_factory=list)
+
+
+VALID_SEVERITIES = {"High", "Medium", "Low"}
+
+
+@router.get("/workspace/specialty-rules")
+async def get_specialty_rules(current_user: dict = Depends(get_current_user)):
+    owner_id = resolve_owner_id(current_user)
+    doc = await db.workspace_specialty_rules.find_one({"owner_id": owner_id}, {"_id": 0}) or {}
+    if not doc:
+        # Seed defaults based on specialty
+        specialty = current_user.get("specialty") or ""
+        defaults = SPECIALTY_DEFAULTS.get(specialty, _DEFAULT_SPECIALTY_RULES)
+        return {
+            "services": defaults["services"],
+            "triage_keywords": defaults["triage_keywords"],
+            "specialty": specialty,
+            "is_default": True,
+        }
+    return {
+        "services": doc.get("services", []),
+        "triage_keywords": doc.get("triage_keywords", []),
+        "specialty": current_user.get("specialty") or "",
+        "is_default": False,
+    }
+
+
+@router.put("/workspace/specialty-rules")
+async def save_specialty_rules(body: SpecialtyRulesPayload, current_user: dict = Depends(get_current_user)):
+    for kw in body.triage_keywords:
+        if kw.severity not in VALID_SEVERITIES:
+            raise HTTPException(status_code=400, detail=f"severity must be one of {sorted(VALID_SEVERITIES)}")
+    owner_id = resolve_owner_id(current_user)
+    now = datetime.now(timezone.utc).isoformat()
+    # Ensure each service + keyword has a stable id
+    services = []
+    for svc in body.services:
+        d = svc.model_dump()
+        d["id"] = d.get("id") or str(_uuid_mod.uuid4())[:8]
+        services.append(d)
+    keywords = []
+    for kw in body.triage_keywords:
+        d = kw.model_dump()
+        d["id"] = d.get("id") or str(_uuid_mod.uuid4())[:8]
+        keywords.append(d)
+    await db.workspace_specialty_rules.update_one(
+        {"owner_id": owner_id},
+        {"$set": {
+            "owner_id": owner_id,
+            "services": services,
+            "triage_keywords": keywords,
+            "updated_at": now,
+        }},
+        upsert=True,
+    )
+    return {"message": "Specialty rules saved", "services": len(services), "triage_keywords": len(keywords)}
+
+
+@router.get("/workspace/specialty-defaults/{specialty}")
+async def get_specialty_defaults(specialty: str, _: dict = Depends(get_current_user)):
+    """Return seeded defaults for a given specialty so the UI can offer a 'Load defaults' action."""
+    defaults = SPECIALTY_DEFAULTS.get(specialty, _DEFAULT_SPECIALTY_RULES)
+    return defaults
+
+
 @router.post("/invoices/{invoice_id}/mark-cash-paid")
 async def mark_invoice_cash_paid(
     invoice_id: str,
