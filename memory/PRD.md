@@ -560,6 +560,14 @@ Shipped 6 high-impact features from the 30+ UX list:
 - Admin config extended with `config_id` field + secret encryption. `WhatsAppConnectCard` in doctor Settings. `/whatsapp-templates` page with variable insertion UI.
 - Testing: 10/10 backend + 100% frontend (iteration_22)
 
+## Phase 26 — WA Outbox, Sidebar Status, Post-Signup Test (2026-08-25) ✅
+- `POST /api/whatsapp/send-test` — sends plain-text greeting to verify two-way delivery; `_get_effective_wa` fallback chain (users.whatsapp → meta_whatsapp_configs → env)
+- `POST /api/whatsapp/send-template` — sends approved template with `{{N}}` param substitution; logs to `meta_whatsapp_messages`
+- `WhatsAppConnectCard` — "Send Test AI Message" section shown post-connection with phone input + send button
+- `DashboardLayout` — WA status dot badge in sidebar footer (🟢 Active / 🔴 Disconnected) + "WA Templates" nav link to `/whatsapp-templates`
+- `WaSendTemplateButton` — per-patient popover in QueueBoard; lazy-loads APPROVED templates; auto-fills `{{1}}`=name, `{{2}}`=date, `{{3}}`=time, `{{4}}`=doctor
+- Testing: 9/9 backend + 100% frontend (iteration_23)
+
 
 ## Test Credentials
 See `/app/memory/test_credentials.md`

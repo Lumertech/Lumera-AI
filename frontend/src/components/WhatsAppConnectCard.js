@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, CheckCircle2, AlertTriangle, Loader2, Unlink, ExternalLink } from 'lucide-react';
+import { MessageSquare, CheckCircle2, AlertTriangle, Loader2, Unlink, ExternalLink, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
@@ -13,6 +14,8 @@ const WhatsAppConnectCard = () => {
   const [status, setStatus] = useState({ connected: false, status: 'DISCONNECTED', waba_id: '', phone_number_id: '' });
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [testPhone, setTestPhone] = useState('');
+  const [testing, setTesting] = useState(false);
   const signupDataRef = useRef({ phone_number_id: '', waba_id: '' });
   const sdkLoaded = useRef(false);
 
@@ -112,6 +115,17 @@ const WhatsAppConnectCard = () => {
     } finally { setDisconnecting(false); }
   };
 
+  const sendTest = async () => {
+    if (!testPhone.trim()) { toast.error('Enter a phone number (with country code)'); return; }
+    setTesting(true);
+    try {
+      await axios.post(`${API_URL}/whatsapp/send-test`, { to: testPhone.trim() });
+      toast.success(`Test message sent to ${testPhone}!`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Test message failed');
+    } finally { setTesting(false); }
+  };
+
   return (
     <Card className="border-slate-200" data-testid="whatsapp-connect-card">
       <CardHeader>
@@ -171,6 +185,33 @@ const WhatsAppConnectCard = () => {
               >
                 Reconnect
               </Button>
+            </div>
+            {/* Send Test Message */}
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <p className="text-sm font-medium text-slate-700 mb-2">Send Test AI Message</p>
+              <p className="text-xs text-slate-400 mb-3">
+                Verify two-way delivery by sending a test message to any WhatsApp number.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  value={testPhone}
+                  onChange={e => setTestPhone(e.target.value)}
+                  placeholder="+919876543210"
+                  className="text-sm"
+                  data-testid="test-phone-input"
+                />
+                <Button
+                  size="sm"
+                  onClick={sendTest}
+                  disabled={testing}
+                  className="bg-green-600 hover:bg-green-700 shrink-0"
+                  data-testid="send-test-message-btn"
+                >
+                  {testing
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <><Send className="h-4 w-4 mr-1" />Send Test</>}
+                </Button>
+              </div>
             </div>
           </div>
         ) : (

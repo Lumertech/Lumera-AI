@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -21,15 +22,28 @@ import {
   Mic,
   Sparkles,
   Receipt,
+  FileText,
 } from 'lucide-react';
 import HexaAssistant from '@/components/HexaAssistant';
 import SealOfPrivacy from '@/components/SealOfPrivacy';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [waStatus, setWaStatus] = useState(null); // null | 'CONNECTED' | 'DISCONNECTED'
+
+  // Fetch WA connection status once (doctors only)
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    axios.get(`${API_URL}/whatsapp/status`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => setWaStatus(r.data.status))
+      .catch(() => {});
+  }, []);
 
   // Normalize role: 'receptionist' legacy → 'front_desk'; 'user' legacy → 'doctor'; default 'doctor' for owners
   const rawRole = user?.role || 'doctor';
@@ -66,6 +80,7 @@ const DashboardLayout = ({ children }) => {
     { name: 'AI Voice & WhatsApp', href: '/voice-bot', icon: Phone, roles: ['doctor'] },
     { name: 'WhatsApp Inbox', href: '/whatsapp/inbox', icon: MessageSquare, roles: ['doctor', 'front_desk'] },
     { name: 'WhatsApp Bot', href: '/whatsapp', icon: MessageSquare, roles: ['doctor'] },
+    { name: 'WA Templates', href: '/whatsapp-templates', icon: FileText, roles: ['doctor'] },
     { name: 'Reminders & Retention', href: '/reminders', icon: Bell, roles: ['doctor', 'front_desk'] },
     // Organization
     { name: 'Clinics & Staff', href: '/clinics', icon: Building2, roles: ['doctor'] },
@@ -153,6 +168,17 @@ const DashboardLayout = ({ children }) => {
 
           {/* User Profile */}
           <div className="p-4 border-t border-slate-200">
+            {/* WA status indicator */}
+            {waStatus !== null && (
+              <div className={`flex items-center gap-2 px-3 py-1.5 mb-2 rounded-lg text-xs font-medium ${
+                waStatus === 'CONNECTED'
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-red-50 text-red-600'
+              }`} data-testid="wa-sidebar-status">
+                <span className={`w-2 h-2 rounded-full ${waStatus === 'CONNECTED' ? 'bg-emerald-500' : 'bg-red-400'}`} />
+                WhatsApp {waStatus === 'CONNECTED' ? 'Active' : 'Disconnected'}
+              </div>
+            )}
             <div className="flex items-center space-x-3 px-3 py-2 rounded-lg bg-slate-50">
               <Avatar>
                 <AvatarFallback className="bg-indigo-600 text-white font-manrope">

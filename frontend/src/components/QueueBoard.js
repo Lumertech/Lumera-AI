@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +10,7 @@ import {
   Banknote, CalendarCheck, PartyPopper, X as XIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import WaSendTemplateButton from '@/components/WaSendTemplateButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -85,6 +87,7 @@ const DayEndModal = ({ summary, onClose }) => (
 );
 
 const QueueBoard = () => {
+  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(null);
   const [wrToken, setWrToken] = useState('');
@@ -281,6 +284,14 @@ const QueueBoard = () => {
                       <CheckCircle2 className="h-4 w-4 mr-1" /> Complete
                     </Button>
                   )}
+                  {/* WhatsApp template send — always shown if patient has a phone */}
+                  <WaSendTemplateButton
+                    patientPhone={a.client_phone}
+                    patientName={a.client_name}
+                    appointmentDate={a.date || ''}
+                    appointmentTime={a.start_time || ''}
+                    doctorName={user?.name || ''}
+                  />
                 </div>
               </div>
             );

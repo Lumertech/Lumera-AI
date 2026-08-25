@@ -1,11 +1,13 @@
 """
-WhatsApp Embedded Signup, Multi-Tenant Onboarding & Template Management.
+WhatsApp Embedded Signup, Multi-Tenant Onboarding, Template Management & Outbox.
 
 Routes (all prefixed /api in server.py):
   GET  /whatsapp/platform-config          — public: app_id + config_id for SDK init
   POST /whatsapp/embedded-signup          — auth: exchange OAuth code, save user WA config
   GET  /whatsapp/status                   — auth: user's WA connection status
   POST /whatsapp/disconnect               — auth: disconnect WA
+  POST /whatsapp/send-test                — auth: send a test text message
+  POST /whatsapp/send-template            — auth: send an approved template to a patient
   GET  /whatsapp/templates                — auth: list templates (syncs status from Meta)
   POST /whatsapp/templates                — auth: create & submit template to Meta
   DELETE /whatsapp/templates/{id}         — auth: delete template locally + Meta
@@ -36,6 +38,17 @@ class EmbeddedSignupRequest(BaseModel):
     code: str
     phone_number_id: str
     waba_id: str
+
+
+class SendTestRequest(BaseModel):
+    to: str  # target phone number (with country code)
+
+
+class SendTemplateRequest(BaseModel):
+    to: str               # patient phone number
+    template_name: str    # e.g. "appointment_reminder"
+    language: str = "en_US"
+    params: List[str] = []   # ordered values for {{1}}, {{2}}, ...
 
 
 class CreateTemplateRequest(BaseModel):
@@ -191,6 +204,112 @@ async def whatsapp_disconnect(current_user: dict = Depends(get_current_user)):
          "$unset": {"whatsapp.access_token": "", "whatsapp.waba_id": "", "whatsapp.phone_number_id": ""}}
     )
     return {"status": "DISCONNECTED"}
+
+
+# ---------- Effective config (new embedded signup > legacy meta_whatsapp_configs > env) ----------
+
+async def _get_effective_wa(owner_id: str) -> dict:
+    """Return the best available WA credentials for this owner."""
+    user = await db.users.find_one({"id": owner_id}, {"_id": 0, "whatsapp": 1}) or {}
+    wa = user.get("whatsapp") or {}
+    if wa.get("status") == "CONNECTED" and wa.get("phone_number_id") and wa.get("access_token"):
+        token = wa["access_token"]
+        try:
+            token = encryption_manager.decrypt(token)
+        except Exception:
+            pass
+        return {"phone_number_id": wa["phone_number_id"], "access_token": token, "waba_id": wa.get("waba_id", "")}
+    # Fallback: legacy per-doctor config
+    cfg = await db.meta_whatsapp_configs.find_one({"owner_id": owner_id}, {"_id": 0}) or {}
+    token = cfg.get("system_user_token") or os.environ.get("META_SYSTEM_USER_TOKEN", "")
+    phone_id = cfg.get("phone_number_id") or os.environ.get("META_PHONE_NUMBER_ID", "")
+    if token:
+        try:
+            token = encryption_manager.decrypt(token)
+        except Exception:
+            pass
+    return {"phone_number_id": phone_id, "access_token": token, "waba_id": cfg.get("waba_id", "")}
+
+
+async def _meta_send(phone_number_id: str, access_token: str, payload: dict):
+    """Low-level POST to Meta Graph API messages endpoint."""
+    url = f"{META_GRAPH}/{phone_number_id}/messages"
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(url, json=payload,
+                              headers={"Authorization": f"Bearer {access_token}",
+                                       "Content-Type": "application/json"})
+    return r
+
+
+# ---------- Send Test Message ----------
+
+@router.post("/send-test")
+async def send_test_message(body: SendTestRequest, current_user: dict = Depends(get_current_user)):
+    """Send a test plain-text greeting to verify two-way API delivery."""
+    owner_id = resolve_owner_id(current_user)
+    wa = await _get_effective_wa(owner_id)
+    if not wa["phone_number_id"] or not wa["access_token"]:
+        raise HTTPException(400, "WhatsApp not configured. Complete embedded signup or add credentials in Settings.")
+
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": body.to.lstrip("+"),
+        "type": "text",
+        "text": {"body": "Hello! This is a test message from Lumera. Your WhatsApp Business integration is working correctly."},
+    }
+    try:
+        r = await _meta_send(wa["phone_number_id"], wa["access_token"], payload)
+    except Exception as exc:
+        raise HTTPException(502, f"Meta API unreachable: {exc}")
+
+    if r.status_code >= 400:
+        raise HTTPException(502, f"Meta rejected: {r.json().get('error', {}).get('message', r.text[:200])}")
+
+    return {"sent": True, "to": body.to, "graph": r.json()}
+
+
+# ---------- Send Approved Template ----------
+
+@router.post("/send-template")
+async def send_template_message(body: SendTemplateRequest, current_user: dict = Depends(get_current_user)):
+    """Send an approved WhatsApp template to a patient, substituting {{N}} parameters."""
+    owner_id = resolve_owner_id(current_user)
+    wa = await _get_effective_wa(owner_id)
+    if not wa["phone_number_id"] or not wa["access_token"]:
+        raise HTTPException(400, "WhatsApp not configured.")
+
+    # Build parameters array for body component
+    parameters = [{"type": "text", "text": p} for p in body.params]
+    components = []
+    if parameters:
+        components.append({"type": "body", "parameters": parameters})
+
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": body.to.lstrip("+"),
+        "type": "template",
+        "template": {
+            "name": body.template_name,
+            "language": {"code": body.language},
+            **({"components": components} if components else {}),
+        },
+    }
+    try:
+        r = await _meta_send(wa["phone_number_id"], wa["access_token"], payload)
+    except Exception as exc:
+        raise HTTPException(502, f"Meta API unreachable: {exc}")
+
+    if r.status_code >= 400:
+        raise HTTPException(502, f"Meta rejected: {r.json().get('error', {}).get('message', r.text[:200])}")
+
+    # Log in messages collection
+    await db.meta_whatsapp_messages.insert_one({
+        "owner_id": owner_id, "direction": "outbound", "to": body.to,
+        "body": f"[template:{body.template_name}] params={body.params}",
+        "graph_response": r.json(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"sent": True, "to": body.to, "template": body.template_name, "graph": r.json()}
 
 
 # ---------- Template Management ----------
