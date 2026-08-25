@@ -1811,6 +1811,56 @@ async def update_admin_whatsapp_config(body: dict, admin: dict = Depends(get_adm
     await db.system_config.update_one({"key": "whatsapp_global"}, {"$set": update}, upsert=True)
     return {"message": "Global WhatsApp config saved"}
 
+
+SYSTEM_TEMPLATE_NAMES = [
+    "appointment_confirmation_v1",
+    "appointment_reminder_v1",
+    "prescription_ready_v1",
+    "payment_link_v1",
+]
+
+@api_router.get("/admin/whatsapp-templates-status")
+async def get_system_template_statuses(admin: dict = Depends(get_admin_user)):
+    """Fetch real-time approval status of the 4 system templates from Meta Graph API."""
+    from security import encryption_manager as _enc
+    cfg = await db.system_config.find_one({"key": "whatsapp_global"}, {"_id": 0}) or {}
+    waba_id = cfg.get("waba_id")
+    token = cfg.get("system_user_token")
+    if token:
+        try:
+            token = _enc.decrypt(token)
+        except Exception:
+            pass
+
+    placeholder = [{"name": t, "status": "UNKNOWN", "id": None} for t in SYSTEM_TEMPLATE_NAMES]
+    if not waba_id or not token:
+        return placeholder
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(
+                f"https://graph.facebook.com/v22.0/{waba_id}/message_templates",
+                params={"limit": 100, "fields": "name,status,category,language,rejected_reason,id"},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        if r.status_code != 200:
+            return [{"name": t, "status": "API_ERROR", "id": None, "error": r.text[:120]} for t in SYSTEM_TEMPLATE_NAMES]
+        meta_map = {t["name"]: t for t in r.json().get("data", [])}
+        return [
+            {
+                "name": n,
+                "status": meta_map.get(n, {}).get("status", "NOT_SUBMITTED"),
+                "id": meta_map.get(n, {}).get("id"),
+                "category": meta_map.get(n, {}).get("category"),
+                "language": meta_map.get(n, {}).get("language"),
+                "rejected_reason": meta_map.get(n, {}).get("rejected_reason"),
+            }
+            for n in SYSTEM_TEMPLATE_NAMES
+        ]
+    except Exception as exc:
+        logger.error("Template status fetch error: %s", exc)
+        return [{"name": t, "status": "ERROR", "error": str(exc)[:120]} for t in SYSTEM_TEMPLATE_NAMES]
+
 @api_router.get("/admin/analytics")
 async def get_admin_analytics(admin: dict = Depends(get_admin_user)):
     """Get analytics for admin dashboard"""
