@@ -73,6 +73,24 @@ Rules:
 """
 
 
+def _build_persona_context(cfg: dict) -> str:
+    """Append doctor's workspace AI settings to the base system prompt."""
+    parts = []
+    tone = (cfg.get("tone") or "").strip()
+    name = (cfg.get("persona_name") or "").strip()
+    if name or tone:
+        parts.append(f"\nPersona: You are {name or 'the AI assistant'}, communicating in a {tone or 'Professional'} tone.")
+    if cfg.get("working_hours"):
+        parts.append(f"Clinic working hours: {cfg['working_hours']}")
+    if cfg.get("emergency_number"):
+        parts.append(f"Emergency escalation number: {cfg['emergency_number']}")
+    if cfg.get("custom_system_instructions"):
+        parts.append(f"Custom instructions:\n{cfg['custom_system_instructions']}")
+    if cfg.get("special_guidelines"):
+        parts.append(f"Special guidelines:\n{cfg['special_guidelines']}")
+    return ("\n" + "\n".join(parts)) if parts else ""
+
+
 @router.post("/extract", response_model=ExtractedEMR)
 async def extract_emr(body: ExtractRequest, current_user: dict = Depends(get_current_user)):
     if current_user.get("profession") != "doctor":
@@ -85,9 +103,15 @@ async def extract_emr(body: ExtractRequest, current_user: dict = Depends(get_cur
     except ImportError as e:
         raise HTTPException(status_code=503, detail=f"emergentintegrations not installed: {e}")
 
+    # Inject doctor's workspace AI config into the system prompt
+    ai_cfg = await db.workspace_ai_config.find_one(
+        {"owner_id": current_user["id"]}, {"_id": 0}
+    ) or {}
+    system_msg = SYSTEM_PROMPT + _build_persona_context(ai_cfg)
+
     session_id = f"ambient-{current_user['id']}"
     chat = (
-        LlmChat(api_key=EMERGENT_LLM_KEY, session_id=session_id, system_message=SYSTEM_PROMPT)
+        LlmChat(api_key=EMERGENT_LLM_KEY, session_id=session_id, system_message=system_msg)
         .with_model("openai", "gpt-4o-mini")  # cheap + fast for structured extraction
     )
     ctx = f"\nContext: {body.context}\n" if body.context else ""

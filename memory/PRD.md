@@ -549,6 +549,27 @@ Shipped 6 high-impact features from the 30+ UX list:
 - **Route alias**: added `/appointments/:appointmentId/vitals` alongside `/vitals/:appointmentId`.
 - Backend testing agent: 9/9 pass on safety endpoints incl. `+` regression, 4-source aggregation, and Penicillin conflict.
 
+## Phase 27 — AI Assistant & Rules Settings Tab (2026-08-25) ✅
+
+### Settings Page Restructured into Tabs
+- `Settings.js` rebuilt from a single-column scroll into **4 tabs**: General · AI & Rules · WhatsApp · Payments
+- **General tab**: Reminders, Calendar Integration, Tab Visibility Configuration
+- **AI & Rules tab** (new): `AIConfigCard` + Bot Instructions card
+- **WhatsApp tab**: WhatsApp Connect Card + Twilio Configuration
+- **Payments tab**: Google Review, Payment Gateway, Review Loop, Razorpay, Patient Payment, Payment Fees
+
+### New AI Config Backend
+- `GET/PUT /api/workspace/ai-config` in `routes/settings.py` — per-doctor AI settings stored in `db.workspace_ai_config`
+- Fields: `persona_name`, `tone` (Professional/Empathetic/Direct), `working_hours`, `emergency_number`, `custom_system_instructions`, `special_guidelines`
+- `routes/ambient_ai.py` updated: fetches doctor's `workspace_ai_config` at extraction time and appends it to the SYSTEM_PROMPT via `_build_persona_context()`
+
+### Preview Prompt Context Drawer
+- "Preview Prompt Context" button opens a Shadcn Sheet drawer (right side)
+- Pure client-side assembly — shows exact text that will be sent to the AI model
+- No LLM call made during preview
+
+**Testing: 5/5 backend + 100% frontend (iteration_25)**
+
 ## Phase 24 — Full Landing Page CMS + Domain/Email Cleanup (2026-08-25) ✅
 - `AdminContentEditor.js` rebuilt as 6-tab CMS (Hero/Stats/Languages, Pain Points, Features, Professions, Testimonials, CTA & Footer). `Landing.js` fully CMS-driven. Backend `LandingPageContent` model expanded to 77+ Optional fields.
 - Email cleanup: `support@lumera.ai` → `ravee@lumer.me`, `admin@lumer.com` → `admin@lumer.me` across all files + MongoDB migration. Admin panel WhatsApp Config added to sidebar.

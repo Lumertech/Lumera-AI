@@ -513,6 +513,54 @@ async def send_invoice_receipt(invoice_id: str, current_user: dict = Depends(get
     return {"invoice_id": invoice_id, "receipt_sent": sent}
 
 
+# --------------------------------------------------------------------------- #
+# Workspace AI Config                                                          #
+# --------------------------------------------------------------------------- #
+
+VALID_TONES = {"Professional", "Empathetic", "Direct"}
+
+
+class AIConfigPayload(BaseModel):
+    persona_name: Optional[str] = None
+    tone: Optional[str] = None  # Professional | Empathetic | Direct
+    working_hours: Optional[str] = None
+    emergency_number: Optional[str] = None
+    custom_system_instructions: Optional[str] = None
+    special_guidelines: Optional[str] = None
+
+
+@router.get("/workspace/ai-config")
+async def get_ai_config(current_user: dict = Depends(get_current_user)):
+    owner_id = resolve_owner_id(current_user)
+    doc = await db.workspace_ai_config.find_one({"owner_id": owner_id}, {"_id": 0}) or {}
+    return {
+        "persona_name": doc.get("persona_name", ""),
+        "tone": doc.get("tone", "Professional"),
+        "working_hours": doc.get("working_hours", ""),
+        "emergency_number": doc.get("emergency_number", ""),
+        "custom_system_instructions": doc.get("custom_system_instructions", ""),
+        "special_guidelines": doc.get("special_guidelines", ""),
+    }
+
+
+@router.put("/workspace/ai-config")
+async def save_ai_config(body: AIConfigPayload, current_user: dict = Depends(get_current_user)):
+    if body.tone and body.tone not in VALID_TONES:
+        raise HTTPException(status_code=400, detail=f"tone must be one of {sorted(VALID_TONES)}")
+    owner_id = resolve_owner_id(current_user)
+    update: dict = {"owner_id": owner_id, "updated_at": datetime.now(timezone.utc).isoformat()}
+    for field in AIConfigPayload.model_fields:
+        val = getattr(body, field)
+        if val is not None:
+            update[field] = val.strip() if isinstance(val, str) else val
+    await db.workspace_ai_config.update_one(
+        {"owner_id": owner_id},
+        {"$set": update},
+        upsert=True,
+    )
+    return {"message": "AI config saved"}
+
+
 @router.post("/invoices/{invoice_id}/mark-cash-paid")
 async def mark_invoice_cash_paid(
     invoice_id: str,
