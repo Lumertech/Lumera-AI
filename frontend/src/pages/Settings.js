@@ -734,26 +734,26 @@ const Settings = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="general" data-testid="settings-tabs">
-          <TabsList className="w-full h-auto flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl">
-            <TabsTrigger value="general" className="flex items-center gap-1.5 flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="settings-tab-general">
-              <SettingsIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">General</span>
+          <TabsList className="w-full h-auto flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl overflow-x-auto">
+            <TabsTrigger value="general" className="flex items-center gap-1.5 flex-1 min-w-[70px] data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="settings-tab-general">
+              <SettingsIcon className="h-4 w-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm truncate">General</span>
             </TabsTrigger>
-            <TabsTrigger value="ai" className="flex items-center gap-1.5 flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="settings-tab-ai">
-              <Bot className="h-4 w-4" />
-              <span className="hidden sm:inline">AI &amp; Rules</span>
+            <TabsTrigger value="ai" className="flex items-center gap-1.5 flex-1 min-w-[70px] data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="settings-tab-ai">
+              <Bot className="h-4 w-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm truncate">AI &amp; Rules</span>
             </TabsTrigger>
-            <TabsTrigger value="whatsapp" className="flex items-center gap-1.5 flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="settings-tab-whatsapp">
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">WhatsApp</span>
+            <TabsTrigger value="whatsapp" className="flex items-center gap-1.5 flex-1 min-w-[70px] data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="settings-tab-whatsapp">
+              <MessageSquare className="h-4 w-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm truncate">WhatsApp</span>
             </TabsTrigger>
-            <TabsTrigger value="payments" className="flex items-center gap-1.5 flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="settings-tab-payments">
-              <Wallet className="h-4 w-4" />
-              <span className="hidden sm:inline">Payments</span>
+            <TabsTrigger value="payments" className="flex items-center gap-1.5 flex-1 min-w-[70px] data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="settings-tab-payments">
+              <Wallet className="h-4 w-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm truncate">Payments</span>
             </TabsTrigger>
-            <TabsTrigger value="specialty" className="flex items-center gap-1.5 flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="settings-tab-specialty">
-              <Stethoscope className="h-4 w-4" />
-              <span className="hidden sm:inline">Specialty &amp; Intake</span>
+            <TabsTrigger value="specialty" className="flex items-center gap-1.5 flex-1 min-w-[70px] data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="settings-tab-specialty">
+              <Stethoscope className="h-4 w-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm truncate">Specialty</span>
             </TabsTrigger>
           </TabsList>
 

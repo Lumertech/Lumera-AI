@@ -633,5 +633,31 @@ Shipped 6 high-impact features from the 30+ UX list:
 - Testing: 9/9 backend + 100% frontend (iteration_23)
 
 
+## Phase 31 — Specialty-Aware Treatment Plans + Follow-Up Slot Scheduling (2026-08-26) ✅
+
+### Bug Fixes
+- Removed duplicate `</CardTitle>` tag in `Dashboard.js` (JSX compilation error)
+- Added missing `handleFileUpload` function declaration in `Appointments.js` (floating code syntax error)
+
+### Specialty-Aware Treatment & Assessment Generator
+- `PrescriptionWriter.js` detects doctor's specialty via `user.specialty` and renders specialty-specific forms:
+  - **Physiotherapy**: Exercise Programme table (Exercise Name, Sets, Reps, Hold Duration, Notes), Therapeutic Modalities toggles (Heat Compress, Cold Pack, TENS, Ultrasound), Ergonomic Guidelines — replaces medications as primary treatment section
+  - **Psychiatry**: PHQ-9/GAD-7 Assessment Scores + CBT & Behavioral Assignments alongside standard Rx
+  - **Dermatology**: AM/PM Skincare Protocol + Post-Procedure Aftercare Guidelines alongside standard Rx
+  - **General Practice / others**: Standard medications table (unchanged)
+- For Physiotherapy: "Medications (Optional)" header; no validation error if medications left empty
+- New components: `SpecialtyPlanSection.js` and helper exports `getSpecialtyCategory`, `getEmptySpecialtyPlan`
+- `print.js` updated: `renderPrescriptionHTML` accepts `specialty_plan` and `specialty_category`. Physio prints "Exercise Care Sheet"; psych/derm append their plan blocks after standard Rx section
+
+### Follow-Up Scheduling & Calendar Slot Integration
+- New backend endpoint: `GET /api/calendar/available-slots?date=YYYY-MM-DD&days=1` — returns 30-min slots (08:00–20:00), filtered by existing non-cancelled appointments for the doctor
+- `PrescriptionWriter.js` replaces old follow-up date chips with `FollowUpSlotPicker` component:
+  - Quick chips (+3 Days, +1 Week, +2 Weeks, +1 Month)
+  - Real-time slot grid from `/api/calendar/available-slots`
+  - Confirmed slot shown in a prominent confirmation bar
+- On prescription submit with a slot: backend auto-creates follow-up appointment in `db.appointments` with `source='prescription_followup'` and `parent_prescription_id` for traceability
+- WhatsApp post-prescription message now includes specialty plan details + follow-up booking block ("📅 FOLLOW-UP APPOINTMENT / Date / Time")
+- Testing: 13/13 backend + 100% frontend (iteration_28)
+
 ## Test Credentials
 See `/app/memory/test_credentials.md`

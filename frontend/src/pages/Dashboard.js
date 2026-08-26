@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/Layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, IndianRupee, Clock, TrendingUp, Award } from 'lucide-react';
+import { Calendar, Users, IndianRupee, Clock, TrendingUp, Award, MessageSquare, Info, ArrowRight } from 'lucide-react';
 import { formatDate, formatTime, formatCurrency } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -12,14 +13,26 @@ import FeedbackWidget from '@/components/FeedbackWidget';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
+const OPD_TIER_PERKS = {
+  free:       { label: 'Free',       color: 'bg-slate-100 text-slate-700', perks: ['Up to 20 patients/day','Basic queue management','Manual reminders'] },
+  growth:     { label: 'Growth',     color: 'bg-indigo-100 text-indigo-700', perks: ['Unlimited patients','WhatsApp reminders','AI notes (50/mo)','Analytics dashboard'] },
+  enterprise: { label: 'Enterprise', color: 'bg-amber-100 text-amber-700', perks: ['Everything in Growth','Unlimited AI notes','Multi-clinic support','Priority support','Custom branding'] },
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [analytics, setAnalytics] = useState(null);
   const [opd, setOpd] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [waStatus, setWaStatus] = useState(null);
+  const [tierTooltip, setTierTooltip] = useState(false);
 
   useEffect(() => {
     fetchAnalytics();
+    axios.get(`${API_URL}/whatsapp/status`)
+      .then(r => setWaStatus(r.data.status))
+      .catch(() => {});
   }, []);
 
   const fetchAnalytics = async () => {
@@ -47,7 +60,7 @@ const Dashboard = () => {
       color: 'from-blue-500 to-indigo-500',
     },
     {
-      title: 'Total Clients',
+      title: 'Total Patients',
       value: analytics?.total_clients || 0,
       icon: Users,
       color: 'from-purple-500 to-pink-500',
@@ -69,6 +82,26 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-8" data-testid="dashboard-container">
+        {/* WhatsApp reconnect banner */}
+        {waStatus && waStatus !== 'CONNECTED' && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl" data-testid="wa-reconnect-banner">
+            <div className="flex items-start gap-3">
+              <MessageSquare className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-manrope font-semibold text-amber-800">WhatsApp not connected</p>
+                <p className="text-sm text-amber-700 mt-0.5">Automated reminders, booking confirmations, and AI messaging are paused.</p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => navigate('/settings?tab=whatsapp')}
+              className="bg-amber-500 hover:bg-amber-600 text-white flex-shrink-0 flex items-center gap-1.5"
+              data-testid="wa-connect-btn"
+            >
+              Connect via Meta <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
         {/* Welcome Section */}
         <div className="bg-gradient-to-br from-indigo-600 to-teal-600 rounded-xl p-8 text-white shadow-lg">
           <h1 className="font-manrope font-bold text-3xl mb-2">Welcome back, {user?.name}!</h1>
@@ -108,7 +141,31 @@ const Dashboard = () => {
               <CardTitle className="font-manrope text-xl flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-indigo-600" />
                 OPD Performance
-                <Badge className="ml-2 bg-amber-100 text-amber-800"><Award className="h-3 w-3 mr-1" />{opd.incentive?.tier}</Badge>
+                <div className="relative flex items-center gap-1 ml-2">
+                  <Badge className="bg-amber-100 text-amber-800 cursor-pointer" onClick={() => setTierTooltip(t=>!t)}>
+                    <Award className="h-3 w-3 mr-1" />{opd.incentive?.tier || 'Free'}
+                  </Badge>
+                  <button onClick={() => setTierTooltip(t=>!t)} className="text-slate-400 hover:text-slate-600" title="Tier perks">
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                  {tierTooltip && (() => {
+                    const tier = (opd.incentive?.tier || 'free').toLowerCase();
+                    const info = OPD_TIER_PERKS[tier] || OPD_TIER_PERKS.free;
+                    return (
+                      <div className="absolute top-7 left-0 z-20 w-56 p-3 bg-white border border-slate-200 rounded-xl shadow-xl text-xs" data-testid="tier-tooltip">
+                        <p className="font-semibold text-slate-800 mb-2">{info.label} tier perks</p>
+                        <ul className="space-y-1">
+                          {info.perks.map(p => <li key={p} className="flex items-start gap-1 text-slate-600"><span className="text-green-500 mt-0.5">✓</span>{p}</li>)}
+                        </ul>
+                        {tier !== 'enterprise' && (
+                          <Link to="/subscription" className="mt-2 flex items-center gap-1 text-indigo-600 font-medium hover:underline">
+                            Upgrade <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
@@ -222,7 +279,7 @@ const Dashboard = () => {
             <Card className="border-slate-200 card-hover cursor-pointer" data-testid="quick-action-clients">
               <CardContent className="p-6 text-center">
                 <Users className="h-12 w-12 text-purple-600 mx-auto mb-3" />
-                <h3 className="font-manrope font-semibold text-lg text-slate-900 mb-2">View Clients</h3>
+                <h3 className="font-manrope font-semibold text-lg text-slate-900 mb-2">View Patients</h3>
                 <p className="font-inter text-sm text-slate-600">Manage your client database</p>
               </CardContent>
             </Card>

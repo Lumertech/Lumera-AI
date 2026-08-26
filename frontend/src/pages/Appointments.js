@@ -89,15 +89,23 @@ const Appointments = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'scheduled':
-        return 'bg-green-100 text-green-800';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-slate-100 text-slate-800';
+      case 'scheduled':    return 'bg-green-100 text-green-800';
+      case 'completed':    return 'bg-blue-100 text-blue-800';
+      case 'cancelled':    return 'bg-red-100 text-red-800';
+      case 'no_show':      return 'bg-orange-100 text-orange-800';
+      case 'in_person':    return 'bg-violet-100 text-violet-800';
+      case 'confirmed':    return 'bg-emerald-100 text-emerald-800';
+      case 'pending':      return 'bg-yellow-100 text-yellow-800';
+      default:             return 'bg-slate-100 text-slate-800';
     }
+  };
+
+  const getStatusLabel = (status) => {
+    const map = {
+      scheduled: 'Scheduled', completed: 'Completed', cancelled: 'Cancelled',
+      no_show: 'No Show', in_person: 'In-Person', confirmed: 'Confirmed', pending: 'Pending',
+    };
+    return map[status] || (status ? status.replace(/_/g, ' ') : 'Unknown');
   };
 
   const handleUploadClick = (appt, e) => {
@@ -109,6 +117,17 @@ const Appointments = () => {
   const handlePrescriptionClick = (appt, e) => {
     e.stopPropagation();
     navigate(`/appointments/${appt.id}/prescription`);
+  };
+
+  const handleStartTimeChange = (e) => {
+    const start = e.target.value;
+    let autoEnd = '';
+    if (start) {
+      const [h, m] = start.split(':').map(Number);
+      const totalMins = h * 60 + m + 30;
+      autoEnd = `${String(Math.floor(totalMins / 60) % 24).padStart(2,'0')}:${String(totalMins % 60).padStart(2,'0')}`;
+    }
+    setFormData(prev => ({ ...prev, start_time: start, end_time: prev.end_time || autoEnd }));
   };
 
   const handleFileUpload = async () => {
@@ -232,7 +251,7 @@ const Appointments = () => {
                         <Input
                           type="time"
                           value={formData.start_time}
-                          onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                          onChange={handleStartTimeChange}
                           required
                           data-testid="start-time-input"
                         />
@@ -336,7 +355,7 @@ const Appointments = () => {
                     <div className="flex flex-col items-end space-y-3">
                       <div className="flex items-center space-x-2">
                         <span className={`px-3 py-1 rounded-full text-xs font-manrope font-semibold ${getStatusColor(appt.status)}`}>
-                          {appt.status}
+                          {getStatusLabel(appt.status)}
                         </span>
                         <span className="px-3 py-1 rounded-full text-xs font-manrope font-semibold bg-slate-100 text-slate-700">
                           {appt.consultation_mode}

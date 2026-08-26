@@ -62,6 +62,9 @@ class PrescriptionCreate(BaseModel):
     vitals: Optional[Dict[str, Any]] = None       # {bp, pulse, spo2, weight, temperature, height, respiratory_rate}
     lab_tests: Optional[List[Dict[str, Any]]] = None  # [{name, code, category, notes}]
     request_feedback: Optional[bool] = True       # schedule 2h post-consult feedback
+    specialty_plan: Optional[Dict[str, Any]] = None  # specialty-specific treatment plan
+    follow_up_slot: Optional[Dict[str, Any]] = None  # {date, start_time, end_time}
+    follow_up_date: Optional[str] = None  # fallback plain date if no slot
 
 
 class DrugInteractionRequest(BaseModel):
@@ -310,6 +313,8 @@ async def create_prescription(
         "lab_tests": prescription.lab_tests or [],
         "linked_to_abha": False,
         "doctor_name": current_user['name'],
+        "specialty_plan": prescription.specialty_plan or {},
+        "follow_up_date": prescription.follow_up_slot.get("date") if prescription.follow_up_slot else (prescription.follow_up_date or ""),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.prescriptions.insert_one(prescription_data.copy())
@@ -346,6 +351,88 @@ async def create_prescription(
 
     meds_text = "\n".join([_format_med(i, med) for i, med in enumerate(prescription.medications)])
 
+    # Specialty plan text block
+    specialty_block = ""
+    sp = prescription.specialty_plan or {}
+    if sp:
+        # Physio
+        if sp.get("exercise_plan"):
+            lines = []
+            for ex in sp["exercise_plan"]:
+                if ex.get("exercise_name"):
+                    parts = [ex["exercise_name"]]
+                    if ex.get("sets"): parts.append(f"{ex['sets']} sets")
+                    if ex.get("reps"): parts.append(f"{ex['reps']} reps")
+                    if ex.get("hold_duration"): parts.append(f"hold {ex['hold_duration']}")
+                    lines.append("• " + " × ".join(parts))
+            if lines:
+                specialty_block += "\n\nEXERCISE PROGRAMME:\n" + "\n".join(lines)
+            modalities = sp.get("modalities", {})
+            active_mods = [k.replace("_", " ").title() for k, v in modalities.items() if v]
+            if active_mods:
+                specialty_block += "\n\nTHERAPEUTIC MODALITIES: " + ", ".join(active_mods)
+            if sp.get("ergonomic_guidelines"):
+                specialty_block += f"\n\nERGONOMIC GUIDELINES:\n{sp['ergonomic_guidelines']}"
+        # Psych
+        if sp.get("cbt_assignments"):
+            lines = []
+            for a in sp["cbt_assignments"]:
+                if a.get("type"):
+                    desc = f": {a['description']}" if a.get("description") else ""
+                    lines.append(f"• {a['type']}{desc}")
+            if lines:
+                specialty_block += "\n\nBEHAVIOURAL ASSIGNMENTS:\n" + "\n".join(lines)
+            ass = sp.get("assessment_summaries", {})
+            if ass.get("phq9_score"):
+                specialty_block += f"\n\nPHQ-9 Score: {ass['phq9_score']} ({ass.get('phq9_severity', '')})"
+            if ass.get("gad7_score"):
+                specialty_block += f"\nGAD-7 Score: {ass['gad7_score']} ({ass.get('gad7_severity', '')})"
+        # Derm
+        if sp.get("am_protocol"):
+            specialty_block += f"\n\nAM ROUTINE:\n{sp['am_protocol']}"
+        if sp.get("pm_protocol"):
+            specialty_block += f"\n\nPM ROUTINE:\n{sp['pm_protocol']}"
+        if sp.get("aftercare_guidelines"):
+            specialty_block += f"\n\nAFTERCARE:\n{sp['aftercare_guidelines']}"
+
+    # Follow-up booking block
+    follow_up_block = ""
+    follow_up_appointment_id = None
+    if prescription.follow_up_slot:
+        slot = prescription.follow_up_slot
+        slot_date = slot.get("date", "")
+        slot_start = slot.get("start_time", "")
+        slot_end = slot.get("end_time", "")
+        try:
+            from datetime import datetime as _dt
+            display_date = _dt.strptime(slot_date, "%Y-%m-%d").strftime("%d %b %Y")
+        except Exception:
+            display_date = slot_date
+        follow_up_block = f"\n\n📅 FOLLOW-UP APPOINTMENT\nDate: {display_date}\nTime: {slot_start} – {slot_end}\nPlease arrive 5 minutes early."
+        # Auto-create follow-up appointment
+        try:
+            follow_up_appointment_id = str(uuid.uuid4())
+            follow_up_data = {
+                "id": follow_up_appointment_id,
+                "professional_id": current_user['id'],
+                "client_name": prescription.client_name,
+                "client_phone": appointment["client_phone"],
+                "appointment_date": slot_date,
+                "start_time": slot_start,
+                "end_time": slot_end,
+                "type": "Follow-Up",
+                "notes": f"Auto-booked follow-up from prescription {prescription_id}",
+                "status": "confirmed",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "source": "prescription_followup",
+                "parent_prescription_id": prescription_id,
+                "clinic_id": appointment.get("clinic_id"),
+            }
+            await db.appointments.insert_one(follow_up_data.copy())
+            await db.prescriptions.update_one({"id": prescription_id}, {"$set": {"follow_up_appointment_id": follow_up_appointment_id}})
+        except Exception as e:
+            logging.warning(f"Failed to create follow-up appointment: {e}")
+
     # Vitals block
     v = prescription.vitals or {}
     vitals_lines = []
@@ -372,7 +459,7 @@ Doctor: Dr. {current_user['name']}
 Date: {datetime.now().strftime('%d %b %Y')}{vitals_block}
 
 MEDICATIONS:
-{meds_text}{lab_block}
+{meds_text or '(See care plan below)'}{lab_block}{specialty_block}{follow_up_block}
 
 GENERAL INSTRUCTIONS:
 {prescription.instructions}

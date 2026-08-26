@@ -512,19 +512,18 @@ const Profile = () => {
                   placeholder="email@example.com"
                   className="flex-1"
                 />
-                <Button
-                  onClick={() => handleSendOTP('email')}
-                  disabled={sendingOtp || newEmail === profile.email}
-                  variant="outline"
-                  className="border-indigo-600 text-indigo-600"
-                >
-                  {sendingOtp ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Mail className="h-4 w-4 mr-2" />
-                  )}
-                  {newEmail === profile.email ? 'Verified' : 'Verify'}
-                </Button>
+                {/* Only show Verify button when the email has actually changed */}
+                {newEmail !== profile.email && (
+                  <Button
+                    onClick={() => handleSendOTP('email')}
+                    disabled={sendingOtp}
+                    variant="outline"
+                    className="border-indigo-600 text-indigo-600"
+                  >
+                    {sendingOtp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                    Verify New Email
+                  </Button>
+                )}
               </div>
               <p className="text-xs text-slate-500">
                 Change requires email verification via OTP
@@ -555,19 +554,18 @@ const Profile = () => {
                   placeholder="+911234567890"
                   className="flex-1"
                 />
-                <Button
-                  onClick={() => handleSendOTP('phone')}
-                  disabled={sendingOtp || newPhone === profile.phone_number}
-                  variant="outline"
-                  className="border-green-600 text-green-600"
-                >
-                  {sendingOtp ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Phone className="h-4 w-4 mr-2" />
-                  )}
-                  {newPhone === profile.phone_number ? 'Verified' : 'Verify'}
-                </Button>
+                {/* Only show Verify button when phone has actually changed */}
+                {newPhone !== profile.phone_number && (
+                  <Button
+                    onClick={() => handleSendOTP('phone')}
+                    disabled={sendingOtp}
+                    variant="outline"
+                    className="border-green-600 text-green-600"
+                  >
+                    {sendingOtp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4 mr-2" />}
+                    Verify New Number
+                  </Button>
+                )}
               </div>
               <p className="text-xs text-slate-500">
                 Change requires WhatsApp OTP verification

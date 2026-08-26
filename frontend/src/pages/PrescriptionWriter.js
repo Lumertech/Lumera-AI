@@ -20,6 +20,8 @@ import { printDocument, renderPrescriptionHTML } from '@/lib/print';
 import { VitalsHeader, DrugAutocomplete, LabTestPicker, RxPresets } from '@/components/PrescriptionExtras';
 import AmbientAIToggle from '@/components/AmbientAIToggle';
 import PatientTimeline from '@/components/PatientTimeline';
+import SpecialtyPlanSection, { getSpecialtyCategory, getEmptySpecialtyPlan } from '@/components/SpecialtyPlanSection';
+import FollowUpSlotPicker from '@/components/FollowUpSlotPicker';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -68,8 +70,21 @@ const PrescriptionWriter = () => {
   const [showPastNotes, setShowPastNotes] = useState(false);
   const [linkToAbha, setLinkToAbha] = useState(false);
   const [followUpDate, setFollowUpDate] = useState('');
+  const [followUpSlot, setFollowUpSlot] = useState(null); // {date, start_time, end_time}
   const [importingLastRx, setImportingLastRx] = useState(false);
   const [outstanding, setOutstanding] = useState(null);
+
+  // Specialty-aware treatment plan
+  const specialtyCategory = getSpecialtyCategory(user?.specialty);
+  const [specialtyPlan, setSpecialtyPlan] = useState(() => getEmptySpecialtyPlan(getSpecialtyCategory(user?.specialty)));
+
+  // Re-init plan if user loads after mount
+  useEffect(() => {
+    const cat = getSpecialtyCategory(user?.specialty);
+    if (cat !== 'general') {
+      setSpecialtyPlan(prev => prev || getEmptySpecialtyPlan(cat));
+    }
+  }, [user?.specialty]);
 
   // Drug interactions
   const [interactionsLoading, setInteractionsLoading] = useState(false);
@@ -434,7 +449,8 @@ const PrescriptionWriter = () => {
 
   const handlePrint = () => {
     const validMeds = medications.filter((m) => m.medicine_name.trim());
-    if (validMeds.length === 0) {
+    // Physio practitioners may not have medications — check specialty plan instead
+    if (validMeds.length === 0 && specialtyCategory !== 'physio') {
       toast.error('Add at least one medication before printing');
       return;
     }
@@ -452,13 +468,16 @@ const PrescriptionWriter = () => {
       date: new Date().toISOString(),
       vitals,
       labTests,
+      specialty_plan: specialtyPlan,
+      specialty_category: specialtyCategory,
     });
-    printDocument({ title: `Prescription - ${appointment?.client_name || ''}`, html });
+    printDocument({ title: `${specialtyCategory === 'physio' ? 'Care Plan' : 'Prescription'} - ${appointment?.client_name || ''}`, html });
   };
 
   const submitPrescription = async () => {
     const validMeds = medications.filter((m) => m.medicine_name.trim());
-    if (validMeds.length === 0) return toast.error('Please add at least one medication');
+    // Physio: specialty plan replaces medications requirement
+    if (validMeds.length === 0 && specialtyCategory !== 'physio') return toast.error('Please add at least one medication');
     if (!generalInstructions.trim()) return toast.error('Please add general instructions');
 
     setSending(true);
@@ -472,7 +491,9 @@ const PrescriptionWriter = () => {
         link_to_abha: linkToAbha,
         vitals,
         lab_tests: labTests,
-        follow_up_date: followUpDate || null,
+        specialty_plan: specialtyPlan,
+        follow_up_slot: followUpSlot || null,
+        follow_up_date: followUpSlot?.date || followUpDate || null,
         request_feedback: true,
       });
       toast.success('Prescription sent to patient via WhatsApp!');
@@ -702,11 +723,13 @@ const PrescriptionWriter = () => {
           </CardContent>
         </Card>
 
-        {/* Medications */}
+        {/* Medications — hidden for pure-physio, optional for psych/derm */}
         <Card className="border-slate-200">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="font-manrope">Medications</CardTitle>
+              <CardTitle className="font-manrope">
+                {specialtyCategory === 'physio' ? 'Medications (Optional)' : 'Medications'}
+              </CardTitle>
               <div className="flex space-x-2">
                 <Button onClick={checkInteractions} size="sm" variant="outline" disabled={interactionsLoading} className="border-amber-500 text-amber-700 hover:bg-amber-50" data-testid="check-interactions-btn">
                   {interactionsLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ShieldAlert className="h-4 w-4 mr-2" />}
@@ -851,6 +874,15 @@ const PrescriptionWriter = () => {
         {/* Lab / Imaging Orders */}
         <LabTestPicker tests={labTests} onChange={setLabTests} />
 
+        {/* Specialty-Aware Treatment Plan */}
+        {specialtyCategory !== 'general' && specialtyPlan && (
+          <SpecialtyPlanSection
+            category={specialtyCategory}
+            plan={specialtyPlan}
+            onChange={setSpecialtyPlan}
+          />
+        )}
+
         {/* General instructions */}
         <Card className="border-slate-200">
           <CardHeader>
@@ -933,50 +965,31 @@ const PrescriptionWriter = () => {
           </CardContent>
         </Card>
 
-        {/* Prescription footer: vitals summary + BMI + follow-up chips */}
+        {/* Prescription footer: vitals summary + BMI + follow-up slot picker */}
         <Card className="border-slate-200 bg-slate-50" data-testid="rx-footer-card">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div className="flex flex-wrap gap-2 text-xs">
-                {vitals?.bp && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>BP</b> {vitals.bp}</span>}
-                {vitals?.pulse && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>Pulse</b> {vitals.pulse}</span>}
-                {vitals?.spo2 && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>SpO₂</b> {vitals.spo2}</span>}
-                {vitals?.temperature && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>Temp</b> {vitals.temperature}</span>}
-                {vitals?.weight && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>Wt</b> {vitals.weight}kg</span>}
-                {vitals?.height && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>Ht</b> {vitals.height}cm</span>}
-                {bmi && (
-                  <span
-                    className={`px-2 py-1 rounded border font-semibold ${bmiCategory?.color || ''}`}
-                    data-testid="bmi-chip"
-                  >
-                    <b>BMI</b> {bmi} · {bmiCategory?.label}
-                  </span>
-                )}
-                {!vitals?.bp && !vitals?.pulse && !vitals?.weight && (
-                  <span className="text-slate-500 italic">No vitals recorded yet — ask the nurse to capture them from Vitals Entry.</span>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2" data-testid="followup-chips">
-                <span className="text-xs text-slate-600 font-semibold">Follow-up:</span>
-                {[{ l: '+3 D', d: 3 }, { l: '+1 W', d: 7 }, { l: '+2 W', d: 14 }, { l: '+1 M', d: 30 }].map((c) => (
-                  <button
-                    key={c.d}
-                    type="button"
-                    onClick={() => applyFollowUpChip(c.d)}
-                    className="px-2 py-1 rounded-full text-xs bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                    data-testid={`followup-chip-${c.d}`}
-                  >
-                    {c.l}
-                  </button>
-                ))}
-                <Input
-                  type="date"
-                  value={followUpDate}
-                  onChange={(e) => setFollowUpDate(e.target.value)}
-                  className="h-7 text-xs w-36"
-                  data-testid="followup-date-input"
-                />
-              </div>
+          <CardContent className="p-4 space-y-4">
+            <div className="flex flex-wrap gap-2 text-xs">
+              {vitals?.bp && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>BP</b> {vitals.bp}</span>}
+              {vitals?.pulse && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>Pulse</b> {vitals.pulse}</span>}
+              {vitals?.spo2 && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>SpO₂</b> {vitals.spo2}</span>}
+              {vitals?.temperature && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>Temp</b> {vitals.temperature}</span>}
+              {vitals?.weight && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>Wt</b> {vitals.weight}kg</span>}
+              {vitals?.height && <span className="px-2 py-1 rounded bg-white border border-slate-200"><b>Ht</b> {vitals.height}cm</span>}
+              {bmi && (
+                <span
+                  className={`px-2 py-1 rounded border font-semibold ${bmiCategory?.color || ''}`}
+                  data-testid="bmi-chip"
+                >
+                  <b>BMI</b> {bmi} · {bmiCategory?.label}
+                </span>
+              )}
+              {!vitals?.bp && !vitals?.pulse && !vitals?.weight && (
+                <span className="text-slate-500 italic">No vitals recorded yet — ask the nurse to capture them from Vitals Entry.</span>
+              )}
+            </div>
+            <div data-testid="followup-section">
+              <p className="text-sm font-semibold text-slate-700 mb-2">Schedule Follow-Up Appointment</p>
+              <FollowUpSlotPicker value={followUpSlot} onChange={setFollowUpSlot} />
             </div>
           </CardContent>
         </Card>

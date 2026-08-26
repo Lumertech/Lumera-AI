@@ -326,3 +326,66 @@ async def upsert_appointment_vitals(
         }},
     )
     return {"message": "Vitals saved", "vitals": payload, "captured_by": current_user.get("name")}
+
+
+
+# ---------- Calendar available-slots ----------
+
+@router.get("/calendar/available-slots")
+async def get_available_slots(
+    date: str,
+    days: int = 1,
+    current_user: dict = Depends(get_current_user),
+):
+    """Return 30-min available slots for a given date (YYYY-MM-DD) + day window.
+    Clinic hours: 08:00–20:00. Excludes already-booked start times."""
+    from datetime import timedelta as _td, date as _date_type
+    owner_id = resolve_owner_id(current_user)
+
+    try:
+        start_date = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=None)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+    end_date = start_date + _td(days=days)
+
+    # Collect booked (date, start_time) pairs
+    booked = set()
+    async for appt in db.appointments.find(
+        {
+            "professional_id": owner_id,
+            "appointment_date": {"$gte": start_date.strftime("%Y-%m-%d"), "$lt": end_date.strftime("%Y-%m-%d")},
+            "status": {"$nin": ["cancelled", "no_show"]},
+        },
+        {"_id": 0, "appointment_date": 1, "start_time": 1},
+    ):
+        if appt.get("appointment_date") and appt.get("start_time"):
+            booked.add((appt["appointment_date"], appt["start_time"]))
+
+    now_ts = datetime.now().replace(tzinfo=None)
+    all_slots = []
+    current_d = start_date
+    while current_d < end_date:
+        date_str = current_d.strftime("%Y-%m-%d")
+        total_start = 8 * 60  # 08:00
+        total_end = 20 * 60   # 20:00
+        t = total_start
+        while t < total_end:
+            h, m = divmod(t, 60)
+            slot_time = f"{h:02d}:{m:02d}"
+            te = t + 30
+            he, me = divmod(te, 60)
+            slot_end_time = f"{he:02d}:{me:02d}"
+
+            # Skip past slots
+            slot_dt = datetime(current_d.year, current_d.month, current_d.day, h, m)
+            if slot_dt <= now_ts:
+                t += 30
+                continue
+
+            if (date_str, slot_time) not in booked:
+                all_slots.append({"date": date_str, "start_time": slot_time, "end_time": slot_end_time})
+            t += 30
+        current_d += _td(days=1)
+
+    return {"slots": all_slots, "from_date": start_date.strftime("%Y-%m-%d"), "days": days}

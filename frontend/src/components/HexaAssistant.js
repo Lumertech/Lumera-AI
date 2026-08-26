@@ -107,7 +107,7 @@ const HexaAssistant = () => {
       <button
         onClick={() => setOpen(true)}
         data-testid="hexa-open-btn"
-        className="fixed bottom-6 right-6 z-40 group"
+        className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 group"
         title="Hexa AI Assistant"
       >
         <div className="relative">
@@ -121,7 +121,7 @@ const HexaAssistant = () => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-1.5rem)]" data-testid="hexa-panel">
+    <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-50 w-[92vw] max-w-[380px]" data-testid="hexa-panel">
       <Card className="border-indigo-200 shadow-2xl">
         <CardContent className="p-0">
           <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-t-xl">

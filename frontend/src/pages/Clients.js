@@ -13,6 +13,15 @@ import PatientTimeline from '@/components/PatientTimeline';
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
 const Clients = () => {
+  // Normalize phone number for display: strip everything, add +91 prefix for 10-digit Indian numbers
+  const formatPhone = (phone) => {
+    if (!phone) return '—';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) return `+91 ${digits.slice(0,5)} ${digits.slice(5)}`;
+    if (digits.length === 12 && digits.startsWith('91')) return `+91 ${digits.slice(2,7)} ${digits.slice(7)}`;
+    if (digits.length === 13 && digits.startsWith('091')) return `+91 ${digits.slice(3,8)} ${digits.slice(8)}`;
+    return phone; // international or unknown — return as-is
+  };
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -85,7 +94,7 @@ const Clients = () => {
             <div className="relative max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Search clients..."
+                placeholder="Search patients..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -99,7 +108,7 @@ const Clients = () => {
           <Card className="border-slate-200">
             <CardContent className="p-12 text-center">
               <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-slate-600 font-inter">Loading clients...</p>
+              <p className="text-slate-600 font-inter">Loading patients...</p>
             </CardContent>
           </Card>
         ) : filteredClients.length > 0 ? (
@@ -118,7 +127,7 @@ const Clients = () => {
                       <div className="space-y-2 mt-3">
                         <div className="flex items-center space-x-2 text-sm text-slate-600">
                           <Phone className="h-4 w-4 flex-shrink-0" />
-                          <span className="font-inter truncate">{client.phone}</span>
+                          <span className="font-inter truncate">{formatPhone(client.phone)}</span>
                         </div>
                         {client.email && (
                           <div className="flex items-center space-x-2 text-sm text-slate-600">
@@ -164,12 +173,8 @@ const Clients = () => {
           <Card className="border-slate-200">
             <CardContent className="p-12 text-center">
               <Users className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="font-manrope font-semibold text-xl text-slate-900 mb-2">
-                No clients found
-              </h3>
-              <p className="font-inter text-slate-600">
-                Clients will appear here automatically when you create appointments.
-              </p>
+              <h3 className="font-manrope font-semibold text-xl text-slate-900 mb-2">No patients found</h3>
+              <p className="font-inter text-slate-600">Patients will appear here automatically when you create appointments.</p>
             </CardContent>
           </Card>
         )}

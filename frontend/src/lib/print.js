@@ -82,7 +82,60 @@ const escape = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]));
 
-export function renderPrescriptionHTML({ clinic, doctor, patient, medications = [], instructions = '', date, vitals = null, labTests = [], letterhead = null }) {
+// ---- Specialty care plan renderers (print) ----
+
+function renderPhysioPlanBlock(plan) {
+  if (!plan) return '<h2>Exercise & Physical Therapy Plan</h2><p class="muted">No exercises recorded.</p>';
+  const exRows = (plan.exercise_plan || []).filter(e => e.exercise_name).map((e, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><strong>${escape(e.exercise_name)}</strong></td>
+      <td>${escape(e.sets || '–')}</td>
+      <td>${escape(e.reps || '–')}</td>
+      <td>${escape(e.hold_duration || '–')}</td>
+      <td class="muted">${escape(e.notes || '')}</td>
+    </tr>`).join('');
+  const activeMods = Object.entries(plan.modalities || {}).filter(([, v]) => v).map(([k]) => k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())).join(', ');
+  return `
+    <h2>Exercise &amp; Physical Therapy Plan</h2>
+    <table>
+      <thead><tr><th>#</th><th>Exercise</th><th>Sets</th><th>Reps</th><th>Hold</th><th>Notes</th></tr></thead>
+      <tbody>${exRows || '<tr><td colspan="6" class="muted">No exercises recorded</td></tr>'}</tbody>
+    </table>
+    ${activeMods ? `<h2>Therapeutic Modalities</h2><p>${escape(activeMods)}</p>` : ''}
+    ${plan.ergonomic_guidelines ? `<h2>Ergonomic Guidelines</h2><p>${escape(plan.ergonomic_guidelines).replace(/\n/g, '<br/>')}</p>` : ''}
+  `;
+}
+
+function renderPsychPlanBlock(plan) {
+  if (!plan) return '';
+  const aRows = (plan.cbt_assignments || []).filter(a => a.type).map((a, i) => `
+    <tr><td>${i + 1}</td><td><strong>${escape(a.type)}</strong></td><td>${escape(a.description || '')}</td></tr>`).join('');
+  const ass = plan.assessment_summaries || {};
+  const scores = [
+    ass.phq9_score ? `PHQ-9: ${escape(ass.phq9_score)} — ${escape(ass.phq9_severity || '')}` : '',
+    ass.gad7_score ? `GAD-7: ${escape(ass.gad7_score)} — ${escape(ass.gad7_severity || '')}` : '',
+  ].filter(Boolean).join(' &nbsp;|&nbsp; ');
+  return `
+    ${scores ? `<h2>Assessment Scores</h2><p>${scores}</p>` : ''}
+    <h2>CBT &amp; Behavioral Assignments</h2>
+    <table>
+      <thead><tr><th>#</th><th>Assignment</th><th>Instructions</th></tr></thead>
+      <tbody>${aRows || '<tr><td colspan="3" class="muted">No assignments</td></tr>'}</tbody>
+    </table>
+  `;
+}
+
+function renderDermPlanBlock(plan) {
+  if (!plan) return '';
+  return `
+    ${plan.am_protocol ? `<h2>AM Skincare Routine</h2><p>${escape(plan.am_protocol).replace(/\n/g, '<br/>')}</p>` : ''}
+    ${plan.pm_protocol ? `<h2>PM Skincare Routine</h2><p>${escape(plan.pm_protocol).replace(/\n/g, '<br/>')}</p>` : ''}
+    ${plan.aftercare_guidelines ? `<h2>Post-Procedure Aftercare</h2><p>${escape(plan.aftercare_guidelines).replace(/\n/g, '<br/>')}</p>` : ''}
+  `;
+}
+
+export function renderPrescriptionHTML({ clinic, doctor, patient, medications = [], instructions = '', date, vitals = null, labTests = [], letterhead = null, specialty_plan = null, specialty_category = 'general' }) {
   const dateStr = date ? new Date(date).toLocaleDateString() : new Date().toLocaleDateString();
 
   // Build letterhead block if provided — takes precedence over `clinic` fallback
@@ -176,7 +229,7 @@ export function renderPrescriptionHTML({ clinic, doctor, patient, medications = 
     <div class="row">
       <div>${clinicBlock}</div>
       <div class="right">
-        <h3>Prescription</h3>
+        <h3>${specialty_category === 'physio' ? 'Exercise Care Sheet' : 'Prescription'}</h3>
         <div class="muted">Date: ${escape(dateStr)}</div>
       </div>
     </div>
@@ -196,11 +249,15 @@ export function renderPrescriptionHTML({ clinic, doctor, patient, medications = 
 
     ${vitalsBlock}
 
+    ${specialty_category === 'physio' ? renderPhysioPlanBlock(specialty_plan) : `
     <h2>Rx</h2>
     <table>
       <thead><tr><th>#</th><th>Medicine</th><th>Dosage</th><th>Frequency</th><th>Duration</th></tr></thead>
       <tbody>${medsRows || '<tr><td colspan="5" class="muted">No medications</td></tr>'}</tbody>
-    </table>
+    </table>`}
+
+    ${specialty_category === 'psych' && specialty_plan ? renderPsychPlanBlock(specialty_plan) : ''}
+    ${specialty_category === 'derm' && specialty_plan ? renderDermPlanBlock(specialty_plan) : ''}
 
     ${labBlock}
 
